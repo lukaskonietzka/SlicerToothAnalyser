@@ -19,21 +19,21 @@ from slicer import vtkMRMLScalarVolumeNode
 
 
 
-#
+##################################################
 # ToothAnalyser
-#
-
-
+##################################################
 class ToothAnalyser(ScriptedLoadableModule):
-    """Uses ScriptedLoadableModule base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
+    """ This Class holds all meta information about this module
+    and add the connection to the 3D Slicer core application.
+    As a child class of "ScriptedLoadableModule" all methods from
+    this class can be used.
     """
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("ToothAnalyser")  # TODO: make this more human readable by adding spaces
         # TODO: set categories (folders where the module shows up in the module selector)
-        self.parent.categories = [translate("qSlicerAbstractCoreModule", "Examples")]
+        self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Lukas Konietzka", "Simon Hoffmann", "Peter Rösch"]  # TODO: replace with "Firstname Lastname (Organization)"
         # TODO: update with short description of the module and a link to online module documentation
@@ -52,10 +52,9 @@ and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR0132
         slicer.app.connect("startupCompleted()", registerSampleData)
 
 
-#
-# Register sample data sets in Sample Data module
-#
-
+##################################################
+# Register sample data for the module tests
+##################################################
 def registerSampleData():
     """Add data sets to Sample Data module."""
     # It is always recommended to provide sample data for users to make it easy to try the module,
@@ -101,10 +100,9 @@ def registerSampleData():
     )
 
 
-#
+##################################################
 # ToothAnalyserParameterNode
-#
-
+##################################################
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
     """
@@ -117,11 +115,9 @@ class ToothAnalyserParameterNode:
     runAsBatch: bool
 
 
-#
+##################################################
 # ToothAnalyserWidget
-#
-
-
+##################################################
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic
@@ -360,14 +356,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 
-#
+##################################################
 # ToothAnalyserLogic
-#
-
-
+##################################################
 class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
-    """
-    This class should implement all the actual
+    """ This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
     this class and make use of the functionality without
@@ -380,8 +373,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     _selectedAlgorithm = None
 
     def __init__(self) -> None:
-        """
-        Called when the logic class is instantiated.
+        """ Called when the logic class is instantiated.
         Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
@@ -396,8 +388,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def getAlgorithmsByName(cls) -> list[str]:
-        """
-        Collects all subclasses names of the class "ToothAnalyserLogic" in a list
+        """ Collects all subclasses names of the class "ToothAnalyserLogic" in a list
         param: None
         return: algorithms: A list out of names from all available algorithms
         """
@@ -405,8 +396,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def getAvailableAlgorithms(cls) -> list[any]:
-        """
-        Collects all subclasses in a list. Type must be any,
+        """ Collects all subclasses in a list. Type must be any,
         because we do not know which subclasses will be added
         param: None
         return: algorithms: A list out of objects from all available algorithms
@@ -415,8 +405,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def setSelectedAlgorithm(cls, currentAlgorithmName: str) -> None:
-        """
-        This methode set the current algorithms as selected,
+        """ This methode set the current algorithms as selected,
         if it is an available algorithm.
         param: currentAlgorithmName: The algorithm that should be selected
         return: None
@@ -428,8 +417,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def getSelectedAlgorithm(cls):
-        """
-        Getter for the field selectedAlgorithm
+        """ Getter for the field selectedAlgorithm
         param: None
         return: _selectedAlgorithms: The algorithm that is selected
         """
@@ -437,8 +425,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def preProcessing(cls) -> None:
-        """
-        Method for defining preconditions for an algorithm
+        """ Method for defining preconditions for an algorithm
         param: None
         return: None
         """
@@ -446,16 +433,14 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def postProcessing(cls) -> None:
-        """
-        Method for defining post conditions for an algorithm
+        """ Method for defining post conditions for an algorithm
         param: None
         return: None
         """
         print("Nach jedem Algorithmus")
 
     def execute(self, param: ToothAnalyserParameterNode) -> None:
-        """
-        Method for executing the algorithm on an single image
+        """ Method for executing the algorithm on an single image
         This methode has to be implemented in the child class
         param: param: All parameters that the user can set via the ui
         return: None
@@ -463,8 +448,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the execute() methode in the child class")
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode) -> None:
-        """
-        Method for executing the algorithm as batch
+        """ Method for executing the algorithm as batch
         This methode has to be implemented in the child class
         param: param: All parameters that the user can set via the ui
         return: None
@@ -472,8 +456,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the executeAsBatch() methode in the child class")
 
     def monitorProgress(self, estimatedRuntimeInSec: int) -> None:
-        """
-        Monitors the progress of the running algorithm
+        """ Monitors the progress of the running algorithm
         based on the estimated runtime.
         param: algorithm_runtime_seconds (int): Estimated runtime of the algorithm.
         return: None
@@ -503,8 +486,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def deletFromScene(cls, currentVolume) -> None:
-        """
-        Deletes the given Volume from the MRML-Scene if there is anything to delete
+        """ Deletes the given Volume from the MRML-Scene if there is anything to delete
         param: currentVolume xtkMRMLNodeVolume: The Volume to be deleted
         return None
         """
@@ -517,8 +499,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def loadFromDirectory(cls, path: str, suffix: tuple[str]) -> None:
-        """
-        Loads all data with the given suffix from the given path
+        """ Loads all data with the given suffix from the given path
         param: path (str): path to the files
         param; suffix (tuple[str]): Only files with this format are loaded
         return: fileCount (int): The number of images that have been loaded
@@ -545,8 +526,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def countFiles(cls, path: str, suffix: tuple[str]) -> int:
-        """
-        This methode counts all Files in a given directory with the given ending
+        """ This methode counts all Files in a given directory with the given ending
         param: path (str): path to the files
         param; suffix (tuple[str]): Only files with this format are loaded
         return: fileCount (int): The number of images that have been loaded
@@ -557,8 +537,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def isValidPath(cls, path: str) -> bool:
-        """
-        This method checks whether the given string is a path to a folder
+        """ This method checks whether the given string is a path to a folder
         This should work for all common operating systems
         param: path (str): value to check for a path
         return: isValidPath (bool): Returns True if the given string is a path to a folder
@@ -570,8 +549,14 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
 
 class Otsu(ToothAnalyserLogic):
+    """ This class is a possible strategy that can
+    selected via the parameter "Algorithm" in the UI"""
+
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
+        """ This method is an abstract method form the parent class
+        ToothAnalyserLogic. It is implementing the current strategy
+        as a single procedure."""
         super().preProcessing()
         import time
 
@@ -592,6 +577,9 @@ class Otsu(ToothAnalyserLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
+        """ This method is an abstract method form the parent class
+        ToothAnalyserLogic. It is implementing the current strategy
+        as a single procedure."""
         super().preProcessing()
         print("execute Hoffmann-Otsu as Batch ...")
 
@@ -605,8 +593,14 @@ class Otsu(ToothAnalyserLogic):
 
 
 class Renyi(ToothAnalyserLogic):
+    """ This class is a possible strategy that can
+    selected via the parameter "Algorithm" in the UI"""
+
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode):
+        """ This method is an abstract method form the parent class
+        ToothAnalyserLogic. It is implementing the current strategy
+        as a single procedure."""
         super().preProcessing()
         # -------------------
         # Führe deinen Algorithmus hier aus ...
@@ -617,17 +611,18 @@ class Renyi(ToothAnalyserLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode):
+        """ This method is an abstract method form the parent class
+        ToothAnalyserLogic. It is implementing the current strategy
+        as a single procedure."""
         super().preProcessing()
         print("execute Hoffmann-Renyi as Batch ...")
         super().postProcessing()
         print()
 
 
-#
-# ToothAnalyserTest
-#
-
-
+##################################################
+# ToothAnalyserTests
+##################################################
 class ToothAnalyserTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
