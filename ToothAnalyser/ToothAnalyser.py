@@ -94,6 +94,19 @@ def registerSampleData():
 ##################################################
 # ToothAnalyserParameterNode
 ##################################################
+
+@parameterPack
+class AnalyticalParameters:
+    showHistogram: bool
+    currentAnalyticalVolume: vtkMRMLScalarVolumeNode
+    useAnalyticForBatch: bool
+
+@parameterPack
+class AnatomicalParameters:
+    currentAnatomicalVolume: vtkMRMLScalarVolumeNode
+    selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
+    useAnatomicalForBatch: bool
+
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
     """
@@ -104,6 +117,14 @@ class ToothAnalyserParameterNode:
     sourcePath: str
     targetPath: str
     runAsBatch: bool
+    analytical: AnalyticalParameters
+    anatomical: AnatomicalParameters
+
+
+
+
+
+
 
 
 ##################################################
@@ -338,11 +359,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Compute output and show error display if something went wrong
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             # Compute output as single or batch
-            ToothAnalyserLogic.setSelectedAlgorithm(self._param.selectedAlgorithm)
+            AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.selectedAlgorithm)
             if self._param.runAsBatch:
-                ToothAnalyserLogic.getSelectedAlgorithm().executeAsBatch(self._param)
+                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(self._param)
             else:
-                ToothAnalyserLogic.getSelectedAlgorithm().execute(self._param)
+                AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
 
 
 
@@ -359,75 +380,20 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
-    _availableAlgorithms = []
-    _selectedAlgorithm = None
-
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
         Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if cls not in ToothAnalyserLogic._availableAlgorithms:
-            ToothAnalyserLogic._availableAlgorithms.append(cls)
-
     def getParameterNode(self):
         return ToothAnalyserParameterNode(super().getParameterNode())
 
-    @classmethod
-    def getAlgorithmsByName(cls) -> list[str]:
-        """ Collects all subclasses names of the class "ToothAnalyserLogic" in a list
-        param: None
-        return: algorithms: A list out of names from all available algorithms
-        """
-        return [subclass.__name__ for subclass in cls._availableAlgorithms]
+    def preProcessing(self):
+        raise NotImplementedError("Bitte die execute-Methode in der Unterklasse implementieren")
 
-    @classmethod
-    def getAvailableAlgorithms(cls) -> list[any]:
-        """ Collects all subclasses in a list. Type must be any,
-        because we do not know which subclasses will be added
-        param: None
-        return: algorithms: A list out of objects from all available algorithms
-        """
-        return [subclass for subclass in cls._availableAlgorithms]
-
-    @classmethod
-    def setSelectedAlgorithm(cls, currentAlgorithmName: str) -> None:
-        """ This methode set the current algorithms as selected,
-        if it is an available algorithm.
-        param: currentAlgorithmName: The algorithm that should be selected
-        return: None
-        """
-        for algorithm in cls.getAvailableAlgorithms():
-            if algorithm.__name__ == currentAlgorithmName:
-                cls._selectedAlgorithm = algorithm
-                break
-
-    @classmethod
-    def getSelectedAlgorithm(cls):
-        """ Getter for the field selectedAlgorithm
-        param: None
-        return: _selectedAlgorithms: The algorithm that is selected
-        """
-        return cls._selectedAlgorithm
-
-    @classmethod
-    def preProcessing(cls) -> None:
-        """ Method for defining preconditions for an algorithm
-        param: None
-        return: None
-        """
-        print("Vor jedem Algorihmus")
-
-    @classmethod
-    def postProcessing(cls) -> None:
-        """ Method for defining post conditions for an algorithm
-        param: None
-        return: None
-        """
-        print("Nach jedem Algorithmus")
+    def postProcessing(self):
+        raise NotImplementedError("Bitte die execute-Methode in der Unterklasse implementieren")
 
     def execute(self, param: ToothAnalyserParameterNode) -> None:
         """ Method for executing the algorithm on an single image
@@ -561,11 +527,115 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         chartNode.SetYAxisRange(0, 4e5)
 
 
+##################################################
+# ToothAnalyser section Analytics
+##################################################
+class Analytics(ToothAnalyserLogic):
+
+    @classmethod
+    def preProcessing(cls):
+        print("Vor jedem analytischen Verfahren")
+
+    @classmethod
+    def postProcessing(cls):
+        print("Nach jedem analytischen Verfahren")
+
+    @classmethod
+    def showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
+        """ This Methode creates a histogram from the current selected Volume
+        param: param: The parameters from the ui
+        param: title: The title for the histogram
+        param: xTitle: The title for the x-axes in the histogram
+        param: yTitle: The title for the y-axes in the histogram
+        return: None
+        """
+        import numpy as np
+
+        # create histogram data
+        imageData = slicer.util.arrayFromVolume(image)
+        histogram = np.histogram(imageData, bins=256)
+        # create chartNode
+        chartNode = slicer.util.plot(histogram, xColumnIndex=1)
+        # set properties of the chartNode
+        chartNode.SetTitle("Histogram of Image: " + image.GetName())
+        chartNode.SetYAxisTitle("Frequency")
+        chartNode.SetXAxisTitle("Intensity")
+        chartNode.SetLegendVisibility(True)
+        chartNode.SetYAxisRange(0, 4e5)
+
+
 
 ##################################################
-# ToothAnalyserStrategies
+# ToothAnalyser section Anatomical Segmentation
 ##################################################
-class Otsu(ToothAnalyserLogic):
+class AnatomicalSegmentationLogic(ToothAnalyserLogic):
+    _availableAlgorithms = []
+    _selectedAlgorithm = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls not in AnatomicalSegmentationLogic._availableAlgorithms:
+            AnatomicalSegmentationLogic._availableAlgorithms.append(cls)
+
+    @classmethod
+    def getAlgorithmsByName(cls) -> list[str]:
+        """ Collects all subclasses names of the class "ToothAnalyserLogic" in a list
+        param: None
+        return: algorithms: A list out of names from all available algorithms
+        """
+        return [subclass.__name__ for subclass in cls._availableAlgorithms]
+
+    @classmethod
+    def getAvailableAlgorithms(cls) -> list[any]:
+        """ Collects all subclasses in a list. Type must be any,
+        because we do not know which subclasses will be added
+        param: None
+        return: algorithms: A list out of objects from all available algorithms
+        """
+        return [subclass for subclass in cls._availableAlgorithms]
+
+    @classmethod
+    def setSelectedAlgorithm(cls, currentAlgorithmName: str) -> None:
+        """ This methode set the current algorithms as selected,
+        if it is an available algorithm.
+        param: currentAlgorithmName: The algorithm that should be selected
+        return: None
+        """
+        for algorithm in cls.getAvailableAlgorithms():
+            if algorithm.__name__ == currentAlgorithmName:
+                cls._selectedAlgorithm = algorithm
+                break
+
+    @classmethod
+    def getSelectedAlgorithm(cls):
+        """ Getter for the field selectedAlgorithm
+        param: None
+        return: _selectedAlgorithms: The algorithm that is selected
+        """
+        return cls._selectedAlgorithm
+
+    @classmethod
+    def preProcessing(cls) -> None:
+        """ Method for defining preconditions for an algorithm
+        param: None
+        return: None
+        """
+        print("Vor jedem Algorihmus")
+
+    @classmethod
+    def postProcessing(cls) -> None:
+        """ Method for defining post conditions for an algorithm
+        param: None
+        return: None
+        """
+        print("Nach jedem Algorithmus")
+
+
+
+##################################################
+# Anatomical Segmentation Strategies
+##################################################
+class Otsu(AnatomicalSegmentationLogic):
     """ This class is a possible strategy that can
     selected via the parameter "Algorithm" in the UI"""
 
@@ -609,7 +679,7 @@ class Otsu(ToothAnalyserLogic):
         print()
 
 
-class Renyi(ToothAnalyserLogic):
+class Renyi(AnatomicalSegmentationLogic):
     """ This class is a possible strategy that can
     selected via the parameter "Algorithm" in the UI"""
 
@@ -619,10 +689,7 @@ class Renyi(ToothAnalyserLogic):
         ToothAnalyserLogic. It is implementing the current strategy
         as a single procedure."""
         super().preProcessing()
-        # -------------------
-        super().showHistogram(param.currentVolume)
         print("execute Hoffmann-Renyi ...")
-        # -------------------
         super().postProcessing()
         print()
 
