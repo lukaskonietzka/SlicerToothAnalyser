@@ -297,7 +297,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param:  The ParameterNode
         return: None
         """
-
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
             self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._observeUI)
@@ -365,12 +364,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         print("batch")
 
 
-
-
-
-
-
-
 ##################################################
 # ToothAnalyserLogic
 ##################################################
@@ -400,7 +393,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Bitte die execute-Methode in der Unterklasse implementieren")
 
     def execute(self, param: ToothAnalyserParameterNode) -> None:
-        """ Method for executing the algorithm on an single image
+        """
+        Method for executing the algorithm on a single image
         This methode has to be implemented in the child class
         param: param: All parameters that the user can set via the ui
         return: None
@@ -408,7 +402,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the execute() methode in the child class")
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode) -> None:
-        """ Method for executing the algorithm as batch
+        """
+        Method for executing the algorithm as batch
         This methode has to be implemented in the child class
         param: param: All parameters that the user can set via the ui
         return: None
@@ -416,7 +411,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the executeAsBatch() methode in the child class")
 
     def monitorProgress(self, estimatedRuntimeInSec: int) -> None:
-        """ Monitors the progress of the running algorithm
+        """
+        Monitors the progress of the running algorithm
         based on the estimated runtime.
         param: algorithm_runtime_seconds (int): Estimated runtime of the algorithm.
         return: None
@@ -446,7 +442,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     @classmethod
     def deletFromScene(cls, currentVolume) -> None:
-        """ Deletes the given Volume from the MRML-Scene if there is anything to delete
+        """
+        Deletes the given Volume from the MRML-Scene if there is anything to delete
         param: currentVolume xtkMRMLNodeVolume: The Volume to be deleted
         return None
         """
@@ -456,98 +453,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
             logging.info(f"The volumen '{volumeNode.GetName()}' was successful deleted .")
         except slicer.util.MRMLNodeNotFoundException:
             logging.error("The volume was not found .")
-
-    @classmethod
-    def loadFromDirectory(cls, path: str, suffix: tuple[str]) -> None:
-        """ Loads all data with the given suffix from the given path
-        param: path (str): path to the files
-        param; suffix (tuple[str]): Only files with this format are loaded
-        return: fileCount (int): The number of images that have been loaded
-        """
-        import os
-
-        if not os.path.exists(path):
-            logging.error(f"Folder {path} dont exists.")
-            return
-
-        # Collect all files that ends with the given suffix
-        files = sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)])
-        if not files:
-            logging.error(f"No File with the given suffix in the  {path}.")
-            return
-
-        # load files from the given path as labelmap
-        for file in files:
-            file_path = os.path.join(path, file)
-            try:
-                if "label" in file.lower():
-                    slicer.util.loadVolume(file_path, properties={"labelmap": True})
-                else:
-                    slicer.util.loadVolume(file_path)
-            except Exception as e:
-                logging.error(f"Error when loading {file_path}: {e}")
-
-    @classmethod
-    def convertToSegmentation(cls) -> None:
-        """ Generates a segmentationNode from a labelNode that is in the
-        current scene. After generation the labelNode will delete.
-        param: None
-        return: None"""
-        labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
-        seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
-        seg.CreateClosedSurfaceRepresentation()
-        seg.SetName("Anatomical Segmentation")
-        seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
-        seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
-
-        slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
-
-    @classmethod
-    def countFiles(cls, path: str, suffix: tuple[str]) -> int:
-        """ This methode counts all Files in a given directory with the given ending
-        param: path (str): path to the files
-        param; suffix (tuple[str]): Only files with this format are loaded
-        return: fileCount (int): The number of images that have been loaded
-        Example: fileCount = countFiles(param.sourcePath, ('.mhd', '.isq'))
-        """
-        import os
-        return len(sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)]))
-
-    @classmethod
-    def isValidPath(cls, path: str) -> bool:
-        """ This method checks whether the given string is a path to a folder
-        This should work for all common operating systems
-        param: path (str): value to check for a path
-        return: isValidPath (bool): Returns True if the given string is a path to a folder
-        """
-        import re
-        # Regex for directory on several operating systems
-        pattern = r'^(?:[a-zA-Z]:\\|/)?(?:[\w\s.-]+(?:\\|/))*$'
-        return bool(re.fullmatch(pattern, path))
-
-    @classmethod
-    def showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
-        """ This Methode creates a histogram from the current selected Volume
-        param: param: The parameters from the ui
-        param: title: The title for the histogram
-        param: xTitle: The title for the x-axes in the histogram
-        param: yTitle: The title for the y-axes in the histogram
-        return: None
-        """
-        import numpy as np
-
-        # create histogram data
-        imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins=256)
-        # create chartNode
-        chartNode = slicer.util.plot(histogram, xColumnIndex= 1)
-        # set properties of the chartNode
-        chartNode.SetTitle("Histogram of Image: " + image.GetName())
-        chartNode.SetYAxisTitle("Frequency")
-        chartNode.SetXAxisTitle("Intensity")
-        chartNode.SetLegendVisibility(True)
-        chartNode.SetYAxisRange(0, 4e5)
 
 
 ##################################################
@@ -565,7 +470,8 @@ class Analytics(ToothAnalyserLogic):
 
     @classmethod
     def showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
-        """ This Methode creates a histogram from the current selected Volume
+        """
+        This Methode creates a histogram from the current selected Volume
         param: param: The parameters from the ui
         param: title: The title for the histogram
         param: xTitle: The title for the x-axes in the histogram
@@ -602,7 +508,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def getAlgorithmsByName(cls) -> list[str]:
-        """ Collects all subclasses names of the class "ToothAnalyserLogic" in a list
+        """
+        Collects all subclasses names of the class "ToothAnalyserLogic" in a list
         param: None
         return: algorithms: A list out of names from all available algorithms
         """
@@ -610,7 +517,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def getAvailableAlgorithms(cls) -> list[any]:
-        """ Collects all subclasses in a list. Type must be any,
+        """
+        Collects all subclasses in a list. Type must be any,
         because we do not know which subclasses will be added
         param: None
         return: algorithms: A list out of objects from all available algorithms
@@ -619,7 +527,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def setSelectedAlgorithm(cls, currentAlgorithmName: str) -> None:
-        """ This methode set the current algorithms as selected,
+        """
+        This methode set the current algorithms as selected,
         if it is an available algorithm.
         param: currentAlgorithmName: The algorithm that should be selected
         return: None
@@ -631,7 +540,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def getSelectedAlgorithm(cls):
-        """ Getter for the field selectedAlgorithm
+        """
+        Getter for the field selectedAlgorithm
         param: None
         return: _selectedAlgorithms: The algorithm that is selected
         """
@@ -639,7 +549,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def preProcessing(cls) -> None:
-        """ Method for defining preconditions for an algorithm
+        """
+        Method for defining preconditions for an algorithm
         param: None
         return: None
         """
@@ -647,11 +558,86 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def postProcessing(cls) -> None:
-        """ Method for defining post conditions for an algorithm
+        """
+        Method for defining post conditions for an algorithm
         param: None
         return: None
         """
         print("Nach jedem Algorithmus")
+
+    @classmethod
+    def loadFromDirectory(cls, path: str, suffix: tuple[str]) -> None:
+        """
+        Loads all data with the given suffix from the given path
+        param: path (str): path to the files
+        param; suffix (tuple[str]): Only files with this format are loaded
+        return: fileCount (int): The number of images that have been loaded
+        """
+        import os
+
+        if not os.path.exists(path):
+            logging.error(f"Folder {path} dont exists.")
+            return
+
+        # Collect all files that ends with the given suffix
+        files = sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)])
+        if not files:
+            logging.error(f"No File with the given suffix in the  {path}.")
+            return
+
+        # load files from the given path as labelmap
+        for file in files:
+            file_path = os.path.join(path, file)
+            try:
+                if "label" in file.lower():
+                    slicer.util.loadVolume(file_path, properties={"labelmap": True})
+                else:
+                    slicer.util.loadVolume(file_path, properties={"singleFile": True})
+            except Exception as e:
+                logging.error(f"Error when loading {file_path}: {e}")
+
+    @classmethod
+    def createSegmentation(cls) -> None:
+        """
+        Generates a segmentationNode from a labelNode that is in the
+        current scene. After generation the labelNode will delete.
+        param: None
+        return: None
+        """
+        labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
+        seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
+        seg.CreateClosedSurfaceRepresentation()
+        seg.SetName("Anatomical Segmentation")
+        seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+        seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
+
+        # aslicer.mrmlScene.RemoveNode(labelmapVolumeNode)
+
+    @classmethod
+    def countFiles(cls, path: str, suffix: tuple[str]) -> int:
+        """
+        This methode counts all Files in a given directory with the given ending
+        param: path (str): path to the files
+        param; suffix (tuple[str]): Only files with this format are loaded
+        return: fileCount (int): The number of images that have been loaded
+        Example: fileCount = countFiles(param.sourcePath, ('.mhd', '.isq'))
+        """
+        import os
+        return len(sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)]))
+
+    @classmethod
+    def isValidPath(cls, path: str) -> bool:
+        """
+        This method checks whether the given string is a path to a folder
+        This should work for all common operating systems
+        param: path (str): value to check for a path
+        return: isValidPath (bool): Returns True if the given string is a path to a folder
+        """
+        import re
+        # Regex for directory on several operating systems
+        pattern = r'^(?:[a-zA-Z]:\\|/)?(?:[\w\s.-]+(?:\\|/))*$'
+        return bool(re.fullmatch(pattern, path))
 
 
 
@@ -680,7 +666,7 @@ class Otsu(AnatomicalSegmentationLogic):
         print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         super().loadFromDirectory("/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann", '.mhd')
-        super().convertToSegmentation()
+        super().createSegmentation()
         super().deletFromScene(param.anatomical.currentAnatomicalVolume)
 
         stop = time.time()
