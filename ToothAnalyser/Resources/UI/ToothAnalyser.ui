@@ -45,7 +45,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="batchCollapsible">
      <property name="text">
-      <string>Batch-Processing</string>
+      <string>Batch Segmentation</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -91,7 +91,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="singleCollapsible">
      <property name="text">
-      <string>Single-Processing</string>
+      <string>Single Segmentation</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -132,6 +132,22 @@
     </widget>
    </item>
    <item>
+    <widget class="qMRMLCollapsibleButton" name="MRMLCollapsibleButton">
+     <property name="text">
+      <string>Analytics</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_4">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="showHistogram">
+        <property name="text">
+         <string>Show Histogram</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="applyButton">
      <property name="enabled">
       <bool>false</bool>
@@ -164,6 +180,12 @@
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLCollapsibleButton</class>
+   <extends>ctkCollapsibleButton</extends>
+   <header>qMRMLCollapsibleButton.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

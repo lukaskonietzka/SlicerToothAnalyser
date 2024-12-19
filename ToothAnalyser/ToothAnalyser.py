@@ -26,27 +26,18 @@ class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
     and add the connection to the 3D Slicer core application.
     As a child class of "ScriptedLoadableModule" all methods from
-    this class can be used.
-    """
+    this class can be used."""
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("ToothAnalyser")  # TODO: make this more human readable by adding spaces
-        # TODO: set categories (folders where the module shows up in the module selector)
+        self.parent.title = _("Tooth Analyser")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
-        self.parent.contributors = ["Lukas Konietzka", "Simon Hoffmann", "Peter Rösch"]  # TODO: replace with "Firstname Lastname (Organization)"
-        # TODO: update with short description of the module and a link to online module documentation
-        # _() function marks text as translatable to other languages
-        self.parent.helpText = _("""
-This is an example of scripted loadable module bundled in an extension.
-See more information in <a href="https://github.com/organization/projectname#ToothAnalyser">module documentation</a>.
-""")
-        # TODO: replace with organization, grant and thanks
-        self.parent.acknowledgementText = _("""
-This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
-and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
-""")
+        self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hoffmann (THA)", "Prof. Dr. Peter Rösch (THA)"]
+        self.parent.helpText = _("""This is an example of scripted loadable module bundled in an extension. See more
+        information in <a href="https://github.com/organization/projectname#ToothAnalyser">module documentation</a>.""")
+        self.parent.acknowledgementText = _("""This module was developed for the dental caries research of the Dental
+        Clinic at the LMU in Munich. The development is a collaboration between the LMU and the THA""")
 
         # Additional initialization step after application startup is complete
         slicer.app.connect("startupCompleted()", registerSampleData)
@@ -156,7 +147,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # in batch mode, without a graphical user interface.
         self.logic = ToothAnalyserLogic()
 
-        # Add Connections
+        # Add scene Connections
         self.connectObservers()
         self.connectStaticUiElements()
 
@@ -171,7 +162,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param: None
         return: None
         """
-        print('connect')
         self.ui.applyButton.connect("clicked(bool)", self.onApplyButton)
         # self.ui.selectedAlgorithm.addItems(ToothAnalyserLogic.getAlgorithmsByName())
         # self.ui.selectedAlgorithm.currentText = ToothAnalyserLogic.getAlgorithmsByName()[0]
@@ -547,7 +537,34 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         pattern = r'^(?:[a-zA-Z]:\\|/)?(?:[\w\s.-]+(?:\\|/))*$'
         return bool(re.fullmatch(pattern, path))
 
+    @classmethod
+    def showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
+        """ This Methode creates a histogram from the current selected Volume
+        param: param: The parameters from the ui
+        param: title: The title for the histogram
+        param: xTitle: The title for the x-axes in the histogram
+        param: yTitle: The title for the y-axes in the histogram
+        return: None
+        """
+        import numpy as np
 
+        # create histogram data
+        imageData = slicer.util.arrayFromVolume(image)
+        histogram = np.histogram(imageData, bins=256)
+        # create chartNode
+        chartNode = slicer.util.plot(histogram, xColumnIndex= 1)
+        # set properties of the chartNode
+        chartNode.SetTitle("Histogram of Image: " + image.GetName())
+        chartNode.SetYAxisTitle("Frequency")
+        chartNode.SetXAxisTitle("Intensity")
+        chartNode.SetLegendVisibility(True)
+        chartNode.SetYAxisRange(0, 4e5)
+
+
+
+##################################################
+# ToothAnalyserStrategies
+##################################################
 class Otsu(ToothAnalyserLogic):
     """ This class is a possible strategy that can
     selected via the parameter "Algorithm" in the UI"""
@@ -603,7 +620,7 @@ class Renyi(ToothAnalyserLogic):
         as a single procedure."""
         super().preProcessing()
         # -------------------
-        # Führe deinen Algorithmus hier aus ...
+        super().showHistogram(param.currentVolume)
         print("execute Hoffmann-Renyi ...")
         # -------------------
         super().postProcessing()
