@@ -274,6 +274,13 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._param.currentVolume = firstVolumeNode
 
+        if not self._param.analytical.currentAnalyticalVolume:
+            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+            if firstVolumeNode:
+                self._param.analytical.currentAnalyticalVolume = firstVolumeNode
+
+
+
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -360,6 +367,12 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             # Compute output as single or batch
             AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.selectedAlgorithm)
+
+            if self._param.analytical.showHistogram:
+                print('True show')
+            else:
+                print('false show')
+
             if self._param.runAsBatch:
                 AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(self._param)
             else:
