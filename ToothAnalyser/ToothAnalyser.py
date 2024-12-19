@@ -487,11 +487,20 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
             except Exception as e:
                 logging.error(f"Error when loading {file_path}: {e}")
 
-
+    @classmethod
+    def convertToSegmentation(cls) -> None:
+        """ Generates a segmentationNode from a labelNode that is in the
+        current scene. After generation the labelNode will delete.
+        param: None
+        return: None"""
         labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
         seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
         seg.CreateClosedSurfaceRepresentation()
+        seg.SetName("Anatomical Segmentation")
+        seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+        seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
+
         slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
 
     @classmethod
@@ -671,6 +680,7 @@ class Otsu(AnatomicalSegmentationLogic):
         print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         super().loadFromDirectory("/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann", '.mhd')
+        super().convertToSegmentation()
         super().deletFromScene(param.anatomical.currentAnatomicalVolume)
 
         stop = time.time()
