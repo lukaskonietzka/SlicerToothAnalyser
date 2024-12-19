@@ -6,42 +6,11 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>373</width>
+    <width>395</width>
     <height>435</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
-    <layout class="QFormLayout" name="formLayout_3">
-     <item row="0" column="0">
-      <widget class="QCheckBox" name="runAsBatch">
-       <property name="text">
-        <string>Run as batch</string>
-       </property>
-       <property name="SlicerParameterName" stdset="0">
-        <string>runAsBatch</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Algorithm:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="selectedAlgorithm">
-       <property name="placeholderText">
-        <string>select an algorithm</string>
-       </property>
-       <property name="SlicerParameterName" stdset="0">
-        <string>selectedAlgorithm</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
    <item>
     <widget class="qMRMLCollapsibleButton" name="MRMLCollapsibleButton">
      <property name="text">
@@ -51,7 +20,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Volume to be analyzed</string>
+         <string>Volume to be analyzed:</string>
         </property>
        </widget>
       </item>
@@ -89,6 +58,23 @@
         </property>
        </widget>
       </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="checkBox">
+        <property name="text">
+         <string>Use parameter settings for batch</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>analytical.useAnalyticForBatch</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QPushButton" name="applyAnalytics">
+        <property name="text">
+         <string>Apply Analytics</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -109,7 +95,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="qMRMLNodeComboBox" name="currentVolume">
+       <widget class="qMRMLNodeComboBox" name="currentAnatomicalVolume">
         <property name="toolTip">
          <string>Pick the input to the algorithm.</string>
         </property>
@@ -128,7 +114,54 @@
          <bool>false</bool>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>currentVolume</string>
+         <string>anatomical.currentAnatomicalVolume</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Segmentation algorithm:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="selectedAnatomicalAlgo">
+        <property name="placeholderText">
+         <string>select an algorithm</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.selectedAnatomicalAlgo</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="checkBox_2">
+        <property name="text">
+         <string>use parameter settings for batch</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QPushButton" name="applyAnatomical">
+        <property name="text">
+         <string>Apply Anatomics</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+     <property name="text">
+      <string>Caries Segmentation</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_5">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Coming soon ...</string>
         </property>
        </widget>
       </item>
@@ -157,7 +190,7 @@
          <string>Select source path</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>sourcePath</string>
+         <string>batch.sourcePath</string>
         </property>
        </widget>
       </item>
@@ -174,24 +207,24 @@
          <string>Select target path</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>targetPath</string>
+         <string>batch.targetPath</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QPushButton" name="applyBatch">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="toolTip">
+         <string>Run the algorithm.</string>
+        </property>
+        <property name="text">
+         <string>Apply Batch</string>
         </property>
        </widget>
       </item>
      </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QPushButton" name="applyButton">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="toolTip">
-      <string>Run the algorithm.</string>
-     </property>
-     <property name="text">
-      <string>Apply</string>
-     </property>
     </widget>
    </item>
    <item>
@@ -255,7 +288,7 @@
   <connection>
    <sender>Denthal</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>currentVolume</receiver>
+   <receiver>currentAnatomicalVolume</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">

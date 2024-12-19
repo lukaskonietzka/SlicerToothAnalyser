@@ -97,8 +97,8 @@ def registerSampleData():
 
 @parameterPack
 class AnalyticalParameters:
-    showHistogram: bool
     currentAnalyticalVolume: vtkMRMLScalarVolumeNode
+    showHistogram: bool
     useAnalyticForBatch: bool
 
 @parameterPack
@@ -107,18 +107,21 @@ class AnatomicalParameters:
     selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
     useAnatomicalForBatch: bool
 
+@parameterPack
+class Batch:
+    sourcePath: str
+    targetPath: str
+
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
     """
     The parameters needed by module.
     """
-    currentVolume: vtkMRMLScalarVolumeNode
-    selectedAlgorithm: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
     sourcePath: str
     targetPath: str
-    runAsBatch: bool
     analytical: AnalyticalParameters
     anatomical: AnatomicalParameters
+    batch: Batch
 
 
 
@@ -183,7 +186,9 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param: None
         return: None
         """
-        self.ui.applyButton.connect("clicked(bool)", self.onApplyButton)
+        self.ui.applyAnalytics.connect("clicked(bool)", self.onApplyAnalyticsButton)
+        self.ui.applyAnatomical.connect("clicked(bool)", self.onApplyAnatomicalButton)
+        self.ui.applyBatch.connect("clicked(bool)", self.onApplyBatchButton)
         # self.ui.selectedAlgorithm.addItems(ToothAnalyserLogic.getAlgorithmsByName())
         # self.ui.selectedAlgorithm.currentText = ToothAnalyserLogic.getAlgorithmsByName()[0]
 
@@ -269,10 +274,10 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._param.currentVolume:
+        if not self._param.anatomical.currentAnatomicalVolume:
             firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
             if firstVolumeNode:
-                self._param.currentVolume = firstVolumeNode
+                self._param.anatomical.currentAnatomicalVolume = firstVolumeNode
 
         if not self._param.analytical.currentAnalyticalVolume:
             firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
@@ -309,7 +314,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         return: None
         """
         self.handleApplyEnable()
-        self.handleApplyText()
+       # self.handleApplyText()
         self.handleCollapsible()
 
     def handleApplyEnable(self):
@@ -318,20 +323,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param:  None
         return: None
         """
-        if self._param.runAsBatch:
-            if self._param.sourcePath and self._param.targetPath:
-                self.ui.applyButton.enabled = True
-                self.ui.applyButton.toolTip = _("Execute algorithm")
-            else:
-                self.ui.applyButton.enabled = False
-                self.ui.applyButton.toolTip = _("Select source path and target path")
-        else:
-            if self._param and self._param.currentVolume:
-                self.ui.applyButton.toolTip = _("Execute algorithm")
-                self.ui.applyButton.enabled = True
-            else:
-                self.ui.applyButton.toolTip = _("Select Image to start segmentation")
-                self.ui.applyButton.enabled = False
+        pass
 
     def handleApplyText(self):
         """
@@ -339,10 +331,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param:  None
         return: None
         """
-        if self._param.runAsBatch:
-            self.ui.applyButton.text = _("Apply batch mode")
-        else:
-            self.ui.applyButton.text = _("Apply single mode")
+        pass
 
     def handleCollapsible(self):
         """
@@ -350,33 +339,35 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         param:  None
         return: None
         """
-        if self._param.runAsBatch:
-            self.ui.batchCollapsible.checked = True
-            self.ui.singleCollapsible.checked = False
-        else:
-            self.ui.batchCollapsible.checked = False
-            self.ui.singleCollapsible.checked = True
+        pass
 
-    def onApplyButton(self) -> None:
+    def onApplyAnalyticsButton(self) -> None:
+        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+            if self._param.analytical.useAnalyticForBatch:
+                print('True show')
+            else:
+                print('false show')
+
+    def onApplyAnatomicalButton(self) -> None:
+        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+            AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
+            if self._param.anatomical.useAnatomicalForBatch:
+                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(self._param)
+            else:
+                AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
+
+    def onApplyBatchButton(self) -> None:
         """
         Run processing when user clicks "Apply" button.
         param:  None
         return: None
         """
-        # Compute output and show error display if something went wrong
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            # Compute output as single or batch
-            AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.selectedAlgorithm)
+        print("batch")
 
-            if self._param.analytical.showHistogram:
-                print('True show')
-            else:
-                print('false show')
 
-            if self._param.runAsBatch:
-                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(self._param)
-            else:
-                AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
+
+
+
 
 
 
@@ -663,11 +654,11 @@ class Otsu(AnatomicalSegmentationLogic):
         start = time.time()
         logging.info("Processing started")
 
-        print(param.currentVolume.GetName())
+        print(param.anatomical.currentAnatomicalVolume.GetName())
         # liefert Daten über eine MRML Datei
-        #print(param.currentVolume.GetImageData())
+        #print(param.anatomical.currentAnatomicalVolume.GetImageData())
         # gibt den Pfad eines Node aus
-        print(param.currentVolume.GetStorageNode().GetFullNameFromFileName())
+        print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
         # zeigt ein Dialogfenster an, dass den Vortschritt des Algorithmus zeigt.
 
         stop = time.time()
@@ -683,10 +674,10 @@ class Otsu(AnatomicalSegmentationLogic):
         super().preProcessing()
         print("execute Hoffmann-Otsu as Batch ...")
 
-        print(super().isValidPath(param.sourcePath))
+        print(super().isValidPath(param.batch.sourcePath))
 
-        super().loadFromDirectory(param.sourcePath, '.mhd')
-        print(super().countFiles(param.sourcePath, '.mhd'))
+        super().loadFromDirectory(param.batch.sourcePath, '.mhd')
+        print(super().countFiles(param.batch.sourcePath, '.mhd'))
         super().deletFromScene(param.currentVolume)
         super().postProcessing()
         print()
