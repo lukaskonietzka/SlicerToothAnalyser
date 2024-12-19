@@ -9,7 +9,7 @@ import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin
+from slicer.util import VTKObservationMixin, getNode, getNodesByClass
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     WithinRange, Choice, Minimum, parameterPack
@@ -97,37 +97,42 @@ def registerSampleData():
 
 @parameterPack
 class AnalyticalParameters:
+    """
+    The parameters needed by the section
+    Analytics
+    """
     currentAnalyticalVolume: vtkMRMLScalarVolumeNode
     showHistogram: bool
     useAnalyticForBatch: bool
 
 @parameterPack
 class AnatomicalParameters:
+    """
+    The parameters needed by the section
+    Anatomical Segmentation
+    """
     currentAnatomicalVolume: vtkMRMLScalarVolumeNode
     selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
     useAnatomicalForBatch: bool
 
 @parameterPack
 class Batch:
+    """
+    The parameters needed by the section
+    Batch Processing
+    """
     sourcePath: str
     targetPath: str
 
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
     """
-    The parameters needed by module.
+    All parameters needed by module
+    separated in: analytical, anatomical, batch
     """
-    sourcePath: str
-    targetPath: str
     analytical: AnalyticalParameters
     anatomical: AnatomicalParameters
     batch: Batch
-
-
-
-
-
-
 
 
 ##################################################
@@ -284,9 +289,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._param.analytical.currentAnalyticalVolume = firstVolumeNode
 
-
-
-
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
         Set and observe parameter node.
@@ -343,10 +345,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onApplyAnalyticsButton(self) -> None:
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            if self._param.analytical.useAnalyticForBatch:
-                print('True show')
-            else:
-                print('false show')
+            if self._param.analytical.showHistogram:
+                Analytics.showHistogram(self._param.analytical.currentAnalyticalVolume)
 
     def onApplyAnatomicalButton(self) -> None:
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
@@ -480,9 +480,19 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         for file in files:
             file_path = os.path.join(path, file)
             try:
-                slicer.util.loadVolume(file_path, properties={"labelmap": True})
+                if "label" in file.lower():
+                    slicer.util.loadVolume(file_path, properties={"labelmap": True})
+                else:
+                    slicer.util.loadVolume(file_path)
             except Exception as e:
                 logging.error(f"Error when loading {file_path}: {e}")
+
+
+        labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
+        seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
+        seg.CreateClosedSurfaceRepresentation()
+        slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
 
     @classmethod
     def countFiles(cls, path: str, suffix: tuple[str]) -> int:
@@ -659,7 +669,9 @@ class Otsu(AnatomicalSegmentationLogic):
         #print(param.anatomical.currentAnatomicalVolume.GetImageData())
         # gibt den Pfad eines Node aus
         print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
-        # zeigt ein Dialogfenster an, dass den Vortschritt des Algorithmus zeigt.
+
+        super().loadFromDirectory("/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann", '.mhd')
+        super().deletFromScene(param.anatomical.currentAnatomicalVolume)
 
         stop = time.time()
         logging.info(f"Processing completed in {stop - start:.2f} seconds")
@@ -673,12 +685,6 @@ class Otsu(AnatomicalSegmentationLogic):
         as a single procedure."""
         super().preProcessing()
         print("execute Hoffmann-Otsu as Batch ...")
-
-        print(super().isValidPath(param.batch.sourcePath))
-
-        super().loadFromDirectory(param.batch.sourcePath, '.mhd')
-        print(super().countFiles(param.batch.sourcePath, '.mhd'))
-        super().deletFromScene(param.currentVolume)
         super().postProcessing()
         print()
 

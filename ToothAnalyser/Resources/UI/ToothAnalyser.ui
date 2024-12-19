@@ -7,14 +7,17 @@
     <x>0</x>
     <y>0</y>
     <width>395</width>
-    <height>435</height>
+    <height>476</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="qMRMLCollapsibleButton" name="MRMLCollapsibleButton">
+    <widget class="qMRMLCollapsibleButton" name="analyticalCollapsible">
      <property name="text">
       <string>Analytics</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
      </property>
      <layout class="QFormLayout" name="formLayout_4">
       <item row="0" column="0">
@@ -59,9 +62,9 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="useAnalyticForBatch">
         <property name="text">
-         <string>Use parameter settings for batch</string>
+         <string>Use parameters for batch</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>analytical.useAnalyticForBatch</string>
@@ -79,7 +82,7 @@
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="singleCollapsible">
+    <widget class="ctkCollapsibleButton" name="anatomicaCollapsible">
      <property name="text">
       <string>Anatomical Segmentation</string>
      </property>
@@ -136,9 +139,12 @@
        </widget>
       </item>
       <item row="3" column="0">
-       <widget class="QCheckBox" name="checkBox_2">
+       <widget class="QCheckBox" name="useAnatomicalForBatch">
         <property name="text">
-         <string>use parameter settings for batch</string>
+         <string>use parameters for batch</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.useAnatomicalForBatch</string>
         </property>
        </widget>
       </item>
@@ -171,7 +177,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="batchCollapsible">
      <property name="text">
-      <string>Batch Segmentation</string>
+      <string>Batch Processing</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -187,7 +193,7 @@
       <item row="0" column="1">
        <widget class="QLineEdit" name="sourcePath">
         <property name="placeholderText">
-         <string>Select source path</string>
+         <string>Select source directory</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>batch.sourcePath</string>
@@ -204,7 +210,7 @@
       <item row="1" column="1">
        <widget class="QLineEdit" name="targetPath">
         <property name="placeholderText">
-         <string>Select target path</string>
+         <string>Select target directory</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>batch.targetPath</string>
