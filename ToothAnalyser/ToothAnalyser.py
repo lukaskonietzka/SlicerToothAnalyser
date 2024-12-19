@@ -479,19 +479,24 @@ class Analytics(ToothAnalyserLogic):
         return: None
         """
         import numpy as np
+        from collections import namedtuple
+
+        AxisFitting = namedtuple('AxisFitting', ['x', 'y'])
+        axes = AxisFitting(x="Intensity", y="Frequency")
 
         # create histogram data
         imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins=256)
+        histogram = np.histogram(imageData, bins=50)
         # create chartNode
-        chartNode = slicer.util.plot(histogram, xColumnIndex=1)
+        chartNode = slicer.util.plot(histogram, xColumnIndex=1, columnNames=[axes.x, axes.y], title="Histogram")
         # set properties of the chartNode
         chartNode.SetTitle("Histogram of Image: " + image.GetName())
-        chartNode.SetYAxisTitle("Frequency")
-        chartNode.SetXAxisTitle("Intensity")
+        chartNode.SetYAxisTitle(axes.y)
+        chartNode.SetXAxisTitle(axes.x)
         chartNode.SetLegendVisibility(True)
         chartNode.SetYAxisRange(0, 4e5)
-
+        plotSeries = getNode("*PlotSeries*")
+        plotSeries.SetName(axes.y)
 
 
 ##################################################
@@ -589,10 +594,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         for file in files:
             file_path = os.path.join(path, file)
             try:
-                if "label" in file.lower():
-                    slicer.util.loadVolume(file_path, properties={"labelmap": True})
+                if not "img" in file.lower():
+                    slicer.util.loadVolume(file_path, properties={"labelmap": True, "show": False})
                 else:
-                    slicer.util.loadVolume(file_path, properties={"singleFile": True})
+                    slicer.util.loadVolume(file_path, properties={"show": False})
             except Exception as e:
                 logging.error(f"Error when loading {file_path}: {e}")
 
@@ -604,15 +609,16 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         param: None
         return: None
         """
-        labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
+        # load image with the pattern "label"
+        labelmapVolumeNode = getNode('*label*')
+        #labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
         seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
         seg.CreateClosedSurfaceRepresentation()
         seg.SetName("Anatomical Segmentation")
         seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
         seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
-
-        # aslicer.mrmlScene.RemoveNode(labelmapVolumeNode)
+        # slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
 
     @classmethod
     def countFiles(cls, path: str, suffix: tuple[str]) -> int:
