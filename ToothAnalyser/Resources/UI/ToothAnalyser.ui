@@ -13,6 +13,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="qMRMLCollapsibleButton" name="analyticalCollapsible">
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
      <property name="text">
       <string>Analytics</string>
      </property>
@@ -73,6 +76,9 @@
       </item>
       <item row="2" column="1">
        <widget class="QPushButton" name="applyAnalytics">
+        <property name="toolTip">
+         <string>Select a node to apply the analytics</string>
+        </property>
         <property name="text">
          <string>Apply Analytics</string>
         </property>
@@ -80,6 +86,22 @@
       </item>
      </layout>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="ctkCollapsibleButton" name="anatomicaCollapsible">
@@ -150,6 +172,9 @@
       </item>
       <item row="3" column="1">
        <widget class="QPushButton" name="applyAnatomical">
+        <property name="toolTip">
+         <string>Select a node to apply the anatomical segmentation</string>
+        </property>
         <property name="text">
          <string>Apply Anatomics</string>
         </property>
@@ -157,6 +182,22 @@
       </item>
      </layout>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="ctkCollapsibleButton" name="CollapsibleButton">
@@ -173,6 +214,22 @@
       </item>
      </layout>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="ctkCollapsibleButton" name="batchCollapsible">
@@ -223,7 +280,7 @@
          <bool>true</bool>
         </property>
         <property name="toolTip">
-         <string>Run the algorithm.</string>
+         <string>Check if there is exactly one batch setting applyed</string>
         </property>
         <property name="text">
          <string>Apply Batch</string>

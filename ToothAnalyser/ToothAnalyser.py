@@ -6,6 +6,7 @@ from typing import Annotated, Optional
 import vtk
 
 import slicer
+from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
@@ -146,7 +147,10 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
 
     def __init__(self, parent=None) -> None:
-        """Called when the user opens the module the first time and the widget is initialized."""
+        """
+        Called when the user opens the module the first
+        time and the widget is initialized
+        """
         ScriptedLoadableModuleWidget.__init__(self, parent)
         VTKObservationMixin.__init__(self)  # needed for parameter node observation
         self.logic = None
@@ -159,8 +163,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This Method creates an ui from the .ui file, set the scene in MRML widgets, instantiate
         the logic class, connect the observers and the static elements and initialize the
         ParameterNode.
-        param: None
-        returns: None
         """
         ScriptedLoadableModuleWidget.setup(self)
 
@@ -188,8 +190,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method connects all static ui elements that has no specific parameter
         More elements can be added.
         Example: buttons
-        param: None
-        return: None
         """
         self.ui.applyAnalytics.connect("clicked(bool)", self.onApplyAnalyticsButton)
         self.ui.applyAnatomical.connect("clicked(bool)", self.onApplyAnatomicalButton)
@@ -199,9 +199,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def connectObservers(self) -> None:
         """
-        These connections ensure that we update parameter node when scene is closed
-        param: None
-        return: None
+        These connections ensure that we update
+        parameter node when scene is closed
         """
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
@@ -211,8 +210,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Loads widget form .ui file (created by Qt Designer)
         .ui file is located in ./Resources/UI
         Additional widgets can be instantiated manually and added to self.layout
-        param: None
-        return: the created ui
+        return: the created ui as a widget
         """
         uiWidget = slicer.util.loadUI(self.resourcePath("UI/ToothAnalyser.ui"))
         self.layout.addWidget(uiWidget)
@@ -221,38 +219,33 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def cleanup(self) -> None:
         """
-        Called when the application closes and the module widget is destroyed.
-        param: None
-        return: None
+        Called when the application closes and
+        the module widget is destroyed.
         """
         self.removeObservers()
 
     def enter(self) -> None:
         """
-        Called each time the user opens this module.
-        param: None
-        return: None
+        Called each time the user opens this module
+        Make sure parameter node exists and observed
         """
-        # Make sure parameter node exists and observed
         self.initializeParameterNode()
 
     def exit(self) -> None:
         """
         Called each time the user opens a different module.
-        param: None
-        return: None
         """
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
             self._parameterNodeGuiTag = None
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._observeUI)
+            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
 
     def onSceneStartClose(self, caller, event) -> None:
         """
         Called just before the scene is closed.
-        param: None
-        return: None
+        :param: caller
+        :param: event
         """
         # Parameter node will be reset, do not use it anymore
         self.setParameterNode(None)
@@ -262,7 +255,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Called just after the scene is closed.
         param: caller
         param: event
-        return: None
         """
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         if self.parent.isEntered:
@@ -273,8 +265,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Ensure parameter node exists and observed.
         Parameter node stores all user choices in parameter values, node selections, etc.
         so that when the scene is saved and reloaded, these settings are restored.
-        param: None
-        return: None
         """
         self.setParameterNode(self.logic.getParameterNode())
 
@@ -284,6 +274,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._param.anatomical.currentAnatomicalVolume = firstVolumeNode
 
+        # Select default input nodes if nothing is selected yet to save a few clicks for the user
         if not self._param.analytical.currentAnalyticalVolume:
             firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
             if firstVolumeNode:
@@ -293,75 +284,97 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
-        Note: Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each
-        param:  The ParameterNode
-        return: None
+        Note: Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each.
+        param:  The ParameterNode from the module
         """
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._observeUI)
+            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
         self._param = inputParameterNode
         if self._param:
             # ui element that needs connection.
             self._parameterNodeGuiTag = self._param.connectGui(self.ui)
-            self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._observeUI)
-            self._observeUI()
+            self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
+            self._uiObserver()
 
-    def _observeUI(self, caller=None, event=None) -> None:
+    def _uiObserver(self, caller=None, event=None) -> None:
         """
+        This is an event function.
         Called everytime when the UI changes.
-        param:  caller
-        param:  event
-        return: None
+        :param:  caller
+        :param:  event
         """
-        self.handleApplyEnable()
-       # self.handleApplyText()
-        self.handleCollapsible()
+        self.handleApplyBatchButton()
+        self.handleApplyAnalyticsButton()
+        self.handleApplyAnatomicalButton()
 
-    def handleApplyEnable(self):
+    def handleApplyBatchButton(self):
         """
-        Check when all parameters for execution in the mode are available.
-        param:  None
-        return: None
+        This methode check if there is exactly one
+        enabled checkbox.
         """
-        pass
+        if self.validateBatchSettings(
+            paramsToCheck={
+                "analytics": self._param.analytical.useAnalyticForBatch,
+                "anatomical": self._param.anatomical.useAnatomicalForBatch})\
+            and self._param.batch.sourcePath and self._param.batch.targetPath:
+                self.ui.applyBatch.enabled = True
+        else:
+            self.ui.applyBatch.enabled = False
 
-    def handleApplyText(self):
+    def handleApplyAnalyticsButton(self):
         """
-        Changes the text on the apply button in relation to the selected mode.
-        param:  None
-        return: None
+        Enable the "Apply Analytical" Button, if an image is
+        loaded to the scene.
         """
-        pass
+        if not self._param.analytical.currentAnalyticalVolume:
+            self.ui.applyAnalytics.enabled = False
+        else:
+            self.ui.applyAnalytics.enabled = True
 
-    def handleCollapsible(self):
+    def handleApplyAnatomicalButton(self):
         """
-        Handles the collapsible, related to the selected mode.
-        param:  None
-        return: None
+        Enable the "Apply Anatomical" Button, if an image is
+        loaded to the scene.
         """
-        pass
+        if not self._param.anatomical.currentAnatomicalVolume:
+            self.ui.applyAnatomical.enabled = False
+        else:
+            self.ui.applyAnatomical.enabled = True
+
+    def validateBatchSettings(self, paramsToCheck: dict) -> bool:
+        """
+        The method checks if exactly one batch setting checkbox is enabled.
+        :param: A dictionary with the checkboxes to be checked
+        :return: True, if there is exactly one enabled checkbox
+        """
+        return sum(value for value in paramsToCheck.values() if isinstance(value, bool)) == 1
 
     def onApplyAnalyticsButton(self) -> None:
+        """
+        Run the analytical processing in an error display
+        when user clicks "Apply Analytics" Button.
+        """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             if self._param.analytical.showHistogram:
                 Analytics.showHistogram(self._param.analytical.currentAnalyticalVolume)
 
     def onApplyAnatomicalButton(self) -> None:
+        """
+        Run the anatomical segmentation processing in an error display
+        when user clicks "Apply Analytics" Button.
+        """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
-            if self._param.anatomical.useAnatomicalForBatch:
-                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(self._param)
-            else:
-                AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
+            AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
 
     def onApplyBatchButton(self) -> None:
         """
-        Run processing when user clicks "Apply" button.
-        param:  None
-        return: None
+        Run the batch processing in an error display
+        when user clicks "Apply Batch" button.
         """
-        print("batch")
+        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+            print("batch")
 
 
 ##################################################
@@ -383,32 +396,30 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """
         ScriptedLoadableModuleLogic.__init__(self)
 
-    def getParameterNode(self):
+    def getParameterNode(self) -> ToothAnalyserParameterNode:
+        """
+        Getter methode for the ParameterNode needed
+        in the logic class
+        param: None
+        return: The ParameterNode from this module
+        """
         return ToothAnalyserParameterNode(super().getParameterNode())
 
-    def preProcessing(self):
-        raise NotImplementedError("Bitte die execute-Methode in der Unterklasse implementieren")
+    def preProcessing(self) -> None:
+        """Abstract method"""
+        raise NotImplementedError("Please implement the preProcessing() methode in one of the child classes")
 
-    def postProcessing(self):
-        raise NotImplementedError("Bitte die execute-Methode in der Unterklasse implementieren")
+    def postProcessing(self) -> None:
+        """Abstract method"""
+        raise NotImplementedError("Please implement the postProcessing() methode in one of the child classes")
 
     def execute(self, param: ToothAnalyserParameterNode) -> None:
-        """
-        Method for executing the algorithm on a single image
-        This methode has to be implemented in the child class
-        param: param: All parameters that the user can set via the ui
-        return: None
-        """
-        raise NotImplementedError("Please implement the execute() methode in the child class")
+        """Abstract method"""
+        raise NotImplementedError("Please implement the execute() methode in one of the child classes")
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode) -> None:
-        """
-        Method for executing the algorithm as batch
-        This methode has to be implemented in the child class
-        param: param: All parameters that the user can set via the ui
-        return: None
-        """
-        raise NotImplementedError("Please implement the executeAsBatch() methode in the child class")
+        """Abstract method"""
+        raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
     def monitorProgress(self, estimatedRuntimeInSec: int) -> None:
         """
@@ -487,14 +498,21 @@ class Analytics(ToothAnalyserLogic):
         # create histogram data
         imageData = slicer.util.arrayFromVolume(image)
         histogram = np.histogram(imageData, bins=50)
-        # create chartNode
-        chartNode = slicer.util.plot(histogram, xColumnIndex=1, columnNames=[axes.x, axes.y], title="Histogram")
-        # set properties of the chartNode
+
+        # create plot
+        chartNode = slicer.util.plot(
+            narray=histogram,
+            xColumnIndex=1,
+            columnNames=[axes.x, axes.y],
+            title=image.GetName() + "_Histogram")
+
+        # set properties for chartNode
         chartNode.SetTitle("Histogram of Image: " + image.GetName())
         chartNode.SetYAxisTitle(axes.y)
         chartNode.SetXAxisTitle(axes.x)
         chartNode.SetLegendVisibility(True)
         chartNode.SetYAxisRange(0, 4e5)
+        # set properties for  plot series
         plotSeries = getNode("*PlotSeries*")
         plotSeries.SetName(axes.y)
 
@@ -602,23 +620,27 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 logging.error(f"Error when loading {file_path}: {e}")
 
     @classmethod
-    def createSegmentation(cls) -> None:
+    def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool=False) -> None:
         """
-        Generates a segmentationNode from a labelNode that is in the
-        current scene. After generation the labelNode will delete.
-        param: None
+        Generates a segmentationNode from a given labelNode.
+        After generation the segmentationNode will get some properties
+        param: The labelNode to be segmented
+        param: Decides whether the given labelNode should be deleted after segmentation
         return: None
         """
-        # load image with the pattern "label"
-        labelmapVolumeNode = getNode('*label*')
-        #labelmapVolumeNode = getNode('vtkMRMLLabelMapVolumeNode1')
+        # create segmentation
         seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, seg)
+        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelImage, seg)
         seg.CreateClosedSurfaceRepresentation()
-        seg.SetName("Anatomical Segmentation")
+
+        # set properties for segmentation
+        seg.SetName("Anatomical_Segmentation" + labelImage.GetName())
         seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
         seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
-        # slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
+
+        # delete the given labelNode
+        if deleteLabelImage:
+            slicer.mrmlScene.RemoveNode(labelImage)
 
     @classmethod
     def countFiles(cls, path: str, suffix: tuple[str]) -> int:
@@ -651,14 +673,19 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 # Anatomical Segmentation Strategies
 ##################################################
 class Otsu(AnatomicalSegmentationLogic):
-    """ This class is a possible strategy that can
-    selected via the parameter "Algorithm" in the UI"""
+    """
+    This class is a possible strategy for the
+    Anatomical Segmentation that can selected via
+    the parameter "Algorithm" in the UI
+    """
 
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
-        """ This method is an abstract method form the parent class
+        """
+        This method is an abstract method form the parent class
         ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure."""
+        as a single procedure.
+        """
         super().preProcessing()
         import time
 
@@ -671,9 +698,10 @@ class Otsu(AnatomicalSegmentationLogic):
         # gibt den Pfad eines Node aus
         print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
-        super().loadFromDirectory("/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann", '.mhd')
-        super().createSegmentation()
-        super().deletFromScene(param.anatomical.currentAnatomicalVolume)
+        super().loadFromDirectory(path="/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann",
+                                  suffix='.mhd')
+        super().createSegmentation(labelImage=getNode("*label*"))
+        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
 
         stop = time.time()
         logging.info(f"Processing completed in {stop - start:.2f} seconds")
@@ -682,24 +710,32 @@ class Otsu(AnatomicalSegmentationLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
-        """ This method is an abstract method form the parent class
+        """
+        This method is an abstract method form the parent class
         ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure."""
+        as a single procedure.
+        """
         super().preProcessing()
         print("execute Hoffmann-Otsu as Batch ...")
         super().postProcessing()
         print()
 
 
+
 class Renyi(AnatomicalSegmentationLogic):
-    """ This class is a possible strategy that can
-    selected via the parameter "Algorithm" in the UI"""
+    """
+    This class is a possible strategy for the
+    Anatomical Segmentation that can selected via
+    the parameter "Algorithm" in the UI
+    """
 
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode):
-        """ This method is an abstract method form the parent class
+        """
+        This method is an abstract method form the parent class
         ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure."""
+        as a single procedure.
+        """
         super().preProcessing()
         print("execute Hoffmann-Renyi ...")
         super().postProcessing()
@@ -707,13 +743,16 @@ class Renyi(AnatomicalSegmentationLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode):
-        """ This method is an abstract method form the parent class
+        """
+        This method is an abstract method form the parent class
         ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure."""
+        as a single procedure.
+        """
         super().preProcessing()
         print("execute Hoffmann-Renyi as Batch ...")
         super().postProcessing()
         print()
+
 
 
 ##################################################
@@ -733,9 +772,9 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-        self.test_ToothAnalyser1()
+        self.testValidateBatchSettings()
 
-    def test_ToothAnalyser1(self):
+    def testValidateBatchSettings(self):
         """
         Ideally you should have several levels of tests.  At the lowest level
         tests should exercise the functionality of the logic with different inputs
@@ -749,4 +788,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         """
 
         self.delayDisplay("Starting the test")
+
         self.delayDisplay("Test passed")
+
