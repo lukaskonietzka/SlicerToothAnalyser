@@ -356,8 +356,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         when user clicks "Apply Analytics" Button.
         """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            if self._param.analytical.showHistogram:
-                Analytics.showHistogram(self._param.analytical.currentAnalyticalVolume)
+            Analytics.execute(self._param)
 
     def onApplyAnatomicalButton(self) -> None:
         """
@@ -366,7 +365,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
-            AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(self._param)
+            AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(param=self._param)
 
     def onApplyBatchButton(self) -> None:
         """
@@ -374,7 +373,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         when user clicks "Apply Batch" button.
         """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            print("batch")
+            if self._param.analytical.useAnalyticForBatch:
+                Analytics.executeAsBatch(param=self._param)
+            elif self._param.anatomical.useAnatomicalForBatch:
+                AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
+                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(param=self._param)
 
 
 ##################################################
@@ -515,6 +518,20 @@ class Analytics(ToothAnalyserLogic):
         # set properties for  plot series
         plotSeries = getNode("*PlotSeries*")
         plotSeries.SetName(axes.y)
+
+    @classmethod
+    def execute(cls, param: ToothAnalyserParameterNode) -> None:
+        """
+        This method is an abstract method form the parent class
+        ToothAnalyserLogic. It is implementing the algorithm
+        for the analytics
+        """
+        if param.analytical.showHistogram:
+            cls.showHistogram(param.analytical.currentAnalyticalVolume)
+
+    @classmethod
+    def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
+        print("Analytics as Batch")
 
 
 ##################################################
@@ -716,7 +733,7 @@ class Otsu(AnatomicalSegmentationLogic):
         as a single procedure.
         """
         super().preProcessing()
-        print("execute Hoffmann-Otsu as Batch ...")
+        print("execute Anatomical Segmentation with Otsu as Batch ...")
         super().postProcessing()
         print()
 
@@ -749,7 +766,7 @@ class Renyi(AnatomicalSegmentationLogic):
         as a single procedure.
         """
         super().preProcessing()
-        print("execute Hoffmann-Renyi as Batch ...")
+        print("execute Anatomical Segmentation with Renyi as Batch ...")
         super().postProcessing()
         print()
 
