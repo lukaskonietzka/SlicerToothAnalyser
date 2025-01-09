@@ -1,7 +1,6 @@
 import os
 import SimpleITK as sitk
-import numpy as np
-from isq_to_mhd import isq_to_mhd
+from .isq_to_mhd import isq_to_mhd
 
 
 def generate_tooth_set_keys(filter_selection_1, filter_selection_2):
@@ -80,7 +79,7 @@ def parse_name(path):
 
 def parse_names(path, offset=0, size=1):
     # 'path = "/data/shofmann/MicroCT/Original_ISQ/1_100/" -> ['P01A-C0005278', ...]
-    isq_names = sorted([f for f in os.listdir(path) if f.lower().endswith('.isq')]) # alle Filtern mit eine .isq am ende
+    isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')]) # alle Filtern mit eine .isq am ende
     mhd_names = []
 
     if len(isq_names) < offset + size:
@@ -345,15 +344,15 @@ def threshold_filter(img, mask=False, filter_selection = 'Otsu', debug=False):
 #
 # Write, basierend auf Name
 #
-def write(img, name):
+def write(img, name, path):
     # name = 'P01A-C0005278'
     # write(sitk_img, name) -> schreibt P01A-C0005278.mhd und P01A-C0005278.raw
-    sitk.WriteImage(img, name + ".mhd")
+    sitk.WriteImage(img, path + name + ".mhd")
 
 #
 # Write, basierend auf Tooth-Dictionary
 #
-def write_full_dict(tooth):
+def write_full_dict(tooth, path):
     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
     # tooth = load_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
     # write_full_dict(tooth)
@@ -366,17 +365,28 @@ def write_full_dict(tooth):
         elif key == 'name':
             pass
         else:
-            write(tooth[key], name + "_" + key)
+            write(tooth[key], name + "_" + key, path)
+
+
+def getDirectoryForFile(file_path: str) -> str:
+    """
+    Extract the folder path from the given file
+    """
+    folder_path = os.path.dirname(file_path)
+    if not folder_path:
+        folder_path = os.getcwd()
+    return folder_path
+
 
 #
 # Load ISQ
 #
-def load_isq(path, name):
+def load_isq(path, targetPath, name):
     # name = parse_names(__PATH_1_100, offset=0, size=1)[0] -> "P01A-C0005278"
     # path = __PATH_1_100 + name + ".ISQ"
     # img = load_isq(path, name) -> P01A-C0005278.mhd
     # del img
-    name = name + ".mhd"
+    name = targetPath + name + ".mhd"
     isq_to_mhd(path, name)
     return sitk.ReadImage(name)
 
@@ -387,11 +397,11 @@ def load_isq(path, name):
 #
 # Load MHD
 #
-def load_mhd(name):
+def load_mhd(targetPath, name):
     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
     # img = load_mhd(name)
     # del img
-    name = name + ".mhd"
+    name = targetPath + name + ".mhd"
     return sitk.ReadImage(name)
 
 
@@ -399,28 +409,28 @@ def load_mhd(name):
 # Load Tooth-Dictionary, basierend auf Pfad und vorgegebenes Tooth-Set
 #
 # NICHT NÖTIG, Wird nicht verwendet
-def load_full_dict_by_path(path, TOOTH_SET_PLAN):
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # path = __PATH_1_100 + name + '.ISQ'
-    # tooth = load_full_dict_by_path(path, __TOOTH_SET_OTSU_OTSU)
-    # del tooth
-    name = parse_name(path)
-    tooth_dict = {
-        'path': path,
-        'name': name,
-    }
-    for key in TOOTH_SET_PLAN:
-        if key == 'path':
-            pass
-        elif key == 'name':
-            pass
-        else:
-            try:
-                tooth_dict[key] = load_mhd(name + "_" + key)
-            except:  # Ignore if the key isn't in the dictionary
-                pass
-
-    return tooth_dict
+# def load_full_dict_by_path(path, TOOTH_SET_PLAN):
+#     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
+#     # path = __PATH_1_100 + name + '.ISQ'
+#     # tooth = load_full_dict_by_path(path, __TOOTH_SET_OTSU_OTSU)
+#     # del tooth
+#     name = parse_name(path)
+#     tooth_dict = {
+#         'path': path,
+#         'name': name,
+#     }
+#     for key in TOOTH_SET_PLAN:
+#         if key == 'path':
+#             pass
+#         elif key == 'name':
+#             pass
+#         else:
+#             try:
+#                 tooth_dict[key] = load_mhd(name + "_" + key)
+#             except:  # Ignore if the key isn't in the dictionary
+#                 pass
+#
+#     return tooth_dict
 
 # path = '/data/shofmann/MicroCT/Original_ISQ/101_200/Z_117_C0005676.ISQ'
 
@@ -551,29 +561,28 @@ def medial_surface(segment):
 #
 # Pipeline, mit Selection, berechnet Tooth-Dictionary
 #
-def pipe_full_dict_selection(path, filter_selection_1='Renyi', filter_selection_2='Renyi'):
+def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filter_selection_2='Renyi'):
     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
     # tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
 
     name = parse_name(path)
-
-    img = load_isq(path, name)
+    img = load_isq(path, targetPath, name)
     print("img: Done")
 
     # falls Median-Bild bereits in Ordner vorhanden, wird dieses verwendet
     # muss name_img_smooth benannt sein
     try:
-        img_smooth = load_mhd(name + "_" + 'img_smooth')
+        img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
     except:  # smoothed img not already created
         img_smooth = median(img, 5)
-        write(img_smooth, name + "_" + 'img_smooth')
+        write(img_smooth, name + "_" + 'img_smooth', targetPath)
     print("img_smooth: Done")
 
     # falls Zahn-Segmentierung bereits in Ordner vorhanden, wird diese verwendet
     # muss name_tooth_smooth benannt sein
     # ansonsten erster adaptiver Schwellwert (entspricht ersten Schnitt im Histogramm)
     try:
-        tooth = load_mhd(name + "_" + 'tooth')
+        tooth = load_mhd(targetPath, name + "_" + 'tooth')
     except:
         tooth = threshold_filter(img_smooth)
 
@@ -627,7 +636,9 @@ def pipe_full_dict_selection(path, filter_selection_1='Renyi', filter_selection_
     ### Auffüllung
 
     # erweiterte Zahnkontur
-    contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
+    #contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
+    contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
+
     # Hintergrund
     background = (~tooth) == 255
     # enamel_layers_extended_smooth_2 + background -> Schmelz und Hintergund
@@ -721,14 +732,14 @@ def pipe_full_dict_selection(path, filter_selection_1='Renyi', filter_selection_
 # Wrapper für Pipelin, Selection
 # berechnet die Pipeline für ein vorgegebenes Schwellwertverfahren
 #
-def do_fast_selection(path, filter_selection_1 = 'Renyi', filter_selection_2 = 'Renyi'):
-    # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
-    # name = do_fast_selection(path, 'Otsu', 'Otsu')
-    tooth = pipe_full_dict_selection(path, filter_selection_1, filter_selection_2)
-    write_full_dict(tooth)
-    name = tooth['name']
-    print("Done: " + name)
-    return name
+# def do_fast_selection(path, filter_selection_1 = 'Renyi', filter_selection_2 = 'Renyi'):
+#     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
+#     # name = do_fast_selection(path, 'Otsu', 'Otsu')
+#     tooth = pipe_full_dict_selection(path, filter_selection_1, filter_selection_2)
+#     write_full_dict(tooth, path)
+#     name = tooth['name']
+#     print("Done: " + name)
+#     return name
 
 
 #
@@ -736,53 +747,63 @@ def do_fast_selection(path, filter_selection_1 = 'Renyi', filter_selection_2 = '
 # berechnet die Pipeline für ein vorgegebenes Schwellwertverfahren
 # und für die vorgegebene Anzahl von Datein in einem Ordner
 #
-def do_fast_x_selection(path, offset=0, size=1, filter_selection_1='Renyi', filter_selection_2='Renyi'):
-    # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
-    # names = do_fast_x_selection(path, offset=0, size=1, 'Otsu', 'Otsu')
-    isq_names = sorted([f for f in os.listdir(path) if f.lower().endswith('.isq')])
-    mhd_names = []
-
-    if len(isq_names) < offset + size:
-        size = len(isq_names) - offset
-
-    for i in range(size):
-        print(path + isq_names[offset + i])
-        mhd_names.append(do_fast_selection(path + isq_names[offset + i], filter_selection_1, filter_selection_2))
-
-    return mhd_names
+# def do_fast_x_selection(path, offset=0, size=1, filter_selection_1='Renyi', filter_selection_2='Renyi'):
+#     # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
+#     # names = do_fast_x_selection(path, offset=0, size=1, 'Otsu', 'Otsu')
+#     isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
+#     mhd_names = []
+#
+#     if len(isq_names) < offset + size:
+#         size = len(isq_names) - offset
+#
+#     for i in range(size):
+#         print(path + isq_names[offset + i])
+#         mhd_names.append(do_fast_selection(path + isq_names[offset + i], filter_selection_1, filter_selection_2))
+#
+#     return mhd_names
 
 
 #
 # Wrapper für kompletten Datensatz
 # Berechnet den Datensatz für beide Schwellwertverfahren
 #
-def do_fast(path):
-    # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
-    # name = do_fast(path)
-    tooth_renyi_renyi = pipe_full_dict_selection(path, 'Renyi', 'Renyi')
-    write_full_dict(tooth_renyi_renyi)
-    name = tooth_renyi_renyi['name']
-    tooth_otsu_otsu = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
-    write_full_dict(tooth_otsu_otsu)
-    print("Done: " + name)
-    return name
+
+# def do_fast(path):
+#     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
+#     # name = do_fast(path)
+#     tooth_renyi_renyi = pipe_full_dict_selection(path, 'Renyi', 'Renyi')
+#     write_full_dict(tooth_renyi_renyi, path)
+#     name = tooth_renyi_renyi['name']
+#     tooth_otsu_otsu = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
+#     write_full_dict(tooth_otsu_otsu, path)
+#     print("Done: " + name)
+#     return name
+
+def calcAnatomicalSegmentation(sourcePath, targetPath, segmentationType: str) -> None:
+    """
+    Calculates the files in the given path with the given algorithm
+    """
+    tooth_segmentation = pipe_full_dict_selection(sourcePath, targetPath, segmentationType, segmentationType)
+    write_full_dict(tooth_segmentation, targetPath)
+    tooth_segmentation_name = tooth_segmentation['name']
+    print("Done: " + tooth_segmentation_name)
 
 
 #
 # Wrapper für Pipeline, kompletter Datensatz, skaliert
 #
-def do_fast_x(path, offset=0, size=1):
-    # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
-    # do_fast_x(path, offset=0, size=150)
-
-    isq_names = sorted([f for f in os.listdir(path) if f.lower().endswith('.isq')])
-    mhd_names = []
-
-    if len(isq_names) < offset + size:
-        size = len(isq_names) - offset
-
-    for i in range(size):
-        print(path + isq_names[offset + i])
-        mhd_names.append(do_fast(path + isq_names[offset + i]))
-
-    return mhd_names
+# def do_fast_x(path, offset=0, size=1):
+#     # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
+#     # do_fast_x(path, offset=0, size=150)
+#
+#     isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
+#     mhd_names = []
+#
+#     if len(isq_names) < offset + size:
+#         size = len(isq_names) - offset
+#
+#     for i in range(size):
+#         print(path + isq_names[offset + i])
+#         mhd_names.append(do_fast(path + isq_names[offset + i]))
+#
+#     return mhd_names

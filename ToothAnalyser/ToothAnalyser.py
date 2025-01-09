@@ -10,10 +10,10 @@ from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode, getNodesByClass
+from slicer.util import VTKObservationMixin, getNode
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
-    WithinRange, Choice, Minimum, parameterPack
+    Choice, parameterPack
 )
 
 from slicer import vtkMRMLScalarVolumeNode
@@ -606,6 +606,19 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         print("Nach jedem Algorithmus")
 
     @classmethod
+    def getDirectoryForFile(cls, file_path):
+        """"""
+        # Extrahiere den Ordnerpfad
+        folder_path = os.path.dirname(file_path)
+
+        # Falls der Ordnerpfad leer ist, bedeutet das, dass der Pfad relativ zur aktuellen Arbeitsumgebung ist.
+        # In diesem Fall geben wir das aktuelle Arbeitsverzeichnis zurück.
+        if not folder_path:
+            folder_path = os.getcwd()
+
+        return folder_path
+
+    @classmethod
     def loadFromDirectory(cls, path: str, suffix: tuple[str]) -> None:
         """
         Loads all data with the given suffix from the given path
@@ -705,7 +718,7 @@ class Otsu(AnatomicalSegmentationLogic):
         """
         super().preProcessing()
         import time
-        import AnatomicalSegmentationLib.Segmentation as AS
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation
 
         start = time.time()
         logging.info("Processing started")
@@ -716,14 +729,20 @@ class Otsu(AnatomicalSegmentationLogic):
         # gibt den Pfad eines Node aus
         print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
-        super().loadFromDirectory(path="/Users/lukas/Documents/THA/7. Semester/Abschlussarbeit/Beispieldatensätze/ErgebnisseHoffmann",
-                                  suffix='.mhd')
-        super().createSegmentation(labelImage=getNode("*label*"))
-        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
+        calcAnatomicalSegmentation(
+            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+            targetPath="/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/",
+            segmentationType="Otsu")
+
+        #super().loadFromDirectory(path="/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse",
+        #                          suffix='.mhd')
+        #super().createSegmentation(labelImage=getNode("*label*"))
+        #super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
 
         stop = time.time()
         logging.info(f"Processing completed in {stop - start:.2f} seconds")
         super().postProcessing()
+
         print()
 
     @classmethod
@@ -755,7 +774,8 @@ class Renyi(AnatomicalSegmentationLogic):
         as a single procedure.
         """
         super().preProcessing()
-        print("execute Hoffmann-Renyi ...")
+        print("execute Hoffmann-Renyiiii ...")
+        print(super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()))
         super().postProcessing()
         print()
 

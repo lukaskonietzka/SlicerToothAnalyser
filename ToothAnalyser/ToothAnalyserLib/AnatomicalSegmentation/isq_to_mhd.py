@@ -121,9 +121,6 @@ def isq_to_mhd(isq_file_name, mhd_file_name):
         for i in mhd_param.items():
             out_file.write(i[0] + ' = ' + i[1] + '\n')
 
-def testISQ():
-    print("test isq_to-mhd")
-
 
 def main():
     if len(sys.argv) != 3:
