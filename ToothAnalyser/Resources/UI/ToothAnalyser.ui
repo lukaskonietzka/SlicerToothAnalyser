@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>395</width>
+    <width>402</width>
     <height>476</height>
    </rect>
   </property>
@@ -176,7 +176,7 @@
          <string>Select a node to apply the anatomical segmentation</string>
         </property>
         <property name="text">
-         <string>Apply Anatomics</string>
+         <string>Apply Anatomical</string>
         </property>
        </widget>
       </item>

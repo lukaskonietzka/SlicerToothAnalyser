@@ -705,6 +705,7 @@ class Otsu(AnatomicalSegmentationLogic):
         """
         super().preProcessing()
         import time
+        import AnatomicalSegmentationLib.Segmentation as AS
 
         start = time.time()
         logging.info("Processing started")
