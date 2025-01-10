@@ -606,13 +606,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         print("Nach jedem Algorithmus")
 
     @classmethod
-    def getDirectoryForFile(cls, file_path):
+    def getDirectoryForFile(cls, file_path: str) -> str:
         """"""
-        # Extrahiere den Ordnerpfad
         folder_path = os.path.dirname(file_path)
-
-        # Falls der Ordnerpfad leer ist, bedeutet das, dass der Pfad relativ zur aktuellen Arbeitsumgebung ist.
-        # In diesem Fall geben wir das aktuelle Arbeitsverzeichnis zurück.
         if not folder_path:
             folder_path = os.getcwd()
 
@@ -638,16 +634,23 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             logging.error(f"No File with the given suffix in the  {path}.")
             return
 
-        # load files from the given path as labelmap
+        # load files from the given path as labelmap or scalenode
         for file in files:
             file_path = os.path.join(path, file)
             try:
-                if not "img" in file.lower():
+                if "layers"  in file.lower() or "midsurface" in file.lower() or "label" in file.lower():
                     slicer.util.loadVolume(file_path, properties={"labelmap": True, "show": False})
-                else:
+                    continue
+                if "img_smooth"  in file.lower():
                     slicer.util.loadVolume(file_path, properties={"show": False})
+                    continue
+                if "img" in file.lower():
+                    slicer.util.loadVolume(file_path, properties={"show": True})
+                    continue
+                else:
+                    print("File: ", file, "not needed")
             except Exception as e:
-                logging.error(f"Error when loading {file_path}: {e}")
+                logging.error(f"Error while loading {file_path}: {e}")
 
     @classmethod
     def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool=False) -> None:
@@ -697,6 +700,39 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         pattern = r'^(?:[a-zA-Z]:\\|/)?(?:[\w\s.-]+(?:\\|/))*$'
         return bool(re.fullmatch(pattern, path))
 
+    @classmethod
+    def clearDirectory(cls, path: str) -> None:
+        """
+        Delete all files in the given directory
+        :param path: path to the directory, that has to be cleared
+        """
+        if not os.path.isdir(path):
+            raise ValueError(f"The given '{path}' is not an directory.")
+        try:
+            for file in os.listdir(path):
+                file_path = os.path.join(path, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+        except Exception as e:
+            print(f"Error while clearing directory: {e}")
+
+    @classmethod
+    def create_directory(cls, path: str, directoryName: str) -> str:
+        """
+        Creates a directory with the given name in the given path if
+        there is no directory with this name.
+        :param path: The path where the directory needs to be added
+        :param directoryName: The name of the new directory
+        :return targetDirectory: The absolut path to the created directory
+        """
+        targetDirectory = path + directoryName + "/"
+        try:
+            os.makedirs(targetDirectory, exist_ok=True)
+        except Exception as e:
+            print(f"Error while creating directory: {e}")
+
+        return targetDirectory
+
 
 
 ##################################################
@@ -723,26 +759,40 @@ class Otsu(AnatomicalSegmentationLogic):
         start = time.time()
         logging.info("Processing started")
 
-        print(param.anatomical.currentAnatomicalVolume.GetName())
+        # liefer Name des aktuellen Volumens
+        # print(param.anatomical.currentAnatomicalVolume.GetName())
         # liefert Daten über eine MRML Datei
-        #print(param.anatomical.currentAnatomicalVolume.GetImageData())
+        # print(param.anatomical.currentAnatomicalVolume.GetImageData())
         # gibt den Pfad eines Node aus
-        print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
+        # print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
+        # Create result directory
+        targetDirectory = super().create_directory(
+            path=super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
+            directoryName="/anatomicalSegmentationOtsu/"
+        )
+        print("Target: ", targetDirectory)
+
+        # Delete the old segmentation to keep order
+        super().clearDirectory(targetDirectory)
+
+        # Calculate Anatomical Segmentation
+        # mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/anatomicalSegmentation/"
         calcAnatomicalSegmentation(
             sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-            targetPath="/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/",
-            segmentationType="Otsu")
+            targetPath=targetDirectory,
+            segmentationType="Otsu"
+        )
 
-        #super().loadFromDirectory(path="/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse",
-        #                          suffix='.mhd')
-        #super().createSegmentation(labelImage=getNode("*label*"))
-        #super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
+        # Load and create the calculated Segmentation
+        super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
+        super().createSegmentation(labelImage=getNode("*label*"))
+        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
 
+        # Time tracking
         stop = time.time()
         logging.info(f"Processing completed in {stop - start:.2f} seconds")
-        super().postProcessing()
-
+        print(f"Processing completed in {(stop - start) / 60:.2f} minutes")
         print()
 
     @classmethod
