@@ -648,7 +648,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                     slicer.util.loadVolume(file_path, properties={"show": True})
                     continue
                 else:
-                    print("File: ", file, "not needed")
+                    pass
             except Exception as e:
                 logging.error(f"Error while loading {file_path}: {e}")
 
@@ -759,19 +759,11 @@ class Otsu(AnatomicalSegmentationLogic):
         start = time.time()
         logging.info("Processing started")
 
-        # liefer Name des aktuellen Volumens
-        # print(param.anatomical.currentAnatomicalVolume.GetName())
-        # liefert Daten über eine MRML Datei
-        # print(param.anatomical.currentAnatomicalVolume.GetImageData())
-        # gibt den Pfad eines Node aus
-        # print(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
-
         # Create result directory
         targetDirectory = super().create_directory(
             path=super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
             directoryName="/anatomicalSegmentationOtsu/"
         )
-        print("Target: ", targetDirectory)
 
         # Delete the old segmentation to keep order
         super().clearDirectory(targetDirectory)
@@ -824,8 +816,43 @@ class Renyi(AnatomicalSegmentationLogic):
         as a single procedure.
         """
         super().preProcessing()
-        print("execute Hoffmann-Renyiiii ...")
-        print(super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()))
+
+        import time
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation
+
+        # Time Tracking
+        start = time.time()
+        logging.info("Processing started")
+
+        # Create result directory
+        targetDirectory = super().create_directory(
+            path=super().getDirectoryForFile(
+                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
+            directoryName="/anatomicalSegmentationRenyi/"
+        )
+
+        # Delete the old segmentation to keep order
+        super().clearDirectory(targetDirectory)
+
+        # Calculate Anatomical Segmentation
+        # mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/anatomicalSegmentation/"
+        calcAnatomicalSegmentation(
+            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+            targetPath=targetDirectory,
+            segmentationType="Renyi"
+        )
+
+        # Load and create the calculated Segmentation
+        super().loadFromDirectory(path=targetDirectory, suffix='.mhd')
+        super().createSegmentation(labelImage=getNode("*label*"))
+        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
+
+        # Time tracking
+        stop = time.time()
+        logging.info(f"Processing completed in {stop - start:.2f} seconds")
+        print(f"Processing completed in {(stop - start) / 60:.2f} minutes")
+        print()
+
         super().postProcessing()
         print()
 
