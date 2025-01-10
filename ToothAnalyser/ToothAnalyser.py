@@ -455,7 +455,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
             progressDialog.close()
 
     @classmethod
-    def deletFromScene(cls, currentVolume) -> None:
+    def deleteFromScene(cls, currentVolume) -> None:
         """
         Deletes the given Volume from the MRML-Scene if there is anything to delete
         param: currentVolume xtkMRMLNodeVolume: The Volume to be deleted
@@ -468,8 +468,14 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         except slicer.util.MRMLNodeNotFoundException:
             logging.error("The volume was not found .")
 
+    @classmethod
+    def clearScene(cls) -> None:
+        """
+        Deletes all nodes from the scene expect view node
+        """
+        slicer.mrmlScene.Clear(0)
 
-##################################################
+    ##################################################
 # ToothAnalyser section Analytics
 ##################################################
 class Analytics(ToothAnalyserLogic):
@@ -717,7 +723,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             print(f"Error while clearing directory: {e}")
 
     @classmethod
-    def create_directory(cls, path: str, directoryName: str) -> str:
+    def createDirectory(cls, path: str, directoryName: str) -> str:
         """
         Creates a directory with the given name in the given path if
         there is no directory with this name.
@@ -760,7 +766,7 @@ class Otsu(AnatomicalSegmentationLogic):
         logging.info("Processing started")
 
         # Create result directory
-        targetDirectory = super().create_directory(
+        targetDirectory = super().createDirectory(
             path=super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
             directoryName="/anatomicalSegmentationOtsu/"
         )
@@ -776,10 +782,13 @@ class Otsu(AnatomicalSegmentationLogic):
             segmentationType="Otsu"
         )
 
+        # Delete all nodes form scene
+        super().clearScene()
+
         # Load and create the calculated Segmentation
         super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
         super().createSegmentation(labelImage=getNode("*label*"))
-        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
+        #super().deleteFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
 
         # Time tracking
         stop = time.time()
@@ -825,7 +834,7 @@ class Renyi(AnatomicalSegmentationLogic):
         logging.info("Processing started")
 
         # Create result directory
-        targetDirectory = super().create_directory(
+        targetDirectory = super().createDirectory(
             path=super().getDirectoryForFile(
                 param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
             directoryName="/anatomicalSegmentationRenyi/"
@@ -845,7 +854,7 @@ class Renyi(AnatomicalSegmentationLogic):
         # Load and create the calculated Segmentation
         super().loadFromDirectory(path=targetDirectory, suffix='.mhd')
         super().createSegmentation(labelImage=getNode("*label*"))
-        super().deletFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
+        super().deleteFromScene(currentVolume=param.anatomical.currentAnatomicalVolume)
 
         # Time tracking
         stop = time.time()
