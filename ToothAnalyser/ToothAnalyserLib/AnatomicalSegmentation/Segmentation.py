@@ -1,3 +1,8 @@
+"""
+Contains the pipeline to calculate a label image from
+an .ISQ image
+"""
+
 import os
 import SimpleITK as sitk
 from .isq_to_mhd import isq_to_mhd
@@ -111,37 +116,64 @@ def parse_names(path: str, offset: int=0, size: int=1) -> list[str]:
     return mhd_names
 
 
-# ----- Morphologische Filter ----- #
-def bcbr(img, size=10):
+# ----- Morphological filters ----- #
+def bcbr(img: any, size: int=10) -> any:
+    """
+    Filter for closing small holes within the segment (Closing).
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the filtered image
+    @example: filteredImage = bcbr(image, 10)
+    """
     return sitk.BinaryClosingByReconstruction(img, [size, size, size])
 
-def bobr(img, size=10):
+def bobr(img: any, size:int =10) -> any:
+    """
+    Filter for removing small structures outside the segment (Opening).
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the filtered image
+    @example: filteredImage = bobr(image, 10)
+    """
     return sitk.BinaryOpeningByReconstruction(img, [size, size, size])
 
-def bmc(img, size=1):
+def bmc(img: any, size: int=1) -> any:
+    """
+    Filter for closing small holes within the segment (Closing).
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the filtered image
+    @example: smoothImage = bmc(img, 1)
+    """
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
     return sitk.BinaryMorphologicalClosing(img, vectorRadius, kernel)
 
-def bmo(img, size=1):
+def bmo(img: any, size: int=1) -> any:
+    """
+    Filter for removing small structures outside the segment (Opening).
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the filtered image
+    @example: smoothImage = bmo(img, 1)
+    """
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
     return sitk.BinaryMorphologicalOpening(img, vectorRadius, kernel)
 
 
-# ----- Glättungsfilter Kantenerhaltend ----- #
-def medianFilter(img, size=1):
-    # Glättung mit kantenerhaltenderen Eigenschaften
+# ----- Smoothing filter Edge preserving ----- #
+def medianFilter(img: any, size: int=1) -> any:
+    """
+    this method filters a given image using median
+    filtering known as the local operator. Edge preserving
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the filtered image
+    @example: smoothImage = medianFilter(img, 5)
+    """
     return sitk.Median(img, [size,size,size])
 
-def gradDiffusionFilter(img, timeStep, conductance, iterations):
-    # Parameter für den Anisotropic Diffusion Filter
-    #timeStep = 0.0625  # Zeitintervall, typischerweise kleiner als 0.25 für Stabilität
-    #conductance = 3.0  # Steuerung der Kantenerhaltung (größer = mehr Kantenschutz)
-    #iterations = 10  # Anzahl der Iterationen, je mehr, desto glatter
-
-    # Anisotropic Diffusion Filter anwenden
-    return sitk.GradientAnisotropicDiffusion(img, timeStep, conductance, iterations)
 
 # ----- Glättungsfilter ----- #
 def gradGaussianFilter(img, sigma=0.03):
@@ -150,6 +182,7 @@ def gradGaussianFilter(img, sigma=0.03):
 
 
 # ----- Typinformation und Typumwandlung ----- #
+# WIRD NICHT VERWENDET
 def cast_255(img):
     return sitk.Cast(sitk.RescaleIntensity(img), sitk.sitkUInt8)
 
@@ -161,8 +194,21 @@ def pixel_type(img):
 
 
 # ----- Zusammenhangskomponente ----- #
-def cc_min_size(img, size = 10):
-    # cc_min_size(sitk_img, 10) > 0 erzeugt Labeldatei mit einem Label ohne kleine Strukturen
+def cc_min_size(img: any, size: int=10) -> any:
+    """
+    This filter searches for related components. Then components
+    below an adjustable size are removed.The effect is comparable
+    o a morphological opening and removes small structures.
+    It should be noted that a label file is then returned.
+    If a specific label is expected, this must be filtered. If you
+    want to have all structures, then ‘> 0’ is used and all labels
+    are merged into one.
+    @param img: the image to be filtered
+    @param size: the size of the filter mask
+    @return: the labeled image
+    @example: cc = cc_min_size(img, 10)
+    """
+    # cc_min_size(sitk_img, 10) > 0 creates a label file with a label without small structures
     cc_filt = sitk.ConnectedComponentImageFilter()
     cc = cc_filt.Execute(img)
     relabel_filt = sitk.RelabelComponentImageFilter()
@@ -175,10 +221,17 @@ def cc_min_size(img, size = 10):
 #
 # Adaptive Schwellwertverfahren
 #
-def threshold_filter(img, mask=False, filter_selection = 'Otsu', debug=False):
-    # angelehnt an eine Funktion in: https://github.com/InsightSoftwareConsortium/SimpleITK-Notebook
-    # threshold_filter(sitk_img, mask=False, filter_selection = 'Renyi', debug=True)
-
+def threshold_filter(img: any, mask: bool=False, filter_selection: str='Otsu', debug: bool=False) -> any:
+    """
+    This methode apply an threshold filter on the given
+    image. The possible threshold filters are listed in __THRESHOLD_FILTERS.
+     @param img: the immage to be threshed
+     @param mask: apply a mask on the filter if true is given
+     @param filter_selection: the specific algorithm for the methode
+     @param debug: prints logs if true is given
+     @return: the threshed image
+     @example:  threshedImage = threshold_filter(sitk_img, mask=False, filter_selection = 'Renyi', debug=True)
+    """
     try:
         thresh_filter = __THRESHOLD_FILTERS[filter_selection]
         thresh_filter.SetInsideValue(0)
@@ -209,10 +262,13 @@ def threshold_filter(img, mask=False, filter_selection = 'Otsu', debug=False):
     return thresh_img
 
 
-#
-# Write, basierend auf Name
-#
-def write(img, name, path):
+# ----- Write to file system ----- #
+def write(img: any, name: str, path: str) -> None:
+    """
+    This method uses the simpleITK (sitk) library to store
+    an image in the file system. The write action is based
+    on the image name
+    """
     # name = 'P01A-C0005278'
     # write(sitk_img, name) -> schreibt P01A-C0005278.mhd und P01A-C0005278.raw
     sitk.WriteImage(img, path + name + ".mhd")
@@ -387,7 +443,7 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     try:
         img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
     except:  # smoothed img not already created
-        img_smooth = medianFilter(img, 3) # size anpassen und schauen ob es schneller läuft size = 5
+        img_smooth = medianFilter(img, 1) # size anpassen und schauen ob es schneller läuft size = 5
         write(img_smooth, name + "_" + 'img_smooth', targetPath)
     stop = time.time()
     print("img_smooth: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
