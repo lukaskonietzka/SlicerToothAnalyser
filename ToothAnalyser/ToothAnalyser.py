@@ -792,8 +792,7 @@ class Otsu(AnatomicalSegmentationLogic):
 
         # Time tracking
         stop = time.time()
-        logging.info(f"Processing completed in {stop - start:.2f} seconds")
-        print(f"Processing completed in {(stop - start) / 60:.2f} minutes")
+        print("Processing completed in: ",  f" {(stop-start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
         print()
 
     @classmethod

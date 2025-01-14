@@ -3,10 +3,15 @@ import SimpleITK as sitk
 from .isq_to_mhd import isq_to_mhd
 
 
-def generate_tooth_set_keys(filter_selection_1, filter_selection_2):
-    # Diese Funktion erzeugt die erweiterte Struktur für das Zahn-Set.
-    # Hier werden die Namen für den jeweiligen Ergebnisstapel erzeugt.
-
+def generate_tooth_set_keys(filter_selection_1: str, filter_selection_2: str) -> set:
+    """
+    This function creates the extended structure for the tooth set.
+    The names for the respective result stack are generated here.
+    @param filter_selection_1: the first possible algorithm
+    @param filter_selection_2: the second possible algorithm
+    @returns tooth_set: the complete tooth set for one algorithm
+    @example: tooth_set_otsu = generate_tooth_set_keys('Otsu', 'Otsu')
+    """
     tooth_set = __TOOTH_SET.copy()
 
     filt_1 = filter_selection_1.lower()
@@ -34,12 +39,10 @@ def generate_tooth_set_keys(filter_selection_1, filter_selection_2):
     return tooth_set
 
 
-#
-# Globale Zustände
-#
 
+# ----- Global variables ----- #
 
-# Zahn-SET-Bauplan für einheitliche Namen
+# ----- Tooth SET for standardized names ----- #
 __TOOTH_SET = {
     'path',
     'name',
@@ -48,12 +51,12 @@ __TOOTH_SET = {
     'tooth',
 }
 
-# Zahn-Set-Erweiterungen
+# ----- Tooth SET extension ----- #
 __TOOTH_SET_OTSU_OTSU = generate_tooth_set_keys('Otsu', 'Otsu')
 __TOOTH_SET_RENYI_RENYI = generate_tooth_set_keys('Renyi', 'Renyi')
 
-# Auswahl an adaptiven Schwellwertverfahren
-# (streng genommen keine Filter, sondern Punktoperationen)
+# ----- Selection of adaptive thresholding methods ----- #
+# not filters, but point operations
 __THRESHOLD_FILTERS = {'Otsu': sitk.OtsuThresholdImageFilter(),
                      'Huang' : sitk.HuangThresholdImageFilter(),
                      'MaxEntropy' : sitk.MaximumEntropyThresholdImageFilter(),
@@ -65,21 +68,38 @@ __THRESHOLD_FILTERS = {'Otsu': sitk.OtsuThresholdImageFilter(),
                      'Shanbhag' : sitk.ShanbhagThresholdImageFilter(),
                      'Yen' : sitk.YenThresholdImageFilter()}
 
-# Absolute Pfade der Originalbilder
+# Absolute Pfade der Originalbilder NICHT NÖTIG
 __PATH_1_100 = '/data/shofmann/MicroCT/Original_ISQ/1_100/'
 __PATH_101_200 = '/data/shofmann/MicroCT/Original_ISQ/101_200/'
 __PATH_201_250 = '/data/shofmann/MicroCT/Original_ISQ/201_250/'
 
 
-def parse_name(path):
-    # '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ' -> 'P01A-C0005278'
+# ----- Namen Parser -----#
+def parse_name(path: str) -> str:
+    """
+    The name parser is for a uniform conversion
+    of the names of the source files for the result files.
+    The functions parse only one name.
+    @param path: the path to the file that should be parsed
+    @return name: the parsed name for the given file
+    @example: name = parse_name("/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ") -> 'P01A-C0005278'
+    """
     name = path.split("/")[-1].split(".ISQ")[0]
     return name
 
-
-def parse_names(path, offset=0, size=1):
-    # 'path = "/data/shofmann/MicroCT/Original_ISQ/1_100/" -> ['P01A-C0005278', ...]
-    isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')]) # alle Filtern mit eine .isq am ende
+def parse_names(path: str, offset: int=0, size: int=1) -> list[str]:
+    """
+    The name parser is for a uniform conversion
+    of the names of the source files for the result files.
+    The functions parse only one name.
+    @param path: the path to the directory that should be parsed
+    @param offset
+    @param size
+    @return name: the parsed names for the given directory collected in a list
+    @example: parse_names("/data/shofmann/MicroCT/Original_ISQ/1_100/") -> ['P01A-C0005278', ...]
+    """
+    # collect all files that ends with .ISQ
+    isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
     mhd_names = []
 
     if len(isq_names) < offset + size:
@@ -91,9 +111,7 @@ def parse_names(path, offset=0, size=1):
     return mhd_names
 
 
-#
-# Morphologische Filter
-#
+# ----- Morphologische Filter ----- #
 def bcbr(img, size=10):
     return sitk.BinaryClosingByReconstruction(img, [size, size, size])
 
@@ -103,32 +121,35 @@ def bobr(img, size=10):
 def bmc(img, size=1):
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
-    return sitk.BinaryMorphologicalClosing(img,
-                                           vectorRadius,
-                                           kernel)
+    return sitk.BinaryMorphologicalClosing(img, vectorRadius, kernel)
 
 def bmo(img, size=1):
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
-    return sitk.BinaryMorphologicalOpening(img,
-                                           vectorRadius,
-                                           kernel)
+    return sitk.BinaryMorphologicalOpening(img, vectorRadius, kernel)
 
-#
-# Glättungsfilter
-#
-def median(img, size=1):
+
+# ----- Glättungsfilter Kantenerhaltend ----- #
+def medianFilter(img, size=1):
     # Glättung mit kantenerhaltenderen Eigenschaften
     return sitk.Median(img, [size,size,size])
 
-def grad(img, sigma=0.03):
+def gradDiffusionFilter(img, timeStep, conductance, iterations):
+    # Parameter für den Anisotropic Diffusion Filter
+    #timeStep = 0.0625  # Zeitintervall, typischerweise kleiner als 0.25 für Stabilität
+    #conductance = 3.0  # Steuerung der Kantenerhaltung (größer = mehr Kantenschutz)
+    #iterations = 10  # Anzahl der Iterationen, je mehr, desto glatter
+
+    # Anisotropic Diffusion Filter anwenden
+    return sitk.GradientAnisotropicDiffusion(img, timeStep, conductance, iterations)
+
+# ----- Glättungsfilter ----- #
+def gradGaussianFilter(img, sigma=0.03):
     # nicht verwendet, aber liefert bestes Ergebnis mit diesem Filter
     return sitk.GradientMagnitudeRecursiveGaussian(img, sigma)
 
 
-#
-# Typinformation und Typumwandlung
-#
+# ----- Typinformation und Typumwandlung ----- #
 def cast_255(img):
     return sitk.Cast(sitk.RescaleIntensity(img), sitk.sitkUInt8)
 
@@ -139,9 +160,7 @@ def pixel_type(img):
     return img.GetPixelIDTypeAsString()
 
 
-#
-# Zusammenhangskomponente
-#
+# ----- Zusammenhangskomponente ----- #
 def cc_min_size(img, size = 10):
     # cc_min_size(sitk_img, 10) > 0 erzeugt Labeldatei mit einem Label ohne kleine Strukturen
     cc_filt = sitk.ConnectedComponentImageFilter()
@@ -189,157 +208,6 @@ def threshold_filter(img, mask=False, filter_selection = 'Otsu', debug=False):
 
     return thresh_img
 
-
-#
-# View, basierend auf Namen
-# NICHT NOTWENDIG, öffnet nur die Datei mit itksnap, wir nur in view_10 verwendet
-
-# def view(name):
-#     # view("P01A-C0005278_img_smooth") -> öffnet P01A-C0005278_img_smooth.mhd
-#     !itksnap - g
-#     {name + ".mhd"}
-
-# NICHT NOTWENDIG, öffnet die ersten 10 Datein in ITKSNAP, wird nicht verwendet
-
-# def view_10(names, offset=0):
-#     # Beispielverwendung:
-#     # name = 'P01A-C0005278'
-#     # names = []
-#     # values = __TOOTH_SET_OTSU_OTSU.copy()
-#     # values.remove('name')
-#     # values.remove('path')
-#     # for val in values:
-#     #     names.append(name + '_' + val)
-#     #
-#     # view_10(names)
-#
-#     name_size = len(names)
-#     view_size = 10
-#     command = "itksnap -g "
-#
-#     if len(names) < offset + view_size:
-#         view_size = len(names) - offset
-#
-#     print("view_size:", view_size)
-#     print("offset:", offset)
-#
-#     if view_size == 1:
-#         view(names[offset])
-#     else:
-#         command = command + names[offset] + ".mhd -o "
-#         # command = command + names[offset] + ".mhd -s "
-#         for index in range(1, view_size):
-#             command = command + names[offset + index] + ".mhd "
-#
-#         print("command:", command)
-#         !{command}
-
-
-#
-# Auswertfunktion, View, nur ein Satz an Labels, basierend auf Name und Verfahren
-# NICHT NÖTIG, öffnet Datein anhand des ausgewählten filters, wird nicht verwendet
-
-# def view_labels_by_filt(name, filter_selection_1, filter_selection_2):
-#     # name = 'P01A-C0005278'
-#     # view_labels_by_filt(name, 'Otsu', 'Otsu')
-#
-#     filt_1 = filter_selection_1.lower()
-#     filt_2 = filter_selection_2.lower()
-#     segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
-#     enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
-#     dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
-#
-#     command = "itksnap -g "
-#     command = command + name + "_img.mhd -s "
-#     command = command + name + "_" + segmentation_labels_key + ".mhd -o "
-#     command = command + name + "_" + enamel_midsurface_key + ".mhd "
-#     command = command + name + "_" + dentin_midsurface_key + ".mhd "
-#     print("command:", command)
-#     !{command}
-
-
-#
-# Auswertung, View, beide Sätze an Labels, basierend auf Name
-# NICHT NÖTIG, ruft alle labesl in ITKSNAP auf, wird nicht verwendet
-
-# def view_all_labels(name):
-#     # name = 'P01A-C0005278'
-#     # view_all_labels(name)
-#
-#     filt_1 = 'Renyi'.lower()
-#     filt_2 = 'Renyi'.lower()
-#     segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
-#     enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
-#     dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
-#
-#     command = "itksnap -g "
-#     command = command + name + "_img.mhd -o "
-#     command = command + name + "_" + segmentation_labels_key + ".mhd "
-#     command = command + name + "_" + enamel_midsurface_key + ".mhd "
-#     command = command + name + "_" + dentin_midsurface_key + ".mhd "
-#
-#     filt_1 = 'Otsu'.lower()
-#     filt_2 = 'Otsu'.lower()
-#     segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
-#     enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
-#     dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
-#
-#     command = command + name + "_" + segmentation_labels_key + ".mhd "
-#     command = command + name + "_" + enamel_midsurface_key + ".mhd "
-#     command = command + name + "_" + dentin_midsurface_key + ".mhd "
-#
-#     print("command:", command)
-#     !{command}
-
-
-#
-# Full-View, basierend auf Name und vorgegebenes Tooth-Set
-#NICHT NÖTIG, ruft nur Ergebnisse auf, wird nicht verwendet
-
-# def view_full_dict_by_name(name, TOOTH_SET):
-#     # name = 'P01A-C0005278'
-#     # view_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
-#
-#     command = "itksnap -g "
-#     command = command + name + "_img.mhd -o "
-#     for key in TOOTH_SET:
-#         if key == 'path':
-#             pass
-#         elif key == 'name':
-#             pass
-#         elif key == 'img':
-#             pass
-#         else:
-#             command = command + name + "_" + key + ".mhd "
-#
-#     print("command:", command)
-#     !{command}
-
-
-#
-# Full-View, basierend auf Tooth-Dictionary
-# NICHT NÖTIG, wird nicht verwendet
-
-# def view_full_dict_by_dict(tooth_dict):
-#     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-#     # path = __PATH_1_100 + name + '.ISQ'
-#     # tooth = load_full_dict_by_path(path, __TOOTH_SET_OTSU_OTSU)
-#     # view_full_dict_by_dict(tooth)
-#     # del tooth
-#     command = "itksnap -g "
-#     command = command + name + "_img.mhd -o "
-#     for key in tooth_dict:
-#         if key == 'path':
-#             pass
-#         elif key == 'name':
-#             pass
-#         elif key == 'img':
-#             pass
-#         else:
-#             command = command + name + "_" + key + ".mhd "
-#
-#     print("command:", command)
-#     !{command}
 
 #
 # Write, basierend auf Name
@@ -403,67 +271,6 @@ def load_mhd(targetPath, name):
     # del img
     name = targetPath + name + ".mhd"
     return sitk.ReadImage(name)
-
-
-#
-# Load Tooth-Dictionary, basierend auf Pfad und vorgegebenes Tooth-Set
-#
-# NICHT NÖTIG, Wird nicht verwendet
-# def load_full_dict_by_path(path, TOOTH_SET_PLAN):
-#     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-#     # path = __PATH_1_100 + name + '.ISQ'
-#     # tooth = load_full_dict_by_path(path, __TOOTH_SET_OTSU_OTSU)
-#     # del tooth
-#     name = parse_name(path)
-#     tooth_dict = {
-#         'path': path,
-#         'name': name,
-#     }
-#     for key in TOOTH_SET_PLAN:
-#         if key == 'path':
-#             pass
-#         elif key == 'name':
-#             pass
-#         else:
-#             try:
-#                 tooth_dict[key] = load_mhd(name + "_" + key)
-#             except:  # Ignore if the key isn't in the dictionary
-#                 pass
-#
-#     return tooth_dict
-
-# path = '/data/shofmann/MicroCT/Original_ISQ/101_200/Z_117_C0005676.ISQ'
-
-
-#
-# Load Tooth-Dictionary, basierend auf Name und vorgegebenes Tooth-Set
-#
-
-# NICHT NÖTIG, wird nicht verwendet
-# def load_full_dict_by_name(name, TOOTH_DICT_PLAN):
-#     # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-#     # tooth = load_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
-#     # del tooth
-#     path = !pwd
-#     tooth_dict = {
-#         'path': path[0],
-#         'name': name,
-#     }
-#     for key in TOOTH_DICT_PLAN:
-#         if key == 'path':
-#             pass
-#         elif key == 'name':
-#             pass
-#         else:
-#             try:
-#                 tooth_dict[key] = load_mhd(name + "_" + key)
-#             except:  # Ignore if the key isn't in the dictionary
-#                 pass
-#
-#     return tooth_dict
-
-# path = '/data/shofmann/MicroCT/Original_ISQ/101_200/Z_117_C0005676.ISQ'
-# name = 'Z_117_C0005676'
 
 
 
@@ -565,22 +372,31 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
     # tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
 
+    import time
+
+    start = time.time()
     name = parse_name(path)
     img = load_isq(path, targetPath, name)
-    print("img: Done")
+    stop = time.time()
+    print("img: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+
 
     # falls Median-Bild bereits in Ordner vorhanden, wird dieses verwendet
     # muss name_img_smooth benannt sein
+    start = time.time()
     try:
         img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
     except:  # smoothed img not already created
-        img_smooth = median(img, 5)
+        img_smooth = medianFilter(img, 3) # size anpassen und schauen ob es schneller läuft size = 5
         write(img_smooth, name + "_" + 'img_smooth', targetPath)
-    print("img_smooth: Done")
+    stop = time.time()
+    print("img_smooth: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # falls Zahn-Segmentierung bereits in Ordner vorhanden, wird diese verwendet
     # muss name_tooth_smooth benannt sein
     # ansonsten erster adaptiver Schwellwert (entspricht ersten Schnitt im Histogramm)
+
+    start = time.time()
     try:
         tooth = load_mhd(targetPath, name + "_" + 'tooth')
     except:
@@ -588,14 +404,19 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
 
     # Originalbild, Zahn maskiert
     tooth_masked = sitk.Mask(img, tooth)
-    print("tooth: Done")
+    stop = time.time()
+    print("tooth: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # geglättetes Bild, Zahn maskiert
+    start = time.time()
     tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
-    print("tooth_smooth: Done")
+    stop = time.time()
+    print("tooth_smooth: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
     # auf maskierten Originalzahn
+
+    start = time.time()
     enamel_select = threshold_filter(tooth_masked,
                                      tooth_masked,
                                      filter_selection=filter_selection_1)
@@ -604,39 +425,47 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     # größtes zusammenhängendes Objekt
     enamel_select = cc_min_size(enamel_select, 50) == 1
     # Schmelzsegment auf maskierten Originalzahn fertig
-    print("enamel_select: Done")
+    stop = time.time()
+    print("enamel_select: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
     # auf maskierten geglätteten Zahn
+    start = time.time()
     enamel_smooth_select = threshold_filter(tooth_smooth_masked,
                                             tooth_smooth_masked,
                                             filter_selection=filter_selection_2)
     # Aufbereinigung
     enamel_smooth_select = bcbr(enamel_smooth_select)
     # Schmelzsegment auf maskierten geglätteten Zahn fertig
-    print("enamel_smooth_select: Done")
+    stop = time.time()
+    print("enamel_smooth_select: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     ### ab hier wird geschichtet
 
+    start = time.time()
     enamel_layers = enamel_select + enamel_smooth_select
     enamel_layers = enamel_layers > 0
     enamel_layers_save = enamel_layers
-    print("enamel_layers: Done")
+    stop = time.time()
+    print("enamel_layers: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     ### Aufbereinigung
 
+    start = time.time()
     enamel_layers_extended = bcbr(enamel_layers)
-    enamel_layers_extended_2 = bmc(enamel_layers_extended, 2)
+    enamel_layers_extended_2 = bmc(enamel_layers_extended, 2) #size = 2
     # vergleichbar mit Binary Opening Ergebnis, nur schneller
     enamel_layers_extended_smooth = sitk.SmoothingRecursiveGaussian(enamel_layers_extended_2, 0.04) > 0.7
     enamel_layers_extended_smooth_2 = bmc(enamel_layers_extended_smooth) > 0
-    enamel_layers_extended_smooth_2 = cc_min_size(enamel_layers_extended_smooth_2, 10) == 1
-    print("enamel_layers_smooth_extended: Done")
+    enamel_layers_extended_smooth_2 = cc_min_size(enamel_layers_extended_smooth_2, 10) == 1 # size = 10
+    stop = time.time()
+    print("enamel_layers_smooth_extended: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     ### Auffüllung
 
     # erweiterte Zahnkontur
     #contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
+    start = time.time()
     contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
 
     # Hintergrund
@@ -652,11 +481,13 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     partial_decay = dentin_and_partial_decay - dentin_parts
     # Hinzufügen der kleinen Strukturen zu Schmelzsegment
     enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
-    print("enamel_layers_extended_smooth_3: Done")
+    stop = time.time()
+    print("enamel_layers_extended_smooth_3: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     ### Auffüllung zusätzlich, hilft bei sehr wenigen Datensätzen
 
     # Invertierung Schmelz -> alles außerhalb Schmelz
+    start = time.time()
     enamel_negative = ~enamel_layers_extended_smooth_3 == 255
     # alle zusammenhängenden Komponenten -> eine große außerhalb Schmelz Komponente und kleine Komponenten in Schmelz
     # "> 1" -> nicht die größte Kompononente -> kleine Komponenten in Schmelz
@@ -666,10 +497,12 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     enamel_layers = enamel_layers_extended_smooth_4
 
     ### Schmelzsegment fertig
-    print("enamel_layers_extended_smooth_4: Done")
+    stop = time.time()
+    print("enamel_layers_extended_smooth_4: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # ~tooth -> nicht Zahn -> alles außerhalb Zahn
     # Schmelz + alles außerhalb Zahn + dicke Kontur -> alles außer Dentin
+    start = time.time()
     not_dentin = enamel_layers + (~tooth == 255) + contour_extended > 0
     # Invertierung alles außer Dentin -> Dentin
     dentin_layers = (~not_dentin) == 255
@@ -677,24 +510,32 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     dentin_layers = dentin_layers - enamel_layers == 1
     # falls noch einzelne Voxel vorhanden wären
     dentin_layers = cc_min_size(dentin_layers, 50) == 1
-    print("dentin_layers: Done")
+    stop = time.time()
+    print("dentin_layers: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # Labeldatei
     # dentin == 2
     # enamel == 3
+    start = time.time()
     segmentation_labels = enamel_layers * 3 + dentin_layers * 2
-    print("segmentation_labels: Done")
+    stop = time.time()
+    print("segmentation_labels: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # mediale Fläche Schmelz
+    start = time.time()
     enamel_midsurface = medial_surface(enamel_layers)
-    print("enamel_midsurface: Done")
+    stop = time.time()
+    print("enamel_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # mediale Fläche Dentin
+    start = time.time()
     dentin_midsurface = medial_surface(dentin_layers)
-    print("dentin_midsurface: Done")
+    stop = time.time()
+    print("dentin_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     ### Erstellung Tooth-Dictionary (siehe Übersicht unten für Beispiellegende des Ergebnissatzes)
 
+    start = time.time()
     filt_1 = filter_selection_1.lower()
     filt_2 = filter_selection_2.lower()
 
@@ -724,60 +565,11 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
         dentin_midsurface_key: dentin_midsurface
     }
 
-    print("tooth_dict: Done")
+    stop = time.time()
+    print("tooth_dict: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     return tooth_dict
 
-#
-# Wrapper für Pipelin, Selection
-# berechnet die Pipeline für ein vorgegebenes Schwellwertverfahren
-#
-# def do_fast_selection(path, filter_selection_1 = 'Renyi', filter_selection_2 = 'Renyi'):
-#     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
-#     # name = do_fast_selection(path, 'Otsu', 'Otsu')
-#     tooth = pipe_full_dict_selection(path, filter_selection_1, filter_selection_2)
-#     write_full_dict(tooth, path)
-#     name = tooth['name']
-#     print("Done: " + name)
-#     return name
-
-
-#
-# Wrapper für Pipeline, Selection, skaliert
-# berechnet die Pipeline für ein vorgegebenes Schwellwertverfahren
-# und für die vorgegebene Anzahl von Datein in einem Ordner
-#
-# def do_fast_x_selection(path, offset=0, size=1, filter_selection_1='Renyi', filter_selection_2='Renyi'):
-#     # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
-#     # names = do_fast_x_selection(path, offset=0, size=1, 'Otsu', 'Otsu')
-#     isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
-#     mhd_names = []
-#
-#     if len(isq_names) < offset + size:
-#         size = len(isq_names) - offset
-#
-#     for i in range(size):
-#         print(path + isq_names[offset + i])
-#         mhd_names.append(do_fast_selection(path + isq_names[offset + i], filter_selection_1, filter_selection_2))
-#
-#     return mhd_names
-
-
-#
-# Wrapper für kompletten Datensatz
-# Berechnet den Datensatz für beide Schwellwertverfahren
-#
-
-# def do_fast(path):
-#     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
-#     # name = do_fast(path)
-#     tooth_renyi_renyi = pipe_full_dict_selection(path, 'Renyi', 'Renyi')
-#     write_full_dict(tooth_renyi_renyi, path)
-#     name = tooth_renyi_renyi['name']
-#     tooth_otsu_otsu = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
-#     write_full_dict(tooth_otsu_otsu, path)
-#     print("Done: " + name)
-#     return name
 
 def calcAnatomicalSegmentation(sourcePath, targetPath, segmentationType: str) -> None:
     """
@@ -788,22 +580,3 @@ def calcAnatomicalSegmentation(sourcePath, targetPath, segmentationType: str) ->
     tooth_segmentation_name = tooth_segmentation['name']
     print("Done: " + tooth_segmentation_name)
 
-
-#
-# Wrapper für Pipeline, kompletter Datensatz, skaliert
-#
-# def do_fast_x(path, offset=0, size=1):
-#     # path = "/data/shofmann/MicroCT/Original_ISQ/1_100/"
-#     # do_fast_x(path, offset=0, size=150)
-#
-#     isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
-#     mhd_names = []
-#
-#     if len(isq_names) < offset + size:
-#         size = len(isq_names) - offset
-#
-#     for i in range(size):
-#         print(path + isq_names[offset + i])
-#         mhd_names.append(do_fast(path + isq_names[offset + i]))
-#
-#     return mhd_names
