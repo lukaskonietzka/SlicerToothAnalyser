@@ -356,84 +356,25 @@ def load_mhd(targetPath: str, name: str) -> Image:
     name = targetPath + name + ".mhd"
     return sitk.ReadImage(name)
 
+def loadFile(path: str) -> Image:
+    """
 
-#
-# Legacy Medial Surface
-#
-
-# NICHT NÖTIG, wird nicht verwendet
-def medial_surface_legacy(segment):
-    # print(__TOOTH_SET_OTSU_OTSU)
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # name_enamel = name + '_enamel_otsu_otsu_layers'
-    # enamel = load_mhd(name_enamel)
-    # enamel_medial_surface = medial_surface_legacy(enamel)
-    # print(enamel_medial_surface)
-    #
-    # del name_enamel
-    # del enamel
-    # del enamel_medial_surface
-
-    dist_filter = sitk.SignedMaurerDistanceMapImageFilter()
-    dist_filter.SetInsideIsPositive(False)
-    dist_filter.SetSquaredDistance(False)
-    dist_filter.SetUseImageSpacing(False)
-    dist_map = dist_filter.Execute(segment)
-    dist_map_masked = sitk.Mask(dist_map, segment)
-    dist_map_sobel = sitk.SobelEdgeDetection(dist_map_masked)
-    dist_map_sobel_laplace_edges = sitk.SobelEdgeDetection(sitk.Laplacian(dist_map_sobel))
-    dist_map_sobel_laplace_edges_thres = threshold_filter(dist_map_sobel_laplace_edges)
-    medial_surface = sitk.Mask(dist_map_sobel_laplace_edges_thres, segment)
-
-    return medial_surface
-
-#
-# Medial Surface, spezifizierter Schwellwert
-#
-
-# NICHT NÖTIG, wird nicht verwendet
-def medial_surface_threshold(segment, threshold=25):
-    # 25 hat sich gelegentlich als guter Schwellwert erwiesen
-    #
-    # print(__TOOTH_SET_OTSU_OTSU)
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # name_enamel = name + '_enamel_otsu_otsu_layers'
-    # enamel = load_mhd(name_enamel)
-    # enamel_medial_surface = medial_surface_threshold(enamel, 25)
-    # print(enamel_medial_surface)
-    #
-    # del name_enamel
-    # del enamel
-    # del enamel_medial_surface
-
-    dist_filter = sitk.SignedMaurerDistanceMapImageFilter()
-    dist_filter.SetInsideIsPositive(False)
-    dist_filter.SetSquaredDistance(False)
-    dist_filter.SetUseImageSpacing(False)
-    dist_map = dist_filter.Execute(segment)
-    dist_map_masked = sitk.Mask(dist_map, segment)
-    dist_map_sobel = sitk.SobelEdgeDetection(dist_map_masked)
-    dist_map_sobel_thresh = dist_map_sobel < threshold
-    medial_surface = sitk.Mask(dist_map_sobel_thresh, segment)
-
-    return medial_surface
+    """
+    return sitk.ReadImage(path)
 
 
-#
-# Medial Surface
-#
-def medial_surface(segment):
-    # print(__TOOTH_SET_OTSU_OTSU)
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # name_enamel = name + '_enamel_otsu_otsu_layers'
-    # enamel = load_mhd(name_enamel)
-    # enamel_medial_surface = medial_surface(enamel)
-    # print(enamel_medial_surface)
-    #
-    # del name_enamel
-    # del enamel
-    # del enamel_medial_surface
-
+# ----- Medial Surface ----- #
+def medialSurface(segment: any) -> any:
+    """
+    This methode calculate the medial surfaces for each segment
+    @param segment: the segment for wiche the medial surface to be needed
+    @return: the medial surface for the given segment
+    @example:
+        name = parse_names(__PATH_1_100, offset=0, size=1)[0]
+        name_enamel = name + '_enamel_otsu_otsu_layers'
+        enamel = load_mhd(name_enamel)
+        enamel_medial_surface = medial_surface(enamel)
+    """
     dist_filter = sitk.SignedMaurerDistanceMapImageFilter()
     dist_filter.SetInsideIsPositive(False)
     dist_filter.SetSquaredDistance(False)
@@ -606,13 +547,13 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
 
     # mediale Fläche Schmelz
     start = time.time()
-    enamel_midsurface = medial_surface(enamel_layers)
+    enamel_midsurface = medialSurface(enamel_layers)
     stop = time.time()
     print("enamel_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     # mediale Fläche Dentin
     start = time.time()
-    dentin_midsurface = medial_surface(dentin_layers)
+    dentin_midsurface = medialSurface(dentin_layers)
     stop = time.time()
     print("dentin_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
