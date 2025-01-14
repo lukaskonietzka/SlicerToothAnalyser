@@ -5,6 +5,8 @@ an .ISQ image
 
 import os
 import SimpleITK as sitk
+from SimpleITK import Image
+
 from .isq_to_mhd import isq_to_mhd
 
 
@@ -15,7 +17,8 @@ def generate_tooth_set_keys(filter_selection_1: str, filter_selection_2: str) ->
     @param filter_selection_1: the first possible algorithm
     @param filter_selection_2: the second possible algorithm
     @returns tooth_set: the complete tooth set for one algorithm
-    @example: tooth_set_otsu = generate_tooth_set_keys('Otsu', 'Otsu')
+    @example:
+        tooth_set_otsu = generate_tooth_set_keys('Otsu', 'Otsu')
     """
     tooth_set = __TOOTH_SET.copy()
 
@@ -87,7 +90,8 @@ def parse_name(path: str) -> str:
     The functions parse only one name.
     @param path: the path to the file that should be parsed
     @return name: the parsed name for the given file
-    @example: name = parse_name("/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ") -> 'P01A-C0005278'
+    @example:
+        name = parse_name("/data/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ") -> 'P01A-C0005278'
     """
     name = path.split("/")[-1].split(".ISQ")[0]
     return name
@@ -101,7 +105,8 @@ def parse_names(path: str, offset: int=0, size: int=1) -> list[str]:
     @param offset
     @param size
     @return name: the parsed names for the given directory collected in a list
-    @example: parse_names("/data/shofmann/MicroCT/Original_ISQ/1_100/") -> ['P01A-C0005278', ...]
+    @example:
+        parse_names("/data/shofmann/MicroCT/Original_ISQ/1_100/") -> ['P01A-C0005278', ...]
     """
     # collect all files that ends with .ISQ
     isq_names = sorted([f for f in os.listdir(path) if f.endswith('.ISQ')])
@@ -117,45 +122,49 @@ def parse_names(path: str, offset: int=0, size: int=1) -> list[str]:
 
 
 # ----- Morphological filters ----- #
-def bcbr(img: any, size: int=10) -> any:
+def bcbr(img: Image, size: int=10) -> Image:
     """
     Filter for closing small holes within the segment (Closing).
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the filtered image
-    @example: filteredImage = bcbr(image, 10)
+    @example:
+        filteredImage = bcbr(image, 10)
     """
     return sitk.BinaryClosingByReconstruction(img, [size, size, size])
 
-def bobr(img: any, size:int =10) -> any:
+def bobr(img: Image, size:int =10) -> Image:
     """
     Filter for removing small structures outside the segment (Opening).
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the filtered image
-    @example: filteredImage = bobr(image, 10)
+    @example:
+        filteredImage = bobr(image, 10)
     """
     return sitk.BinaryOpeningByReconstruction(img, [size, size, size])
 
-def bmc(img: any, size: int=1) -> any:
+def bmc(img: Image, size: int=1) -> Image:
     """
     Filter for closing small holes within the segment (Closing).
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the filtered image
-    @example: smoothImage = bmc(img, 1)
+    @example:
+        smoothImage = bmc(img, 1)
     """
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
     return sitk.BinaryMorphologicalClosing(img, vectorRadius, kernel)
 
-def bmo(img: any, size: int=1) -> any:
+def bmo(img: Image, size: int=1) -> Image:
     """
     Filter for removing small structures outside the segment (Opening).
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the filtered image
-    @example: smoothImage = bmo(img, 1)
+    @example:
+        smoothImage = bmo(img, 1)
     """
     vectorRadius=(size,size,size)
     kernel=sitk.sitkBall
@@ -163,14 +172,15 @@ def bmo(img: any, size: int=1) -> any:
 
 
 # ----- Smoothing filter Edge preserving ----- #
-def medianFilter(img: any, size: int=1) -> any:
+def medianFilter(img: Image, size: int=1) -> Image:
     """
     this method filters a given image using median
     filtering known as the local operator. Edge preserving
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the filtered image
-    @example: smoothImage = medianFilter(img, 5)
+    @example:
+        smoothImage = medianFilter(img, 5)
     """
     return sitk.Median(img, [size,size,size])
 
@@ -194,7 +204,7 @@ def pixel_type(img):
 
 
 # ----- Zusammenhangskomponente ----- #
-def cc_min_size(img: any, size: int=10) -> any:
+def cc_min_size(img: any, size: int=10) -> Image:
     """
     This filter searches for related components. Then components
     below an adjustable size are removed.The effect is comparable
@@ -206,7 +216,8 @@ def cc_min_size(img: any, size: int=10) -> any:
     @param img: the image to be filtered
     @param size: the size of the filter mask
     @return: the labeled image
-    @example: cc = cc_min_size(img, 10)
+    @example:
+        cc = cc_min_size(img, 10)
     """
     # cc_min_size(sitk_img, 10) > 0 creates a label file with a label without small structures
     cc_filt = sitk.ConnectedComponentImageFilter()
@@ -221,16 +232,17 @@ def cc_min_size(img: any, size: int=10) -> any:
 #
 # Adaptive Schwellwertverfahren
 #
-def threshold_filter(img: any, mask: bool=False, filter_selection: str='Otsu', debug: bool=False) -> any:
+def threshold_filter(img: Image, mask: bool=False, filter_selection: str='Otsu', debug: bool=False) -> Image:
     """
-    This methode apply an threshold filter on the given
+    This methode apply a threshold filter on the given
     image. The possible threshold filters are listed in __THRESHOLD_FILTERS.
      @param img: the immage to be threshed
      @param mask: apply a mask on the filter if true is given
      @param filter_selection: the specific algorithm for the methode
      @param debug: prints logs if true is given
      @return: the threshed image
-     @example:  threshedImage = threshold_filter(sitk_img, mask=False, filter_selection = 'Renyi', debug=True)
+     @example:
+        threshedImage = threshold_filter(sitk_img, mask=False, filter_selection = 'Renyi', debug=True)
     """
     try:
         thresh_filter = __THRESHOLD_FILTERS[filter_selection]
@@ -267,20 +279,27 @@ def write(img: any, name: str, path: str) -> None:
     """
     This method uses the simpleITK (sitk) library to store
     an image in the file system. The write action is based
-    on the image name
+    on the image name.
+    @param img: the image to be stored
+    @param name: the name of the stored image
+    @param path: the storage location in the file system
+    @example:
+        write(sitk_img, 'P01A-C0005278') store P01A-C0005278.mhd and P01A-C0005278.raw
     """
-    # name = 'P01A-C0005278'
-    # write(sitk_img, name) -> schreibt P01A-C0005278.mhd und P01A-C0005278.raw
     sitk.WriteImage(img, path + name + ".mhd")
 
-#
-# Write, basierend auf Tooth-Dictionary
-#
-def write_full_dict(tooth, path):
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # tooth = load_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
-    # write_full_dict(tooth)
-    # del tooth
+def write_full_dict(tooth: dict, path:str) -> None:
+    """
+    This method uses the simpleITK (sitk) library to store
+    an image in the file system. The write action is based
+    on the Tooth-Dictionary.
+    @param tooth: the dictionary to be stored
+    @param path: the storage location in the file system
+    @example:
+        name = parse_names(__PATH_1_100, offset=0, size=1)[0]
+        tooth = load_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
+        write_full_dict(tooth)
+    """
     name = tooth['name']
 
     for key in tooth:
@@ -291,43 +310,51 @@ def write_full_dict(tooth, path):
         else:
             write(tooth[key], name + "_" + key, path)
 
-
-def getDirectoryForFile(file_path: str) -> str:
+def getDirectoryForFile(filePath: str) -> str:
     """
     Extract the folder path from the given file
+    @param filePath: the file to be extracted
+    @return folderPath: the path to the folder for the given file
+    @example:
+        directory = getDirectoryForFile("/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ")
+        directory -> "/data/MicroCT/Original_ISQ/"
     """
-    folder_path = os.path.dirname(file_path)
-    if not folder_path:
-        folder_path = os.getcwd()
-    return folder_path
+    folderPath = os.path.dirname(filePath)
+    if not folderPath:
+        folderPath = os.getcwd()
+    return folderPath
 
 
-#
-# Load ISQ
-#
-def load_isq(path, targetPath, name):
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0] -> "P01A-C0005278"
-    # path = __PATH_1_100 + name + ".ISQ"
-    # img = load_isq(path, name) -> P01A-C0005278.mhd
-    # del img
+# ----- Load ISQ-File ----- #
+def load_isq(path: str, targetPath: str, name: str) -> Image:
+    """
+    Load an ISQ-File and convert it into an MHD-File by
+    using the isq_to_mhd module from Peter Rösch
+    @param path: the path to the ISQ-File to be loaded
+    @param targetPath: the path to the MHD-File
+    @param name: the name of the MHD-File
+    @return: The loaded and converted MHD-File
+    @example:
+        isq_to_mhd("/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ", "P01A-C0005278.mhd")
+    """
     name = targetPath + name + ".mhd"
     isq_to_mhd(path, name)
     return sitk.ReadImage(name)
 
-#isq_to_mhd('/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ', 'P01A-C0005278.mhd')
-#P01A-C0005278 = sitk.ReadImage('P01A-C0005278.mhd')
 
-
-#
-# Load MHD
-#
-def load_mhd(targetPath, name):
-    # name = parse_names(__PATH_1_100, offset=0, size=1)[0]
-    # img = load_mhd(name)
-    # del img
+# ----- Load MHD-File ----- #
+def load_mhd(targetPath: str, name: str) -> Image:
+    """
+    This methode load an MHD-File from an directory
+    @param targetPath: the path to the file to be loaded
+    @param name: the name of the file
+    @return: the loaded .MHD-File
+    @example:
+        name = parse_names(__PATH_1_100, offset=0, size=1)[0]
+        img = load_mhd(name)
+    """
     name = targetPath + name + ".mhd"
     return sitk.ReadImage(name)
-
 
 
 #
