@@ -87,13 +87,14 @@ def parse_name(path: str) -> str:
     """
     The name parser is for a uniform conversion
     of the names of the source files for the result files.
-    The functions parse only one name.
+    The functions parse only one name. The parser cut of the
+    ending after the last point.
     @param path: the path to the file that should be parsed
     @return name: the parsed name for the given file
     @example:
         name = parse_name("/data/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ") -> 'P01A-C0005278'
     """
-    name = path.split("/")[-1].split(".ISQ")[0]
+    name = os.path.basename(path).rsplit('.', 1)[0]
     return name
 
 def parse_names(path: str, offset: int=0, size: int=1) -> list[str]:
@@ -353,7 +354,10 @@ def load_mhd(targetPath: str, name: str) -> Image:
         name = parse_names(__PATH_1_100, offset=0, size=1)[0]
         img = load_mhd(name)
     """
-    name = targetPath + name + ".mhd"
+    if ".mhd" in targetPath.lower():
+        return sitk.ReadImage(targetPath)
+    else:
+        name = targetPath + name + ".mhd"
     return sitk.ReadImage(name)
 
 def loadFile(path: str) -> Image:
@@ -400,7 +404,10 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
 
     start = time.time()
     name = parse_name(path)
-    img = load_isq(path, targetPath, name)
+    try:
+        img = load_isq(path, targetPath, name)
+    except:
+        img = load_mhd(path, name)
     stop = time.time()
     print("img: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
