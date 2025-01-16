@@ -483,6 +483,16 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         #         slicer.mrmlScene.RemoveNode(node)
 
         # probieren ob man über die MRML ID "vtk" die objekte rauslöschen kann
+
+        # Hole das Subject Hierarchy Node
+        # subject_hierarchy_node = slicer.mrmlScene.GetSubjectHierarchyNode()
+        # if not subject_hierarchy_node:
+        #     print("Keine Subject Hierarchy Node in der Szene gefunden.")
+        #     return
+
+        # Zum Schluss die Subject Hierarchy selbst leeren
+        #slicer.mrmlScene.RemoveNode(subject_hierarchy_node)
+        print("Subject Hierarchy Node wurde entfernt.")
         slicer.mrmlScene.Clear()
 
 ##################################################
@@ -840,24 +850,24 @@ class Otsu(AnatomicalSegmentationLogic):
         super().clearDirectory(targetDirectory)
 
         #Calculate Anatomical Segmentation
-        #mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/anatomicalSegmentation/"
-        calcAnatomicalSegmentation(
-            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-            targetPath=targetDirectory,
-            segmentationType="Otsu"
-        )
+        mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
+        #calcAnatomicalSegmentation(
+        #    sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        #    targetPath=targetDirectory,
+        #    segmentationType="Otsu"
+        #)
 
         # Delete all nodes form scene
         super().clearScene()
 
         # Load and create the calculated Segmentation
-        super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
+        super().loadFromDirectory(path=mockDirectory,suffix='.mhd')
         super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
         super().createMedialSurface(
             midSurfaceDentin=getNode("*dentin*midsurface*"),
             midSurfaceEnamel=getNode("*enamel*midsurface*"),
             show3D=param.anatomical.showMidSurfaceAs3D
-        )
+       )
 
         # Time tracking
         stop = time.time()
