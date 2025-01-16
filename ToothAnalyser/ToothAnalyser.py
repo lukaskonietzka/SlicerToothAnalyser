@@ -10,7 +10,7 @@ from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode
+from slicer.util import VTKObservationMixin, getNode, getNodes
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     Choice, parameterPack
@@ -475,16 +475,14 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """
         Deletes all nodes from the scene expect view node
         """
-        # nodesDict = slicer.util.getNodes("-")
-        # print("Number of nodes: ", len(nodesDict))
-        # if len(nodesDict) > 0:
-        #     # Alle Nodes in einer separaten Liste speichern
-        #     nodes_to_remove = list(nodesDict.values())
-        #
-        #     # Über die gespeicherte Liste iterieren und Nodes entfernen
-        #     for node in nodes_to_remove:
+        # nodesDict = slicer.util.getNodes("*vtk*")
+        # nodes = list(nodesDict.values())
+        # print("Number of Nodes: ", len(nodes))
+        # if len(nodes) > 0:
+        #     for node in nodes:
         #         slicer.mrmlScene.RemoveNode(node)
-        #         print("Node removed")
+
+        # probieren ob man über die MRML ID "vtk" die objekte rauslöschen kann
         slicer.mrmlScene.Clear()
 
 ##################################################
@@ -662,9 +660,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 if "label" in file.lower():
                     slicer.util.loadVolume(file_path, properties={"labelmap": True, "show": False})
                     continue
-                if "img_smooth"  in file.lower() or "img" in file.lower():
-                    slicer.util.loadVolume(file_path, properties={"show": False})
-                    continue
                 else:
                     pass
             except Exception as e:
@@ -686,8 +681,22 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         # set properties for segmentation
         seg.SetName("Anatomical-Segmentation")
-        seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
-        seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
+        #seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+        #seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
+        default_names = ["Dentin", "Schmelz"]
+
+        # set properties for segmentation
+        num_segments = seg.GetSegmentation().GetNumberOfSegments()
+        for i in range(num_segments):
+            if i < len(default_names):
+                # Benenne die ersten Segmente mit den vordefinierten Namen
+                segment_name = default_names[i]
+            else:
+                # Generiere generische Namen für die übrigen Segmente
+                segment_name = f"Segment {i + 1}"
+
+            # Setze den Namen des Segments
+            seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
 
         # delete the given labelNode
         if deleteLabelImage:
@@ -700,21 +709,25 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceDentin, segDentin)
         segDentin.SetName("MedialSurface_source")
-        segDentin.GetSegmentation().GetNthSegment(0).SetName("Dentin")
-        slicer.mrmlScene.RemoveNode(midSurfaceDentin)
-        if show3D:
-            print("create 3D dentin")
-            segDentin.CreateClosedSurfaceRepresentation()
+
+        if segDentin.GetSegmentation().GetNumberOfSegments() > 0:
+            segDentin.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+            slicer.mrmlScene.RemoveNode(midSurfaceDentin)
+            if show3D:
+                print("create 3D dentin")
+                segDentin.CreateClosedSurfaceRepresentation()
 
         # create enamel medial surface segmentation
         segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceEnamel, segEnamel)
         segEnamel.SetName("Medial-Surface")
-        segEnamel.GetSegmentation().GetNthSegment(0).SetName("Enamel")
-        slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
-        if show3D:
-            print("create 3D enamel")
-            segEnamel.CreateClosedSurfaceRepresentation()
+
+        if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
+            segEnamel.GetSegmentation().GetNthSegment(0).SetName("Enamel")
+            slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
+            if show3D:
+                print("create 3D enamel")
+                segEnamel.CreateClosedSurfaceRepresentation()
 
         # copy all segments from dentin to enamel and delete dentin
         for i in range(segDentin.GetSegmentation().GetNumberOfSegments()):
