@@ -6,6 +6,7 @@ an .ISQ image
 import os
 import SimpleITK as sitk
 from SimpleITK import Image
+from slicer.util import importModuleObjects
 
 from .isq_to_mhd import isq_to_mhd
 
@@ -401,168 +402,38 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
 
     import time
 
-    start = time.time()
-    name = parse_name(path)
-    try:
-        img = load_isq(path, targetPath, name)
-    except:
-        img = load_mhd(path, name)
-    stop = time.time()
-    print("img: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    # load and filter image
+    img, name = loadImage(path, targetPath)
+    img_smooth = smoothImage(img, name, targetPath)
 
-    # If a median image already exists, take that one. Must be named "name_img_smooth"
-    start = time.time()
-    try:
-        img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
-    except:  # smoothed img not already created
-        img_smooth = medianFilter(img, 1) # size anpassen und schauen ob es schneller läuft size = 5
-        write(img_smooth, name + "_" + 'img_smooth', targetPath)
-    stop = time.time()
-    print("img_smooth: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    # generate a mask on the image and the smooth image
+    tooth, tooth_masked = generateImageMask(img, img_smooth, name, targetPath)
+    tooth_smooth_masked = generateSmoothImageMask(img_smooth, tooth)
 
-    # falls Zahn-Segmentierung bereits in Ordner vorhanden, wird diese verwendet
-    # muss name_tooth_smooth benannt sein
-    # ansonsten erster adaptiver Schwellwert (entspricht ersten Schnitt im Histogramm)
+    enamel_select = enamelSelect(filter_selection_1, tooth_masked)
+    enamel_smooth_select = enamelSmoothSelect(filter_selection_2, tooth_smooth_masked)
 
-    start = time.time()
-    try:
-        tooth = load_mhd(targetPath, name + "_" + 'tooth')
-    except:
-        tooth = threshold_filter(img_smooth)
+    # ab hier wird geschichtet
+    enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
 
-    # Originalbild, Zahn maskiert
-    tooth_masked = sitk.Mask(img, tooth)
-    stop = time.time()
-    print("tooth: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # geglättetes Bild, Zahn maskiert
-    start = time.time()
-    tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
-    stop = time.time()
-    print("tooth_smooth: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
-    # auf maskierten Originalzahn
-
-    start = time.time()
-    enamel_select = threshold_filter(tooth_masked,
-                                     tooth_masked,
-                                     filter_selection=filter_selection_1)
     # Aufbereinigung
-    enamel_select = bcbr(enamel_select)
-    # größtes zusammenhängendes Objekt
-    enamel_select = cc_min_size(enamel_select, 50) == 1
-    # Schmelzsegment auf maskierten Originalzahn fertig
-    stop = time.time()
-    print("enamel_select: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
 
-    # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
-    # auf maskierten geglätteten Zahn
-    start = time.time()
-    enamel_smooth_select = threshold_filter(tooth_smooth_masked,
-                                            tooth_smooth_masked,
-                                            filter_selection=filter_selection_2)
-    # Aufbereinigung
-    enamel_smooth_select = bcbr(enamel_smooth_select)
-    # Schmelzsegment auf maskierten geglätteten Zahn fertig
-    stop = time.time()
-    print("enamel_smooth_select: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    # Auffüllung
+    contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
 
-    ### ab hier wird geschichtet
+    # Auffüllung zusätzlich, hilft bei sehr wenigen Datensätzen
+    enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
 
-    start = time.time()
-    enamel_layers = enamel_select + enamel_smooth_select
-    enamel_layers = enamel_layers > 0
-    enamel_layers_save = enamel_layers
-    stop = time.time()
-    print("enamel_layers: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
 
-    ### Aufbereinigung
+    segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
-    start = time.time()
-    enamel_layers_extended = bcbr(enamel_layers)
-    enamel_layers_extended_2 = bmc(enamel_layers_extended, 2) #size = 2
-    # vergleichbar mit Binary Opening Ergebnis, nur schneller
-    enamel_layers_extended_smooth = sitk.SmoothingRecursiveGaussian(enamel_layers_extended_2, 0.04) > 0.7
-    enamel_layers_extended_smooth_2 = bmc(enamel_layers_extended_smooth) > 0
-    enamel_layers_extended_smooth_2 = cc_min_size(enamel_layers_extended_smooth_2, 10) == 1 # size = 10
-    stop = time.time()
-    print("enamel_layers_smooth_extended: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    # generating medial surface for enamel and dentin
+    enamel_midsurface = enamelMidSurface(enamel_layers)
+    dentin_midsurface = dentinMidSurface(dentin_layers)
 
-    ### Auffüllung
-
-    # erweiterte Zahnkontur
-    #contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
-    start = time.time()
-    contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
-
-    # Hintergrund
-    background = (~tooth) == 255
-    # enamel_layers_extended_smooth_2 + background -> Schmelz und Hintergund
-    # ... + contour_extended -> Schmelz und Hintergrund und dicke Zahnkontur
-    # ~ (...) -> NICHT Schmelz und Hintergrund und dicke Zahnkontur -> Dentin und kleine Strukturen innerhalb Zahn
-    # == 255, da die Invertierung den Vordergrund auf 255 abbildet, danach ist Label wieder == 1
-    dentin_and_partial_decay = (~((((enamel_layers_extended_smooth_2 + background) > 0) + contour_extended) > 0)) == 255
-    # größter Teil in Dentin und kleine Strukturen innerhalb Zahn -> Dentin
-    dentin_parts = cc_min_size(dentin_and_partial_decay, 10) == 1
-    # Dentin und kleine Strukturen innerhalb Zahn - Dentin -> kleine Strukturen innerhalb Zahn
-    partial_decay = dentin_and_partial_decay - dentin_parts
-    # Hinzufügen der kleinen Strukturen zu Schmelzsegment
-    enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
-    stop = time.time()
-    print("enamel_layers_extended_smooth_3: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    ### Auffüllung zusätzlich, hilft bei sehr wenigen Datensätzen
-
-    # Invertierung Schmelz -> alles außerhalb Schmelz
-    start = time.time()
-    enamel_negative = ~enamel_layers_extended_smooth_3 == 255
-    # alle zusammenhängenden Komponenten -> eine große außerhalb Schmelz Komponente und kleine Komponenten in Schmelz
-    # "> 1" -> nicht die größte Kompononente -> kleine Komponenten in Schmelz
-    holes_enamel = cc_min_size(enamel_negative, 1) > 1
-    # Hinzufügen der kleinen Strukturen
-    enamel_layers_extended_smooth_4 = enamel_layers_extended_smooth_3 + holes_enamel
-    enamel_layers = enamel_layers_extended_smooth_4
-
-    ### Schmelzsegment fertig
-    stop = time.time()
-    print("enamel_layers_extended_smooth_4: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # ~tooth -> nicht Zahn -> alles außerhalb Zahn
-    # Schmelz + alles außerhalb Zahn + dicke Kontur -> alles außer Dentin
-    start = time.time()
-    not_dentin = enamel_layers + (~tooth == 255) + contour_extended > 0
-    # Invertierung alles außer Dentin -> Dentin
-    dentin_layers = (~not_dentin) == 255
-    # Abzug voneinander, um keine zweifach zugewiesnen Voxel zu haben
-    dentin_layers = dentin_layers - enamel_layers == 1
-    # falls noch einzelne Voxel vorhanden wären
-    dentin_layers = cc_min_size(dentin_layers, 50) == 1
-    stop = time.time()
-    print("dentin_layers: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # Label file
-    # dentin == 2
-    # enamel == 3
-    start = time.time()
-    segmentation_labels = enamel_layers * 3 + dentin_layers * 2
-    stop = time.time()
-    print("segmentation_labels: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # mediale Fläche Schmelz
-    start = time.time()
-    enamel_midsurface = medialSurface(enamel_layers)
-    stop = time.time()
-    print("enamel_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    # mediale Fläche Dentin
-    start = time.time()
-    dentin_midsurface = medialSurface(dentin_layers)
-    stop = time.time()
-    print("dentin_midsurface: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
-    ### Erstellung Tooth-Dictionary (siehe Übersicht unten für Beispiellegende des Ergebnissatzes)
-
+    #Erstellung Tooth-Dictionary (siehe Übersicht unten für Beispiellegende des Ergebnissatzes)
     start = time.time()
     filt_1 = filter_selection_1.lower()
     filt_2 = filter_selection_2.lower()
@@ -597,6 +468,249 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     print("tooth_dict: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
     return tooth_dict
+
+
+def loadImage(path, targetPath):
+    """
+
+    """
+    import time
+    start = time.time()
+    name = parse_name(path)
+    try:
+        img = load_isq(path, targetPath, name)
+    except:
+        img = load_mhd(path, name)
+    stop = time.time()
+    print("img: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return img, name
+
+def smoothImage(img, name, targetPath):
+    """"""
+    import time
+
+    start = time.time()
+    # If a median image already exists, take that one. Must be named "name_img_smooth"
+    try:
+        img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
+    except:  # smoothed img not already created
+        img_smooth = medianFilter(img, 1)  # size anpassen und schauen ob es schneller läuft size = 5
+        write(img_smooth, name + "_" + 'img_smooth', targetPath)
+    stop = time.time()
+    print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return img_smooth
+
+def generateImageMask(img, img_smooth, name, targetPath):
+    """
+
+    """
+    import time
+
+    # falls Zahn-Segmentierung bereits in Ordner vorhanden, wird diese verwendet
+    # muss name_tooth_smooth benannt sein
+    # ansonsten erster adaptiver Schwellwert (entspricht ersten Schnitt im Histogramm)
+    start = time.time()
+    try:
+        tooth = load_mhd(targetPath, name + "_" + 'tooth')
+    except:
+        tooth = threshold_filter(img_smooth)
+    # Originalbild, Zahn maskiert
+    tooth_masked = sitk.Mask(img, tooth)
+    stop = time.time()
+    print("tooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return tooth, tooth_masked
+
+def generateSmoothImageMask(img_smooth, tooth):
+    """
+
+    """
+    import time
+
+    # geglättetes Bild, Zahn maskiert
+    start = time.time()
+    tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
+    stop = time.time()
+    print("tooth_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return tooth_smooth_masked
+
+def enamelSelect(filter_selection_1, tooth_masked):
+    """
+
+    """
+    import time
+
+    # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
+    # auf maskierten Originalzahn
+    start = time.time()
+    enamel_select = threshold_filter(tooth_masked,
+                                     tooth_masked,
+                                     filter_selection=filter_selection_1)
+    # Aufbereinigung
+    enamel_select = bcbr(enamel_select)
+    # größtes zusammenhängendes Objekt
+    enamel_select = cc_min_size(enamel_select, 50) == 1
+    # Schmelzsegment auf maskierten Originalzahn fertig
+    stop = time.time()
+    print("enamel_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_select
+
+def enamelSmoothSelect(filter_selection_2, tooth_smooth_masked):
+    """
+
+    """
+    import time
+
+    # zweiter adaptiver Schwellwert (zweiter Schnitt im Histogramm)
+    # auf maskierten geglätteten Zahn
+    start = time.time()
+    enamel_smooth_select = threshold_filter(tooth_smooth_masked,
+                                            tooth_smooth_masked,
+                                            filter_selection=filter_selection_2)
+    # Aufbereinigung
+    enamel_smooth_select = bcbr(enamel_smooth_select)
+    # Schmelzsegment auf maskierten geglätteten Zahn fertig
+    stop = time.time()
+    print("enamel_smooth_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_smooth_select
+
+def enamelLayering(enamel_select, enamel_smooth_select):
+    """
+
+    """
+    import time
+
+    start = time.time()
+    enamel_layers = enamel_select + enamel_smooth_select
+    enamel_layers = enamel_layers > 0
+    enamel_layers_save = enamel_layers
+    stop = time.time()
+    print("enamel_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_layers
+
+def enamelPreparation(enamel_layers):
+    """
+
+    """
+    import time
+
+    start = time.time()
+    enamel_layers_extended = bcbr(enamel_layers)
+    enamel_layers_extended_2 = bmc(enamel_layers_extended, 2)  # size = 2
+    # vergleichbar mit Binary Opening Ergebnis, nur schneller
+    enamel_layers_extended_smooth = sitk.SmoothingRecursiveGaussian(enamel_layers_extended_2, 0.04) > 0.7
+    enamel_layers_extended_smooth_2 = bmc(enamel_layers_extended_smooth) > 0
+    enamel_layers_extended_smooth_2 = cc_min_size(enamel_layers_extended_smooth_2, 10) == 1  # size = 10
+    stop = time.time()
+    print("enamel_layers_smooth_extended: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_layers_extended_smooth_2
+
+def enamelFilling(enamel_layers_extended_smooth_2, tooth):
+    """
+
+    """
+    import time
+
+    # erweiterte Zahnkontur
+    # contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
+    start = time.time()
+    contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
+    # Hintergrund
+    background = (~tooth) == 255
+    # enamel_layers_extended_smooth_2 + background -> Schmelz und Hintergund
+    # ... + contour_extended -> Schmelz und Hintergrund und dicke Zahnkontur
+    # ~ (...) -> NICHT Schmelz und Hintergrund und dicke Zahnkontur -> Dentin und kleine Strukturen innerhalb Zahn
+    # == 255, da die Invertierung den Vordergrund auf 255 abbildet, danach ist Label wieder == 1
+    dentin_and_partial_decay = (~((((enamel_layers_extended_smooth_2 + background) > 0) + contour_extended) > 0)) == 255
+    # größter Teil in Dentin und kleine Strukturen innerhalb Zahn -> Dentin
+    dentin_parts = cc_min_size(dentin_and_partial_decay, 10) == 1
+    # Dentin und kleine Strukturen innerhalb Zahn - Dentin -> kleine Strukturen innerhalb Zahn
+    partial_decay = dentin_and_partial_decay - dentin_parts
+    # Hinzufügen der kleinen Strukturen zu Schmelzsegment
+    enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
+    stop = time.time()
+    print("enamel_layers_extended_smooth_3: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return contour_extended, enamel_layers_extended_smooth_3
+
+def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
+    """
+
+    """
+    import time
+
+    # Invertierung Schmelz -> alles außerhalb Schmelz
+    start = time.time()
+    enamel_negative = ~enamel_layers_extended_smooth_3 == 255
+    # alle zusammenhängenden Komponenten -> eine große außerhalb Schmelz Komponente und kleine Komponenten in Schmelz
+    # "> 1" -> nicht die größte Kompononente -> kleine Komponenten in Schmelz
+    holes_enamel = cc_min_size(enamel_negative, 1) > 1
+    # Hinzufügen der kleinen Strukturen
+    enamel_layers_extended_smooth_4 = enamel_layers_extended_smooth_3 + holes_enamel
+    enamel_layers = enamel_layers_extended_smooth_4
+    ### Schmelzsegment fertig
+    stop = time.time()
+    print("enamel_layers_extended_smooth_4: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_layers
+
+def dentinLayers(contour_extended, enamel_layers, tooth):
+    """
+
+    """
+    import time
+
+    # ~tooth -> nicht Zahn -> alles außerhalb Zahn
+    # Schmelz + alles außerhalb Zahn + dicke Kontur -> alles außer Dentin
+    start = time.time()
+    not_dentin = enamel_layers + (~tooth == 255) + contour_extended > 0
+    # Invertierung alles außer Dentin -> Dentin
+    dentin_layers = (~not_dentin) == 255
+    # Abzug voneinander, um keine zweifach zugewiesnen Voxel zu haben
+    dentin_layers = dentin_layers - enamel_layers == 1
+    # falls noch einzelne Voxel vorhanden wären
+    dentin_layers = cc_min_size(dentin_layers, 50) == 1
+    stop = time.time()
+    print("dentin_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return dentin_layers
+
+def segmentationLabels(dentin_layers, enamel_layers):
+    """
+
+    """
+    import time
+
+    # Label file
+    # dentin == 2
+    # enamel == 3
+    start = time.time()
+    segmentation_labels = enamel_layers * 3 + dentin_layers * 2
+    stop = time.time()
+    print("segmentation_labels: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return segmentation_labels
+
+def enamelMidSurface(enamel_layers):
+    """
+
+    """
+    import time
+
+    # mediale Fläche Schmelz
+    start = time.time()
+    enamel_midsurface = medialSurface(enamel_layers)
+    stop = time.time()
+    print("enamel_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return enamel_midsurface
+
+def dentinMidSurface(dentin_layers):
+    """
+
+    """
+    import time
+
+    # mediale Fläche Dentin
+    start = time.time()
+    dentin_midsurface = medialSurface(dentin_layers)
+    stop = time.time()
+    print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
+    return dentin_midsurface
 
 
 def calcAnatomicalSegmentation(sourcePath, targetPath, segmentationType: str) -> None:
