@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>402</width>
-    <height>476</height>
+    <height>492</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -160,7 +160,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QCheckBox" name="useAnatomicalForBatch">
         <property name="text">
          <string>use parameters for batch</string>
@@ -170,7 +170,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QPushButton" name="applyAnatomical">
         <property name="toolTip">
          <string>Select a node to apply the anatomical segmentation</string>
@@ -180,13 +180,23 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="showMidsurfaceAs3D">
+      <item row="4" column="0">
+       <widget class="QCheckBox" name="showMidSurfaceAs3D">
         <property name="text">
          <string>show medial surface as 3D</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.showMidsurfaceAs3D</string>
+         <string>anatomical.showMidSurfaceAs3D</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="calcMidSurface">
+        <property name="text">
+         <string>calculate medial surface</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.calcMidSurface</string>
         </property>
        </widget>
       </item>

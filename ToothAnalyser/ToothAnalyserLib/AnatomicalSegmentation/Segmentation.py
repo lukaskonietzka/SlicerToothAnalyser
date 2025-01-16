@@ -82,7 +82,7 @@ __PATH_101_200 = '/data/shofmann/MicroCT/Original_ISQ/101_200/'
 __PATH_201_250 = '/data/shofmann/MicroCT/Original_ISQ/201_250/'
 
 
-# ----- Namen Parser -----#
+# ----- Name parser -----#
 def parse_name(path: str) -> str:
     """
     The name parser is for a uniform conversion
@@ -394,8 +394,7 @@ def medialSurface(segment: any) -> any:
 
 
 #
-# Pipeline, mit Selection, berechnet Tooth-Dictionary
-#
+# ----- Pipeline, calculate tooth dictionary ----- #
 def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filter_selection_2='Renyi'):
     # path = '/data/shofmann/MicroCT/Original_ISQ/1_100/P01A-C0005278.ISQ'
     # tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
@@ -411,9 +410,7 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     stop = time.time()
     print("img: Done ",  f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
-
-    # falls Median-Bild bereits in Ordner vorhanden, wird dieses verwendet
-    # muss name_img_smooth benannt sein
+    # If a median image already exists, take that one. Must be named "name_img_smooth"
     start = time.time()
     try:
         img_smooth = load_mhd(targetPath, name + "_" + 'img_smooth')
@@ -544,7 +541,7 @@ def pipe_full_dict_selection(path, targetPath, filter_selection_1='Renyi', filte
     stop = time.time()
     print("dentin_layers: Done ", f" {(stop-start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
 
-    # Labeldatei
+    # Label file
     # dentin == 2
     # enamel == 3
     start = time.time()
