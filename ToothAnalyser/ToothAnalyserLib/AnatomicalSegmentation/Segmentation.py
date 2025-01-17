@@ -311,7 +311,7 @@ def write(img: any, name: str, path: str) -> None:
     """
     sitk.WriteImage(img, path + name + ".mhd")
 
-def writeToothDict(tooth: dict, path:str) -> None:
+def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
     """
     This method uses the simpleITK (sitk) library to store
     an image in the file system. The write action is based
@@ -329,6 +329,10 @@ def writeToothDict(tooth: dict, path:str) -> None:
         if key == 'path':
             pass
         elif key == 'name':
+            pass
+        elif key == "enamel_renyi_renyi_midsurface" and not calcMidSurface:
+            pass
+        elif key == "dentin_renyi_renyi_midsurface" and not calcMidSurface:
             pass
         else:
             write(tooth[key], name + "_" + key, path)
@@ -700,7 +704,7 @@ def dentinMidSurface(dentin_layers):
 
 
 # ----- Pipeline, calculate tooth dictionary ----- #
-def calcPipeline(path: str, targetPath: str, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
+def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
     """
     This method forms the complete pipeline for the calculation of smoothing,
     labels and medial surfaces. It is very large but therefore the clearest
@@ -745,8 +749,12 @@ def calcPipeline(path: str, targetPath: str, filter_selection_1: str= 'Renyi', f
     segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
     # 10. generating medial surface for enamel and dentin
-    enamel_midsurface = enamelMidSurface(enamel_layers)
-    dentin_midsurface = dentinMidSurface(dentin_layers)
+    if calcMidSurface:
+        enamel_midsurface = enamelMidSurface(enamel_layers)
+        dentin_midsurface = dentinMidSurface(dentin_layers)
+    else:
+        enamel_midsurface = ""
+        dentin_midsurface = ""
 
     # 11. generate tooth dictionary
     filt_1 = filter_selection_1.lower()
@@ -780,12 +788,21 @@ def calcPipeline(path: str, targetPath: str, filter_selection_1: str= 'Renyi', f
     return tooth_dict
 
 
-def calcAnatomicalSegmentation(sourcePath, targetPath, segmentationType: str) -> None:
+def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool) -> None:
     """
-    Calculates the files in the given path with the given algorithm
+    Calculates one files in the given source path with the given algorithm and store it
+    in the given target path.
+    @param sourcePath: The path to the file where the file to be calculated is located
+    @param targetPath: the path to the directory, where the files from the calculation should be stored
+    @param segmentationType: the thresholding algorithm for segmentation
+    @param calcMidSurface: true, if the medial surfaces also should be calculated. False if note
+    @example:
+        sourcePath = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
+        targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278AnatomicalSegmentationOtsu/'
+        calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True)
     """
-    tooth_segmentation = calcPipeline(sourcePath, targetPath, segmentationType, segmentationType)
-    writeToothDict(tooth_segmentation, targetPath)
+    tooth_segmentation = calcPipeline(sourcePath, targetPath, calcMidSurface, segmentationType, segmentationType)
+    writeToothDict(tooth_segmentation, targetPath, calcMidSurface)
     tooth_segmentation_name = tooth_segmentation['name']
     print("Done: " + tooth_segmentation_name)
 

@@ -671,21 +671,15 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         # set properties for segmentation
         seg.SetName(cls._anatomicalSegmentationName)
-        #seg.GetSegmentation().GetNthSegment(0).SetName("Dentin")
-        #seg.GetSegmentation().GetNthSegment(1).SetName("Enamel")
         default_names = ["Dentin", "Schmelz"]
 
         # set properties for segmentation
         num_segments = seg.GetSegmentation().GetNumberOfSegments()
         for i in range(num_segments):
             if i < len(default_names):
-                # Benenne die ersten Segmente mit den vordefinierten Namen
                 segment_name = default_names[i]
             else:
-                # Generiere generische Namen für die übrigen Segmente
                 segment_name = f"Segment {i + 1}"
-
-            # Setze den Namen des Segments
             seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
 
         # delete the given labelNode
@@ -727,17 +721,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         slicer.mrmlScene.RemoveNode(getNode("MedialSurface_source"))
 
     @classmethod
-    def createFolder(cls, item: str, folderName: str) -> None:
-        shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-        SceneID = shNode.GetSceneItemID()
-        folderNum = shNode.CreateFolderItem(SceneID, folderName)
-
-        nodes = slicer.mrmlScene.GetNodes()
-        for node in nodes:
-            if item in node.GetName().lower():
-                shNode.CreateItem(folderNum, node)
-
-    @classmethod
     def clearScene(cls, currentImageName) -> None:
         """
         Deletes all nodes from the scene, that where generated
@@ -755,33 +738,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slicer.mrmlScene.RemoveNode(midSurface)
         except:
             pass
-
         # slicer.mrmlScene.Clear()
-
-    @classmethod
-    def countFiles(cls, path: str, suffix: tuple[str]) -> int:
-        """
-        This methode counts all Files in a given directory with the given ending
-        param: path (str): path to the files
-        param; suffix (tuple[str]): Only files with this format are loaded
-        return: fileCount (int): The number of images that have been loaded
-        Example: fileCount = countFiles(param.sourcePath, ('.mhd', '.isq'))
-        """
-        import os
-        return len(sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)]))
-
-    @classmethod
-    def isValidPath(cls, path: str) -> bool:
-        """
-        This method checks whether the given string is a path to a folder
-        This should work for all common operating systems
-        param: path (str): value to check for a path
-        return: isValidPath (bool): Returns True if the given string is a path to a folder
-        """
-        import re
-        # Regex for directory on several operating systems
-        pattern = r'^(?:[a-zA-Z]:\\|/)?(?:[\w\s.-]+(?:\\|/))*$'
-        return bool(re.fullmatch(pattern, path))
 
     @classmethod
     def clearDirectory(cls, path: str) -> None:
@@ -836,7 +793,7 @@ class Otsu(AnatomicalSegmentationLogic):
         """
         super().preProcessing()
         import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
         start = time.time()
         logging.info("Processing started")
@@ -844,7 +801,7 @@ class Otsu(AnatomicalSegmentationLogic):
         # Create result directory
         targetDirectory = super().createDirectory(
             path=super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/anatomicalSegmentationOtsu/"
+            directoryName="/" + parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationOtsu/"
         )
 
         # Delete the old segmentation to keep order
@@ -852,17 +809,17 @@ class Otsu(AnatomicalSegmentationLogic):
 
         #Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-        calcAnatomicalSegmentation(
-            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-            targetPath=targetDirectory,
-            segmentationType="Otsu"
-        )
+        #calcAnatomicalSegmentation(
+        #    sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        #    targetPath=targetDirectory,
+        #    segmentationType="Otsu"
+        #)
 
         # Delete all nodes form scene
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
         # Load and create the calculated Segmentation
-        super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
+        super().loadFromDirectory(path=mockDirectory,suffix='.mhd')
         super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
         super().createMedialSurface(
             midSurfaceDentin=getNode("*dentin*midsurface*"),
@@ -906,7 +863,7 @@ class Renyi(AnatomicalSegmentationLogic):
         super().preProcessing()
 
         import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
         # Time Tracking
         start = time.time()
@@ -916,7 +873,7 @@ class Renyi(AnatomicalSegmentationLogic):
         targetDirectory = super().createDirectory(
             path=super().getDirectoryForFile(
                 param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/anatomicalSegmentationRenyi/"
+            directoryName="/" + parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationRenyi/"
         )
 
         # Delete the old segmentation to keep order
@@ -927,20 +884,24 @@ class Renyi(AnatomicalSegmentationLogic):
         calcAnatomicalSegmentation(
             sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
             targetPath=targetDirectory,
-            segmentationType="Renyi"
+            segmentationType="Renyi",
+            calcMidSurface=param.anatomical.calcMidSurface
         )
 
         # Delete all nodes from scene
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
-        # Load and create the calculated Segmentation to the Slicer scene
-        super().loadFromDirectory(path=targetDirectory, suffix='.mhd')
-        super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
-        super().createMedialSurface(
-            midSurfaceDentin=getNode("*dentin*midsurface*"),
-            midSurfaceEnamel=getNode("*enamel*midsurface*"),
-            show3D=param.anatomical.showMidSurfaceAs3D
-        )
+        try:
+            # Load and create the calculated Segmentation to the Slicer scene
+            super().loadFromDirectory(path=targetDirectory, suffix='.mhd')
+            super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
+            super().createMedialSurface(
+                midSurfaceDentin=getNode("*dentin*midsurface*"),
+                midSurfaceEnamel=getNode("*enamel*midsurface*"),
+                show3D=param.anatomical.showMidSurfaceAs3D
+            )
+        except:
+            pass
 
         # Time tracking
         stop = time.time()
