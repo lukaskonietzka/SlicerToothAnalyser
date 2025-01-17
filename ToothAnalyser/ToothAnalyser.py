@@ -282,6 +282,9 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._param.analytical.currentAnalyticalVolume = firstVolumeNode
 
+        # select medial surfaces by default
+        self.ui.calcMidSurface.checked = True
+
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
         Set and observe parameter node.
@@ -309,6 +312,18 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.handleApplyBatchButton()
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
+        self.handleShow3DCheckBox()
+
+    def handleShow3DCheckBox(self):
+        """
+        This method ensures that a 3D model of the MidSurface
+        can only be generated if it has also been calculated
+        """
+        if self._param.anatomical.calcMidSurface:
+            self.ui.showMidSurfaceAs3D.enabled = True
+        else:
+            self.ui.showMidSurfaceAs3D.enabled = False
+            self.ui.showMidSurfaceAs3D.checked = False
 
     def handleApplyBatchButton(self):
         """
@@ -544,8 +559,8 @@ class Analytics(ToothAnalyserLogic):
 class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     _availableAlgorithms = []
     _selectedAlgorithm = None
-    _anatomicalSegmentationName = "Anatomical-Segmentationbla"
-    _midSurfaceName = "Medial-Surfacedada"
+    _anatomicalSegmentationName = "Anatomical-Segmentation"
+    _midSurfaceName = "Medial-Surface"
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -809,23 +824,27 @@ class Otsu(AnatomicalSegmentationLogic):
 
         #Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-        #calcAnatomicalSegmentation(
-        #    sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-        #    targetPath=targetDirectory,
-        #    segmentationType="Otsu"
-        #)
+        calcAnatomicalSegmentation(
+            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+            targetPath=targetDirectory,
+            segmentationType="Otsu",
+            calcMidSurface=param.anatomical.calcMidSurface
+        )
 
         # Delete all nodes form scene
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
-        # Load and create the calculated Segmentation
-        super().loadFromDirectory(path=mockDirectory,suffix='.mhd')
-        super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
-        super().createMedialSurface(
-            midSurfaceDentin=getNode("*dentin*midsurface*"),
-            midSurfaceEnamel=getNode("*enamel*midsurface*"),
-            show3D=param.anatomical.showMidSurfaceAs3D
-       )
+        try:
+            # Load and create the calculated Segmentation
+            super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
+            super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
+            super().createMedialSurface(
+                midSurfaceDentin=getNode("*dentin*midsurface*"),
+                midSurfaceEnamel=getNode("*enamel*midsurface*"),
+                show3D=param.anatomical.showMidSurfaceAs3D
+           )
+        except:
+            pass
 
         # Time tracking
         stop = time.time()

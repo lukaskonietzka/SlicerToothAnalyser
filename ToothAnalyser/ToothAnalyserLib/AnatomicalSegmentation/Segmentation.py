@@ -334,6 +334,10 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
             pass
         elif key == "dentin_renyi_renyi_midsurface" and not calcMidSurface:
             pass
+        elif key == "enamel_otsu_otsu_midsurface" and not calcMidSurface:
+            pass
+        elif key == "dentin_otsu_otsu_midsurface" and not calcMidSurface:
+            pass
         else:
             write(tooth[key], name + "_" + key, path)
 

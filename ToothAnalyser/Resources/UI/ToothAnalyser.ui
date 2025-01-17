@@ -180,23 +180,32 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QCheckBox" name="showMidSurfaceAs3D">
-        <property name="text">
-         <string>show medial surface as 3D</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.showMidSurfaceAs3D</string>
-        </property>
-       </widget>
-      </item>
       <item row="3" column="0">
        <widget class="QCheckBox" name="calcMidSurface">
         <property name="text">
          <string>calculate medial surface</string>
         </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
         <property name="SlicerParameterName" stdset="0">
          <string>anatomical.calcMidSurface</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QCheckBox" name="showMidSurfaceAs3D">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>show medial surface as 3D</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.showMidSurfaceAs3D</string>
         </property>
        </widget>
       </item>
