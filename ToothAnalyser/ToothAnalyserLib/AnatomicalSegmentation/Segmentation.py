@@ -315,7 +315,8 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
     """
     This method uses the simpleITK (sitk) library to store
     an image in the file system. The write action is based
-    on the Tooth-Dictionary.
+    on the Tooth-Dictionary. If there is no image behind the dictionary key
+    skip this key.‚
     @param tooth: the dictionary to be stored
     @param path: the storage location in the file system
     @example:
@@ -330,13 +331,7 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
             pass
         elif key == 'name':
             pass
-        elif key == "enamel_renyi_renyi_midsurface" and not calcMidSurface:
-            pass
-        elif key == "dentin_renyi_renyi_midsurface" and not calcMidSurface:
-            pass
-        elif key == "enamel_otsu_otsu_midsurface" and not calcMidSurface:
-            pass
-        elif key == "dentin_otsu_otsu_midsurface" and not calcMidSurface:
+        elif "midsurface" in key and not calcMidSurface:
             pass
         else:
             write(tooth[key], name + "_" + key, path)
@@ -557,8 +552,8 @@ def enamelSmoothSelect(filter_selection_2, tooth_smooth_masked):
     # second adaptive threshold value - corresponds to second cut in the histogram
     # on masked original tooth
     start = time.time()
-    enamel_smooth_select = thresholdFilter(tooth_smooth_masked,
-                                           tooth_smooth_masked,
+    enamel_smooth_select = thresholdFilter(img=tooth_smooth_masked,
+                                           mask=tooth_smooth_masked,
                                            filter_selection=filter_selection_2)
     # preparation
     enamel_smooth_select = bcbr(enamel_smooth_select)
@@ -627,7 +622,13 @@ def enamelFilling(enamel_layers_extended_smooth_2, tooth):
 
 def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     """
-
+    this method performs an additional filtering of the enamel segment.
+    This is needed for the Calculation of the dentin Segment.
+    @param enamel_layers:
+    @param enamel_layers_extended_smooth_3:
+    @return:
+    @example:
+       enamelLayers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
     """
     import time
 
@@ -645,61 +646,81 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     print("enamel_layers_extended_smooth_4: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
 
-def dentinLayers(contour_extended, enamel_layers, tooth):
+def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> any:
     """
-
+    This methode calculates the layer Image for the dentin segment
+    by using the smoothed image and the already created enamel layer.
+    Dentin = Enamel + everything outside the tooth + thick contour
+    @param contour_extended:
+    @param enamel_layers:
+    @param tooth:
+    @return:
+    @example:
+        dentinLayers = dentinLayers(contour_extended, enamel_layers, tooth)
     """
     import time
 
-    # ~tooth -> nicht Zahn -> alles außerhalb Zahn
-    # Schmelz + alles außerhalb Zahn + dicke Kontur -> alles außer Dentin
+    # ~tooth -> not tooth -> everything outside tooth
+    # Enamel + everything outside the tooth + thick contour -> everything except dentin
     start = time.time()
     not_dentin = enamel_layers + (~tooth == 255) + contour_extended > 0
-    # Invertierung alles außer Dentin -> Dentin
+    # Inversion everything except dentin -> dentin
     dentin_layers = (~not_dentin) == 255
-    # Abzug voneinander, um keine zweifach zugewiesnen Voxel zu haben
+    # Deduction from each other to avoid double assigned voxels
     dentin_layers = dentin_layers - enamel_layers == 1
-    # falls noch einzelne Voxel vorhanden wären
+    # if individual voxels were still available
     dentin_layers = ccMinSize(dentin_layers, 50) == 1
     stop = time.time()
     print("dentin_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return dentin_layers
 
-def segmentationLabels(dentin_layers, enamel_layers):
+def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
     """
-
+    This methode calculates a label image based on the
+    given dentin layer and the enamel layer.
+    @param dentin_layers: the dentin layer for the label image
+    @param enamel_layers: the enamel layer for the label image
+    @return: the calculated label image
+    @example:
+        segmentationLabels = segmentationLabels(dentinLayers, enamelLayers)
     """
     import time
 
-    # Label file
-    # dentin == 2
-    # enamel == 3
+    # Label file, dentin == 2, enamel == 3
     start = time.time()
     segmentation_labels = enamel_layers * 3 + dentin_layers * 2
     stop = time.time()
     print("segmentation_labels: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return segmentation_labels
 
-def enamelMidSurface(enamel_layers):
+def enamelMidSurface(enamel_layers: any) -> Image:
     """
-
+    This method calculate the medial surfaces for the enamel
+    segment by using the enamel layer
+    @param enamel_layers: The layer for which the medial surface should be calculated
+    @return: the calculated medial surface as image
+    @example:
+        enamelMidSurface = enamelMidSurface(enamel_layers)
     """
     import time
 
-    # mediale Fläche Schmelz
     start = time.time()
     enamel_midsurface = medialSurface(enamel_layers)
     stop = time.time()
     print("enamel_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_midsurface
 
-def dentinMidSurface(dentin_layers):
+def dentinMidSurface(dentin_layers: any) -> Image:
     """
-
+    This method calculate the medial surfaces for the dentin
+    segment by using the dentin layer
+    @param dentin_layers: The layer for which the medial surface should be calculated
+    @return: the calculated medial surface as image
+    @example:
+        dentinMidSurface = dentinMidSurface(dentin_layers)
     """
     import time
 
-    # mediale Fläche Dentin
     start = time.time()
     dentin_midsurface = medialSurface(dentin_layers)
     stop = time.time()
@@ -760,7 +781,7 @@ def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_select
         enamel_midsurface = ""
         dentin_midsurface = ""
 
-    # 11. generate tooth dictionary
+    # 11. generate tooth dictionary to store all generated data sets local
     filt_1 = filter_selection_1.lower()
     filt_2 = filter_selection_2.lower()
 
