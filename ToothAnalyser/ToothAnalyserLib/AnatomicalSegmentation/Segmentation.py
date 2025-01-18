@@ -309,7 +309,7 @@ def write(img: any, name: str, path: str) -> None:
     @example:
         write(sitk_img, 'P01A-C0005278') store P01A-C0005278.mhd and P01A-C0005278.raw
     """
-    sitk.WriteImage(img, path + name + ".mhd")
+    sitk.WriteImage(img, path + name + ".nrrd")
 
 def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
     """

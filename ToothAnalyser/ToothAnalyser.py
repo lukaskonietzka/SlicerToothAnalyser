@@ -409,6 +409,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
+    _availableTypes = [".nrrd", ".mhd", "nii"]
 
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
@@ -636,7 +637,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return folder_path
 
     @classmethod
-    def loadFromDirectory(cls, path: str, suffix: tuple[str]) -> None:
+    def loadFromDirectory(cls, path: str, suffix: tuple) -> None:
         """
         Loads all data with the given suffix from the given path
         param: path (str): path to the files
@@ -671,7 +672,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 logging.error(f"Error while loading {file_path}: {e}")
 
     @classmethod
-    def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool=False) -> None:
+    def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool, currentImageName) -> None:
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
@@ -685,7 +686,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         seg.CreateClosedSurfaceRepresentation()
 
         # set properties for segmentation
-        seg.SetName(cls._anatomicalSegmentationName)
+        print("SegName: ", currentImageName)
+        seg.SetName(currentImageName + cls._anatomicalSegmentationName)
         default_names = ["Dentin", "Schmelz"]
 
         # set properties for segmentation
@@ -702,9 +704,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slicer.mrmlScene.RemoveNode(labelImage)
 
     @classmethod
-    def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode, midSurfaceEnamel: vtkMRMLLabelMapVolumeNode, show3D: bool) -> None:
+    def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode, midSurfaceEnamel: vtkMRMLLabelMapVolumeNode, show3D: bool, currentImageName) -> None:
         # create dentin medial surface segmentation
-        print("show 3D: ", show3D)
         segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceDentin, segDentin)
         segDentin.SetName("MedialSurface_source")
@@ -713,19 +714,18 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             segDentin.GetSegmentation().GetNthSegment(0).SetName("Dentin")
             slicer.mrmlScene.RemoveNode(midSurfaceDentin)
             if show3D:
-                print("create 3D dentin")
                 segDentin.CreateClosedSurfaceRepresentation()
 
         # create enamel medial surface segmentation
         segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceEnamel, segEnamel)
-        segEnamel.SetName(cls._midSurfaceName)
+        print("Midname: " + currentImageName)
+        segEnamel.SetName(currentImageName + cls._midSurfaceName)
 
         if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
             segEnamel.GetSegmentation().GetNthSegment(0).SetName("Enamel")
             slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
             if show3D:
-                print("create 3D enamel")
                 segEnamel.CreateClosedSurfaceRepresentation()
 
         # copy all segments from dentin to enamel and delete dentin
@@ -746,10 +746,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             currentImage = getNode(currentImageName)
             slicer.mrmlScene.RemoveNode(currentImage)
 
-            anatomicalSegmentation = getNode(cls._anatomicalSegmentationName)
+            anatomicalSegmentation = getNode("*" + cls._anatomicalSegmentationName)
             slicer.mrmlScene.RemoveNode(anatomicalSegmentation)
 
-            midSurface = getNode(cls._midSurfaceName)
+            midSurface = getNode("*" + cls._midSurfaceName)
             slicer.mrmlScene.RemoveNode(midSurface)
         except:
             pass
@@ -812,6 +812,7 @@ class Otsu(AnatomicalSegmentationLogic):
 
         start = time.time()
         logging.info("Processing started")
+        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         # Create result directory
         targetDirectory = super().createDirectory(
@@ -836,12 +837,16 @@ class Otsu(AnatomicalSegmentationLogic):
 
         try:
             # Load and create the calculated Segmentation
-            super().loadFromDirectory(path=targetDirectory,suffix='.mhd')
-            super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
+            super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
+            super().createSegmentation(
+                labelImage=getNode("*label*"),
+                deleteLabelImage=True,
+                currentImageName=currentImageName)
             super().createMedialSurface(
                 midSurfaceDentin=getNode("*dentin*midsurface*"),
                 midSurfaceEnamel=getNode("*enamel*midsurface*"),
-                show3D=param.anatomical.showMidSurfaceAs3D
+                show3D=param.anatomical.showMidSurfaceAs3D,
+                currentImageName=currentImageName
            )
         except:
             pass
@@ -887,6 +892,7 @@ class Renyi(AnatomicalSegmentationLogic):
         # Time Tracking
         start = time.time()
         logging.info("Processing started")
+        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         # Create result directory eventuell nach Segmentation auslagern
         targetDirectory = super().createDirectory(
@@ -912,20 +918,24 @@ class Renyi(AnatomicalSegmentationLogic):
 
         try:
             # Load and create the calculated Segmentation to the Slicer scene
-            super().loadFromDirectory(path=targetDirectory, suffix='.mhd')
-            super().createSegmentation(labelImage=getNode("*label*"), deleteLabelImage=True)
+            super().loadFromDirectory(path=targetDirectory, suffix=(".mhd", ".nrrd"))
+            super().createSegmentation(
+                labelImage=getNode("*label*"),
+                deleteLabelImage=True,
+                currentImageName=currentImageName
+            )
             super().createMedialSurface(
                 midSurfaceDentin=getNode("*dentin*midsurface*"),
                 midSurfaceEnamel=getNode("*enamel*midsurface*"),
-                show3D=param.anatomical.showMidSurfaceAs3D
+                show3D=param.anatomical.showMidSurfaceAs3D,
+                currentImageName=currentImageName
             )
         except:
             pass
 
         # Time tracking
         stop = time.time()
-        logging.info(f"Processing completed in {stop - start:.2f} seconds")
-        print(f"Processing completed in {(stop - start) / 60:.2f} minutes")
+        print("Processing completed in: ",  f" {(stop-start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
         print()
 
         super().postProcessing()
