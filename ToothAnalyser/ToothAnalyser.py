@@ -19,7 +19,6 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 
 
-
 ##################################################
 # ToothAnalyser
 ##################################################
@@ -695,6 +694,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         for i in range(num_segments):
             if i < len(default_names):
                 segment_name = default_names[i]
+                if segment_name == "Schmelz":
+                    seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.6)
             else:
                 segment_name = f"Segment {i + 1}"
             seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
@@ -712,6 +713,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         if segDentin.GetSegmentation().GetNumberOfSegments() > 0:
             segDentin.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+            segDentin.GetSegmentation().GetNthSegment(0).SetColor(1.0, 0.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceDentin)
             if show3D:
                 segDentin.CreateClosedSurfaceRepresentation()
@@ -724,6 +726,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
             segEnamel.GetSegmentation().GetNthSegment(0).SetName("Enamel")
+            segEnamel.GetSegmentation().GetNthSegment(0).SetColor(0.0, 1.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
             if show3D:
                 segEnamel.CreateClosedSurfaceRepresentation()
@@ -787,6 +790,53 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             print(f"Error while creating directory: {e}")
 
         return targetDirectory
+    @classmethod
+    def itkToVtk(cls, itkImage):
+        import SimpleITK as sitk
+        import numpy as np
+
+        # 1. Konvertiere das ITK-Bild in ein NumPy-Array
+        array_data = sitk.GetArrayFromImage(itkImage)  # NumPy-Array (z, y, x)
+
+        # 2. Prüfen und Konvertieren der Speicheranordnung
+        array_data_c = np.ascontiguousarray(array_data, dtype=np.uint8)  # LabelMaps sind typischerweise `uint8`
+
+        # 3. Konvertiere das NumPy-Array in ein VTK-Array
+        vtk_array = vtk.util.numpy_support.numpy_to_vtk(array_data_c.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
+
+        # 4. Erstelle ein vtkImageData-Objekt
+        vtk_image = vtk.vtkImageData()
+        vtk_image.SetDimensions(array_data.shape[2], array_data.shape[1], array_data.shape[0])  # (x, y, z)
+        vtk_image.SetSpacing(itkImage.GetSpacing())  # ITK-Spacings
+        vtk_image.SetOrigin(itkImage.GetOrigin())  # ITK-Origin
+        vtk_image.GetPointData().SetScalars(vtk_array)
+
+        # 5. Erstelle einen LabelMap-Node in der Slicer-Szene
+        slicer.mrmlScene.StartState(slicer.vtkMRMLScene.BatchProcessState)  # Start Batch-Process
+        labelmap_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "Test")
+        labelmap_node.SetAndObserveImageData(vtk_image)
+        labelmap_node.SetSpacing(itkImage.GetSpacing())
+        labelmap_node.SetOrigin(itkImage.GetOrigin())
+        slicer.mrmlScene.EndState(slicer.vtkMRMLScene.BatchProcessState)  # End Batch-Process
+
+        # 6. Erstelle Anzeigeeigenschaften
+        labelmap_node.CreateDefaultDisplayNodes()
+
+        # 7. Stelle sicher, dass der LabelMap-Node in den Slice-Ansichten angezeigt wird
+        app_logic = slicer.app.applicationLogic()
+        selection_node = app_logic.GetSelectionNode()
+
+        # Setze den LabelMap-Node als aktives Label-Volume
+        selection_node.SetReferenceActiveLabelVolumeID(labelmap_node.GetID())
+        app_logic.PropagateVolumeSelection(0)
+
+        # Erzwinge ein Redraw der Ansichten
+        layout_manager = slicer.app.layoutManager()
+        for slice_view in ['Red', 'Green', 'Yellow']:
+            slice_widget = layout_manager.sliceWidget(slice_view)
+            slice_widget.sliceLogic().FitSliceToAll()
+
+        return labelmap_node
 
 
 ##################################################
@@ -808,28 +858,39 @@ class Otsu(AnatomicalSegmentationLogic):
         """
         super().preProcessing()
         import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
+        import SimpleITK as sitk
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName, \
+            calcPipeline
 
         start = time.time()
         logging.info("Processing started")
-        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         # Create result directory
         targetDirectory = super().createDirectory(
-            path=super().getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/" + parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationOtsu/"
+            path=super().getDirectoryForFile(
+                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
+            directoryName="/" + parseName(
+                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationOtsu/"
         )
 
         # Delete the old segmentation to keep order
         super().clearDirectory(targetDirectory)
 
-        #Calculate Anatomical Segmentation
+        # Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-        calcAnatomicalSegmentation(
-            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        # calcAnatomicalSegmentation(
+        #     sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        #     targetPath=targetDirectory,
+        #     segmentationType="Otsu",
+        #     calcMidSurface=param.anatomical.calcMidSurface
+        # )
+
+        toothDict = calcPipeline(
+            path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
             targetPath=targetDirectory,
-            segmentationType="Otsu",
-            calcMidSurface=param.anatomical.calcMidSurface
+            calcMidSurface=param.anatomical.calcMidSurface,
+            filter_selection_1="Otsu",
+            filter_selection_2="Otsu",
         )
 
         # Delete all nodes form scene
@@ -837,23 +898,32 @@ class Otsu(AnatomicalSegmentationLogic):
 
         try:
             # Load and create the calculated Segmentation
-            super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
+            # super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
+
+            currentImageName = toothDict["name"]
+            labelImage = super().itkToVtk(toothDict["segmentation_otsu_otsu_labels"])
             super().createSegmentation(
-                labelImage=getNode("*label*"),
+                labelImage=labelImage,
                 deleteLabelImage=True,
                 currentImageName=currentImageName)
-            super().createMedialSurface(
-                midSurfaceDentin=getNode("*dentin*midsurface*"),
-                midSurfaceEnamel=getNode("*enamel*midsurface*"),
-                show3D=param.anatomical.showMidSurfaceAs3D,
-                currentImageName=currentImageName
-           )
+
+            if toothDict["enamel_otsu_otsu_midsurface"] is not None or toothDict[
+                "dentin_otsu_otsu_midsurface"] is not None:
+                enamelMidSurfaceImage = super().itkToVtk(toothDict["enamel_otsu_otsu_midsurface"])
+                dentinMidSurfaceImage = super().itkToVtk(toothDict["dentin_otsu_otsu_midsurface"])
+                super().createMedialSurface(
+                    midSurfaceDentin=dentinMidSurfaceImage,
+                    midSurfaceEnamel=enamelMidSurfaceImage,
+                    show3D=param.anatomical.showMidSurfaceAs3D,
+                    currentImageName=currentImageName)
+            else:
+                pass
         except:
             pass
 
         # Time tracking
         stop = time.time()
-        print("Processing completed in: ",  f" {(stop-start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
+        print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
         print()
 
     @classmethod
@@ -885,60 +955,74 @@ class Renyi(AnatomicalSegmentationLogic):
         as a single procedure.
         """
         super().preProcessing()
-
         import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
+        import SimpleITK as sitk
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName, \
+            calcPipeline
 
-        # Time Tracking
         start = time.time()
         logging.info("Processing started")
-        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
-        # Create result directory eventuell nach Segmentation auslagern
+        # Create result directory
         targetDirectory = super().createDirectory(
             path=super().getDirectoryForFile(
                 param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/" + parseName(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationRenyi/"
+            directoryName="/" + parseName(
+                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationRenyi/"
         )
 
         # Delete the old segmentation to keep order
         super().clearDirectory(targetDirectory)
 
         # Calculate Anatomical Segmentation
-        # mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/anatomicalSegmentation/"
-        calcAnatomicalSegmentation(
-            sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
+        # calcAnatomicalSegmentation(
+        #     sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
+        #     targetPath=targetDirectory,
+        #     segmentationType="Otsu",
+        #     calcMidSurface=param.anatomical.calcMidSurface
+        # )
+
+        toothDict = calcPipeline(
+            path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
             targetPath=targetDirectory,
-            segmentationType="Renyi",
-            calcMidSurface=param.anatomical.calcMidSurface
+            calcMidSurface=param.anatomical.calcMidSurface,
+            filter_selection_1="Renyi",
+            filter_selection_2="Renyi",
         )
 
-        # Delete all nodes from scene
+        # Delete all nodes form scene
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
+
+
         try:
-            # Load and create the calculated Segmentation to the Slicer scene
-            super().loadFromDirectory(path=targetDirectory, suffix=(".mhd", ".nrrd"))
+            # Load and create the calculated Segmentation
+            # super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
+
+            currentImageName = toothDict["name"]
+            labelImage = super().itkToVtk(toothDict["segmentation_renyi_renyi_labels"])
             super().createSegmentation(
-                labelImage=getNode("*label*"),
+                labelImage=labelImage,
                 deleteLabelImage=True,
-                currentImageName=currentImageName
-            )
-            super().createMedialSurface(
-                midSurfaceDentin=getNode("*dentin*midsurface*"),
-                midSurfaceEnamel=getNode("*enamel*midsurface*"),
-                show3D=param.anatomical.showMidSurfaceAs3D,
-                currentImageName=currentImageName
-            )
+                currentImageName=currentImageName)
+
+            if toothDict["enamel_renyi_renyi_midsurface"] is not None or toothDict["dentin_renyi_renyi_midsurface"] is not None:
+                enamelMidSurfaceImage = super().itkToVtk(toothDict["enamel_renyi_renyi_midsurface"])
+                dentinMidSurfaceImage = super().itkToVtk(toothDict["dentin_renyi_renyi_midsurface"])
+                super().createMedialSurface(
+                    midSurfaceDentin=dentinMidSurfaceImage,
+                    midSurfaceEnamel=enamelMidSurfaceImage,
+                    show3D=param.anatomical.showMidSurfaceAs3D,
+                    currentImageName=currentImageName)
+            else:
+                pass
         except:
             pass
 
         # Time tracking
         stop = time.time()
-        print("Processing completed in: ",  f" {(stop-start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
-        print()
-
-        super().postProcessing()
+        print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
         print()
 
     @classmethod

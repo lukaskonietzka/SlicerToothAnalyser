@@ -472,7 +472,7 @@ def smoothImage(img: Image, name: str, targetPath: str) -> Image:
         img_smooth = loadMHD(targetPath, name + "_" + 'img_smooth')
     except:  # smoothed img not already created
         img_smooth = medianFilter(img, 1)  # size anpassen und schauen ob es schneller läuft size = 5
-        write(img_smooth, name + "_" + 'img_smooth', targetPath)
+        #write(img_smooth, name + "_" + 'img_smooth', targetPath)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
@@ -778,8 +778,8 @@ def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_select
         enamel_midsurface = enamelMidSurface(enamel_layers)
         dentin_midsurface = dentinMidSurface(dentin_layers)
     else:
-        enamel_midsurface = ""
-        dentin_midsurface = ""
+        enamel_midsurface = None
+        dentin_midsurface = None
 
     # 11. generate tooth dictionary to store all generated data sets local
     filt_1 = filter_selection_1.lower()
