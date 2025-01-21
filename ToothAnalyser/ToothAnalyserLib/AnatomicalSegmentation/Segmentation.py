@@ -331,6 +331,14 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
             pass
         elif key == 'name':
             pass
+        elif key == "tooth":
+            pass
+        elif key == "enamel_otsu" or key == "enamel_renyi":
+            pass
+        elif "smooth" in key:
+            pass
+        elif "layers" in key:
+            pass
         elif "midsurface" in key and not calcMidSurface:
             pass
         else:
@@ -830,4 +838,3 @@ def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationTyp
     writeToothDict(tooth_segmentation, targetPath, calcMidSurface)
     tooth_segmentation_name = tooth_segmentation['name']
     print("Done: " + tooth_segmentation_name)
-

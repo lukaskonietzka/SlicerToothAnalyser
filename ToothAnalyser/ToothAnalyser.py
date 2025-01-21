@@ -123,8 +123,8 @@ class Batch:
     The parameters needed by the section
     Batch Processing
     """
-    sourcePath: str
-    targetPath: str
+    sourcePath: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/"
+    targetPath: str =  "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/"
 
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
@@ -636,6 +636,21 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return folder_path
 
     @classmethod
+    def collectFiles(cls, path: str, suffix: tuple) -> list:
+        """
+        Loads all data with the given suffix from the given path
+        @param path: the path to the files
+        @param suffix: only files with this format are loaded
+        @return: the collected files in a python list
+        """
+        files = []
+        if os.path.exists(path):
+            files = sorted([f for f in os.listdir(path) if f.endswith(suffix)])
+        return files
+
+
+
+    @classmethod
     def loadFromDirectory(cls, path: str, suffix: tuple) -> None:
         """
         Loads all data with the given suffix from the given path
@@ -764,15 +779,25 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         Delete all files in the given directory
         :param path: path to the directory, that has to be cleared
         """
+        import shutil
+        if not os.path.exists(path):
+            print(f"Das Verzeichnis '{path}' existiert nicht.")
+            return
+
         if not os.path.isdir(path):
-            raise ValueError(f"The given '{path}' is not an directory.")
+            print(f"Der Pfad '{path}' ist kein Verzeichnis.")
+            return
+
         try:
-            for file in os.listdir(path):
-                file_path = os.path.join(path, file)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
+            for item in os.listdir(path):
+                item_path = os.path.join(path, item)
+                if os.path.isfile(item_path) or os.path.islink(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+            print(f"Der Ordner '{path}' wurde geleert.")
         except Exception as e:
-            print(f"Error while clearing directory: {e}")
+            print(f"Fehler beim Leeren des Ordners '{path}': {e}")
 
     @classmethod
     def createDirectory(cls, path: str, directoryName: str) -> str:
@@ -858,9 +883,7 @@ class Otsu(AnatomicalSegmentationLogic):
         """
         super().preProcessing()
         import time
-        import SimpleITK as sitk
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName, \
-            calcPipeline
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
         logging.info("Processing started")
@@ -878,12 +901,6 @@ class Otsu(AnatomicalSegmentationLogic):
 
         # Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-        # calcAnatomicalSegmentation(
-        #     sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-        #     targetPath=targetDirectory,
-        #     segmentationType="Otsu",
-        #     calcMidSurface=param.anatomical.calcMidSurface
-        # )
 
         toothDict = calcPipeline(
             path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
@@ -897,9 +914,6 @@ class Otsu(AnatomicalSegmentationLogic):
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
         try:
-            # Load and create the calculated Segmentation
-            # super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
-
             currentImageName = toothDict["name"]
             labelImage = super().itkToVtk(toothDict["segmentation_otsu_otsu_labels"])
             super().createSegmentation(
@@ -924,7 +938,6 @@ class Otsu(AnatomicalSegmentationLogic):
         # Time tracking
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
-        print()
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
@@ -933,11 +946,36 @@ class Otsu(AnatomicalSegmentationLogic):
         ToothAnalyserLogic. It is implementing the current strategy
         as a single procedure.
         """
-        super().preProcessing()
-        print("execute Anatomical Segmentation with Otsu as Batch ...")
-        super().postProcessing()
-        print()
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
+        # create local variables for all parameters
+        sourcePath = param.batch.sourcePath
+        targetPath = param.batch.targetPath
+        files = super().collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
+
+        # Create result directory
+        targetDirectory = super().createDirectory(
+            path=targetPath,
+            directoryName="AnatomicalSegmentationOtsu"
+        )
+
+        # Delete the old segmentation to keep order
+        super().clearDirectory(targetDirectory)
+
+        for file in files:
+            fileName = parseName(file)
+            fullFilePath = sourcePath + "/" + file
+            # create directory for each File to be calculated
+            targetFileDirectory = super().createDirectory(
+                path=targetDirectory,
+                directoryName=fileName
+            )
+            calcAnatomicalSegmentation(
+                sourcePath=fullFilePath,
+                targetPath=targetFileDirectory,
+                segmentationType="Otsu",
+                calcMidSurface=param.anatomical.calcMidSurface
+            )
 
 
 class Renyi(AnatomicalSegmentationLogic):
@@ -954,11 +992,8 @@ class Renyi(AnatomicalSegmentationLogic):
         ToothAnalyserLogic. It is implementing the current strategy
         as a single procedure.
         """
-        super().preProcessing()
         import time
-        import SimpleITK as sitk
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName, \
-            calcPipeline
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
         logging.info("Processing started")
@@ -976,12 +1011,6 @@ class Renyi(AnatomicalSegmentationLogic):
 
         # Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-        # calcAnatomicalSegmentation(
-        #     sourcePath=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-        #     targetPath=targetDirectory,
-        #     segmentationType="Otsu",
-        #     calcMidSurface=param.anatomical.calcMidSurface
-        # )
 
         toothDict = calcPipeline(
             path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
@@ -994,12 +1023,7 @@ class Renyi(AnatomicalSegmentationLogic):
         # Delete all nodes form scene
         super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
-
-
         try:
-            # Load and create the calculated Segmentation
-            # super().loadFromDirectory(path=targetDirectory,suffix=(".mhd", ".nrrd"))
-
             currentImageName = toothDict["name"]
             labelImage = super().itkToVtk(toothDict["segmentation_renyi_renyi_labels"])
             super().createSegmentation(
@@ -1023,7 +1047,6 @@ class Renyi(AnatomicalSegmentationLogic):
         # Time tracking
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
-        print()
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode):
@@ -1032,11 +1055,36 @@ class Renyi(AnatomicalSegmentationLogic):
         ToothAnalyserLogic. It is implementing the current strategy
         as a single procedure.
         """
-        super().preProcessing()
-        print("execute Anatomical Segmentation with Renyi as Batch ...")
-        super().postProcessing()
-        print()
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
+        # create local variables for all parameters
+        sourcePath = param.batch.sourcePath
+        targetPath = param.batch.targetPath
+        files = super().collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
+
+        # Create result directory
+        targetDirectory = super().createDirectory(
+            path=targetPath,
+            directoryName="AnatomicalSegmentationRenyi"
+        )
+
+        # Delete the old segmentation to keep order
+        super().clearDirectory(targetDirectory)
+
+        for file in files:
+            fileName = parseName(file)
+            fullFilePath = sourcePath + "/" + file
+            # create directory for each File to be calculated
+            targetFileDirectory = super().createDirectory(
+                path=targetDirectory,
+                directoryName=fileName
+            )
+            calcAnatomicalSegmentation(
+                sourcePath=fullFilePath,
+                targetPath=targetFileDirectory,
+                segmentationType="Renyi",
+                calcMidSurface=param.anatomical.calcMidSurface
+            )
 
 
 ##################################################
