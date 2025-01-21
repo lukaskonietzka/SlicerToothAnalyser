@@ -380,8 +380,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         when user clicks "Apply Analytics" Button.
         """
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
-            AnatomicalSegmentationLogic.getSelectedAlgorithm().execute(param=self._param)
+            AnatomicalSegmentationLogic.execute(param=self._param)
 
     def onApplyBatchButton(self) -> None:
         """
@@ -392,8 +391,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if self._param.analytical.useAnalyticForBatch:
                 Analytics.executeAsBatch(param=self._param)
             elif self._param.anatomical.useAnatomicalForBatch:
-                AnatomicalSegmentationLogic.setSelectedAlgorithm(self._param.anatomical.selectedAnatomicalAlgo)
-                AnatomicalSegmentationLogic.getSelectedAlgorithm().executeAsBatch(param=self._param)
+                AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
 
 
 ##################################################
@@ -470,22 +468,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
             slicer.app.processEvents()
         finally:
             progressDialog.close()
-
-    @classmethod
-    def deleteFromScene(cls, currentVolume) -> None:
-        """
-        Deletes the given Volume from the MRML-Scene if there is anything to delete
-        param: currentVolume xtkMRMLNodeVolume: The Volume to be deleted
-        return None
-        """
-        try:
-            volumeNode = slicer.util.getNode(currentVolume.GetName())
-            slicer.mrmlScene.RemoveNode(volumeNode)
-            logging.info(f"The volumen '{volumeNode.GetName()}' was successful deleted .")
-        except slicer.util.MRMLNodeNotFoundException:
-            logging.error("The volume was not found .")
-
-
 
 
 ###########################################
@@ -566,47 +548,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         super().__init_subclass__(**kwargs)
         if cls not in AnatomicalSegmentationLogic._availableAlgorithms:
             AnatomicalSegmentationLogic._availableAlgorithms.append(cls)
-
-    @classmethod
-    def getAlgorithmsByName(cls) -> list[str]:
-        """
-        Collects all subclasses names of the class "ToothAnalyserLogic" in a list
-        param: None
-        return: algorithms: A list out of names from all available algorithms
-        """
-        return [subclass.__name__ for subclass in cls._availableAlgorithms]
-
-    @classmethod
-    def getAvailableAlgorithms(cls) -> list[any]:
-        """
-        Collects all subclasses in a list. Type must be any,
-        because we do not know which subclasses will be added
-        param: None
-        return: algorithms: A list out of objects from all available algorithms
-        """
-        return [subclass for subclass in cls._availableAlgorithms]
-
-    @classmethod
-    def setSelectedAlgorithm(cls, currentAlgorithmName: str) -> None:
-        """
-        This methode set the current algorithms as selected,
-        if it is an available algorithm.
-        param: currentAlgorithmName: The algorithm that should be selected
-        return: None
-        """
-        for algorithm in cls.getAvailableAlgorithms():
-            if algorithm.__name__ == currentAlgorithmName:
-                cls._selectedAlgorithm = algorithm
-                break
-
-    @classmethod
-    def getSelectedAlgorithm(cls):
-        """
-        Getter for the field selectedAlgorithm
-        param: None
-        return: _selectedAlgorithms: The algorithm that is selected
-        """
-        return cls._selectedAlgorithm
 
     @classmethod
     def preProcessing(cls) -> None:
@@ -837,12 +778,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         vtk_image.GetPointData().SetScalars(vtk_array)
 
         # 5. Erstelle einen LabelMap-Node in der Slicer-Szene
-        slicer.mrmlScene.StartState(slicer.vtkMRMLScene.BatchProcessState)  # Start Batch-Process
         labelmap_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "Test")
         labelmap_node.SetAndObserveImageData(vtk_image)
         labelmap_node.SetSpacing(itkImage.GetSpacing())
         labelmap_node.SetOrigin(itkImage.GetOrigin())
-        slicer.mrmlScene.EndState(slicer.vtkMRMLScene.BatchProcessState)  # End Batch-Process
 
         # 6. Erstelle Anzeigeeigenschaften
         labelmap_node.CreateDefaultDisplayNodes()
@@ -863,41 +802,27 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         return labelmap_node
 
-
-##################################################
-# Anatomical Segmentation Strategies
-##################################################
-class Otsu(AnatomicalSegmentationLogic):
-    """
-    This class is a possible strategy for the
-    Anatomical Segmentation that can selected via
-    the parameter "Algorithm" in the UI
-    """
-
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
-        """
-        This method is an abstract method form the parent class
-        ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure.
-        """
-        super().preProcessing()
         import time
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
         logging.info("Processing started")
 
+        segmentationType = param.anatomical.selectedAnatomicalAlgo
+
         # Create result directory
-        targetDirectory = super().createDirectory(
-            path=super().getDirectoryForFile(
+        targetDirectory = cls.createDirectory(
+            path=cls.getDirectoryForFile(
                 param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
             directoryName="/" + parseName(
-                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationOtsu/"
+                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentation" + segmentationType + "/"
         )
+        print("Target Directory: ", targetDirectory)
 
         # Delete the old segmentation to keep order
-        super().clearDirectory(targetDirectory)
+        cls.clearDirectory(targetDirectory)
 
         # Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
@@ -906,26 +831,26 @@ class Otsu(AnatomicalSegmentationLogic):
             path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
             targetPath=targetDirectory,
             calcMidSurface=param.anatomical.calcMidSurface,
-            filter_selection_1="Otsu",
-            filter_selection_2="Otsu",
+            filter_selection_1=segmentationType,
+            filter_selection_2=segmentationType,
         )
 
         # Delete all nodes form scene
-        super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
+        cls.clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
         try:
             currentImageName = toothDict["name"]
-            labelImage = super().itkToVtk(toothDict["segmentation_otsu_otsu_labels"])
-            super().createSegmentation(
+            labelImage = cls.itkToVtk(toothDict["segmentation_" + segmentationType.lower() + "_" + segmentationType.lower() + "_labels"])
+            cls.createSegmentation(
                 labelImage=labelImage,
                 deleteLabelImage=True,
                 currentImageName=currentImageName)
 
-            if toothDict["enamel_otsu_otsu_midsurface"] is not None or toothDict[
-                "dentin_otsu_otsu_midsurface"] is not None:
-                enamelMidSurfaceImage = super().itkToVtk(toothDict["enamel_otsu_otsu_midsurface"])
-                dentinMidSurfaceImage = super().itkToVtk(toothDict["dentin_otsu_otsu_midsurface"])
-                super().createMedialSurface(
+            if toothDict["enamel_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"] is not None or toothDict[
+                "dentin_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"] is not None:
+                enamelMidSurfaceImage = cls.itkToVtk(toothDict["enamel_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"])
+                dentinMidSurfaceImage = cls.itkToVtk(toothDict["dentin_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"])
+                cls.createMedialSurface(
                     midSurfaceDentin=dentinMidSurfaceImage,
                     midSurfaceEnamel=enamelMidSurfaceImage,
                     show3D=param.anatomical.showMidSurfaceAs3D,
@@ -941,148 +866,35 @@ class Otsu(AnatomicalSegmentationLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
-        """
-        This method is an abstract method form the parent class
-        ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure.
-        """
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
         # create local variables for all parameters
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
-        files = super().collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
+        segmentationType = param.anatomical.selectedAnatomicalAlgo
+        files = cls.collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
 
         # Create result directory
-        targetDirectory = super().createDirectory(
+        targetDirectory = cls.createDirectory(
             path=targetPath,
-            directoryName="AnatomicalSegmentationOtsu"
+            directoryName="AnatomicalSegmentation" + segmentationType
         )
 
         # Delete the old segmentation to keep order
-        super().clearDirectory(targetDirectory)
+        cls.clearDirectory(targetDirectory)
 
         for file in files:
             fileName = parseName(file)
             fullFilePath = sourcePath + "/" + file
             # create directory for each File to be calculated
-            targetFileDirectory = super().createDirectory(
+            targetFileDirectory = cls.createDirectory(
                 path=targetDirectory,
                 directoryName=fileName
             )
             calcAnatomicalSegmentation(
                 sourcePath=fullFilePath,
                 targetPath=targetFileDirectory,
-                segmentationType="Otsu",
-                calcMidSurface=param.anatomical.calcMidSurface
-            )
-
-
-class Renyi(AnatomicalSegmentationLogic):
-    """
-    This class is a possible strategy for the
-    Anatomical Segmentation that can selected via
-    the parameter "Algorithm" in the UI
-    """
-
-    @classmethod
-    def execute(cls, param: ToothAnalyserParameterNode):
-        """
-        This method is an abstract method form the parent class
-        ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure.
-        """
-        import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
-
-        start = time.time()
-        logging.info("Processing started")
-
-        # Create result directory
-        targetDirectory = super().createDirectory(
-            path=super().getDirectoryForFile(
-                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/" + parseName(
-                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentationRenyi/"
-        )
-
-        # Delete the old segmentation to keep order
-        super().clearDirectory(targetDirectory)
-
-        # Calculate Anatomical Segmentation
-        mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-
-        toothDict = calcPipeline(
-            path=param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName(),
-            targetPath=targetDirectory,
-            calcMidSurface=param.anatomical.calcMidSurface,
-            filter_selection_1="Renyi",
-            filter_selection_2="Renyi",
-        )
-
-        # Delete all nodes form scene
-        super().clearScene(param.anatomical.currentAnatomicalVolume.GetName())
-
-        try:
-            currentImageName = toothDict["name"]
-            labelImage = super().itkToVtk(toothDict["segmentation_renyi_renyi_labels"])
-            super().createSegmentation(
-                labelImage=labelImage,
-                deleteLabelImage=True,
-                currentImageName=currentImageName)
-
-            if toothDict["enamel_renyi_renyi_midsurface"] is not None or toothDict["dentin_renyi_renyi_midsurface"] is not None:
-                enamelMidSurfaceImage = super().itkToVtk(toothDict["enamel_renyi_renyi_midsurface"])
-                dentinMidSurfaceImage = super().itkToVtk(toothDict["dentin_renyi_renyi_midsurface"])
-                super().createMedialSurface(
-                    midSurfaceDentin=dentinMidSurfaceImage,
-                    midSurfaceEnamel=enamelMidSurfaceImage,
-                    show3D=param.anatomical.showMidSurfaceAs3D,
-                    currentImageName=currentImageName)
-            else:
-                pass
-        except:
-            pass
-
-        # Time tracking
-        stop = time.time()
-        print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
-
-    @classmethod
-    def executeAsBatch(cls, param: ToothAnalyserParameterNode):
-        """
-        This method is an abstract method form the parent class
-        ToothAnalyserLogic. It is implementing the current strategy
-        as a single procedure.
-        """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
-
-        # create local variables for all parameters
-        sourcePath = param.batch.sourcePath
-        targetPath = param.batch.targetPath
-        files = super().collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
-
-        # Create result directory
-        targetDirectory = super().createDirectory(
-            path=targetPath,
-            directoryName="AnatomicalSegmentationRenyi"
-        )
-
-        # Delete the old segmentation to keep order
-        super().clearDirectory(targetDirectory)
-
-        for file in files:
-            fileName = parseName(file)
-            fullFilePath = sourcePath + "/" + file
-            # create directory for each File to be calculated
-            targetFileDirectory = super().createDirectory(
-                path=targetDirectory,
-                directoryName=fileName
-            )
-            calcAnatomicalSegmentation(
-                sourcePath=fullFilePath,
-                targetPath=targetFileDirectory,
-                segmentationType="Renyi",
+                segmentationType=segmentationType,
                 calcMidSurface=param.anatomical.calcMidSurface
             )
 
