@@ -733,17 +733,23 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     @classmethod
     def convertIntoVTK(cls, itkImage):
         """
-
+        This methode converts an itk image into a vtk image
+        by using the numpy array of an image. Then a vtk image
+        object will be created.
+        @param: the itk image to be converted
+        @return: the converted vtk image
+        @example:
+            vtkImage = cls.convertIntoVTK(itkImage)
         """
         import SimpleITK as sitk
         import numpy as np
 
-        # 1. Convert the itk image into numpy array
+        # convert the itk image into numpy array
         array_data = sitk.GetArrayFromImage(itkImage) # numpy array (z, y, x)
         array_data_c = np.ascontiguousarray(array_data, dtype=np.uint8)
-        # 3. Convert the numpy array into a vrk image
+        # convert the numpy array into a vtk image
         vtk_array = vtk.util.numpy_support.numpy_to_vtk(array_data_c.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
-        # 4. Create an vtk image object
+        # create an vtk image object
         vtk_image = vtk.vtkImageData()
         vtk_image.SetDimensions(array_data.shape[2], array_data.shape[1], array_data.shape[0]) # (x, y, z)
         vtk_image.SetSpacing(itkImage.GetSpacing())  # ITK-Spacings
@@ -754,7 +760,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     @classmethod
     def createLabelNode(cls, itkImage, vtk_image):
         """
-
+        This methode creates a label map node based
+        on an itk image and a vtk image
+        @param itkImage: the itk image for the calculation
+        @param vtk_image: the vtk image to load the label node
+        @return: the created label image
+        @example:
+            vtkImage = cls.convertIntoVTK(itkImage)
+            labelMapNode = cls.createLabelNode(itkImage, vtkImage)
         """
         labelmap_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "Test")
         labelmap_node.SetAndObserveImageData(vtk_image)
@@ -848,7 +861,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         except:
             pass
 
-        # Time tracking
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
 
@@ -872,8 +884,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         # Create result directory
         targetDirectory = cls.createDirectory(
             path=targetPath,
-            directoryName=cls._anatomicalSegmentationName + segmentationType
-        )
+            directoryName=cls._anatomicalSegmentationName + segmentationType)
 
         # Delete the old segmentation to keep order
         cls.clearDirectory(targetDirectory)
@@ -884,14 +895,12 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             # create directory for each File to be calculated
             targetFileDirectory = cls.createDirectory(
                 path=targetDirectory,
-                directoryName=fileName
-            )
+                directoryName=fileName)
             calcAnatomicalSegmentation(
                 sourcePath=fullFilePath,
                 targetPath=targetFileDirectory,
                 segmentationType=segmentationType,
-                calcMidSurface=param.anatomical.calcMidSurface
-            )
+                calcMidSurface=param.anatomical.calcMidSurface)
 
 
 ##################################################
