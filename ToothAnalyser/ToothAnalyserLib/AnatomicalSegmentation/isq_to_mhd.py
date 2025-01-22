@@ -27,6 +27,7 @@ import os
 import sys
 from collections import OrderedDict
 import numpy as np
+from io import StringIO
 
 # positions of relevant parameters in ISQ header. Numbers correspond
 # to indices in a np.int32 array.
@@ -120,6 +121,25 @@ def isq_to_mhd(isq_file_name, mhd_file_name):
     with open(mhd_file_name, 'w') as out_file:
         for i in mhd_param.items():
             out_file.write(i[0] + ' = ' + i[1] + '\n')
+
+def isq_to_mhd_as_string(isq_file_name) -> str:
+    """
+        Convert ISQ file into meta image metadata string.
+        ARGS:
+            isq_file_name (str): full path name of isq image file
+        RETURNS:
+            str: Metadata in MHD format as a string
+        """
+    mhd_param, offset, grey_range = _read_isq_param(isq_file_name)
+    mhd_param['ElementDataFile'] = isq_file_name
+
+    # Use a StringIO buffer to construct the MHD content
+    mhd_buffer = StringIO()
+    for key, value in mhd_param.items():
+        mhd_buffer.write(f"{key} = {value}\n")
+
+    # Return the entire content as a string
+    return mhd_buffer.getvalue()
 
 
 def main():

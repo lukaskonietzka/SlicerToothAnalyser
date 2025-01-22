@@ -8,7 +8,7 @@ from wsgiref.util import request_uri
 
 import SimpleITK as sitk
 from SimpleITK import Image
-from .isq_to_mhd import isq_to_mhd
+from .isq_to_mhd import isq_to_mhd, isq_to_mhd_as_string
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -386,7 +386,7 @@ def getDirectoryForFile(filePath: str) -> str:
 
 
 # ----- Load ISQ-File ----- #
-def loadISQ(path: str, targetPath: str, name: str) -> Image:
+def loadISQ(path: str) -> Image:
     """
     This methode loads an ISQ-File from a given directory
     and convert it into an MHD-File by using the
@@ -399,9 +399,9 @@ def loadISQ(path: str, targetPath: str, name: str) -> Image:
         path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
         image = isq_to_mhd(path, "P01A-C0005278.mhd")
     """
-    name = targetPath + name + ".mhd"
-    isq_to_mhd(path, name)
-    return sitk.ReadImage(name)
+    #name = targetPath + name + "ISQ.mhd"
+    img = isq_to_mhd_as_string(path)
+    return sitk.ReadImage(img)
 
 
 # ----- Load MHD-File ----- #
@@ -419,7 +419,7 @@ def loadMHD(targetPath: str, name: str) -> Image:
     if ".mhd" in targetPath.lower():
         return sitk.ReadImage(targetPath)
     else:
-        name = targetPath + name + ".mhd"
+        name = targetPath + name + "MHD.mhd"
     return sitk.ReadImage(name)
 
 def loadFile(path: str) -> Image:
@@ -461,7 +461,7 @@ def medialSurface(segment: any) -> any:
 
 
 # ----- Pipeline methods ----- #
-def loadImage(path: str, targetPath: str) -> tuple[Image, str]:
+def loadImage(path: str) -> tuple[Image, str]:
     """
     This Methode try to load an .mhd file and parse the
     name of the file.
@@ -475,19 +475,20 @@ def loadImage(path: str, targetPath: str) -> tuple[Image, str]:
     start = time.time()
     name = parseName(path)
     fileType = parseTyp(path)
-
-    if fileType == "isq" or fileType == "mhd":
-        try:
-            img = loadISQ(path, targetPath, name)
-        except:
+    try:
+        if fileType == "isq":
+            img = loadISQ(path)
+        elif fileType == "mhd":
             img = loadMHD(path, name)
-    else:
+        else:
+            img = loadFile(path)
+    except:
         img = loadFile(path)
     stop = time.time()
     print("img: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img, name
 
-def smoothImage(img: Image, name: str, targetPath: str) -> Image:
+def smoothImage(img: Image) -> Image:
     """
     This methode apply a median filter on the given image if there
     is no smoothed image in the current directory
@@ -502,16 +503,12 @@ def smoothImage(img: Image, name: str, targetPath: str) -> Image:
 
     start = time.time()
     # If a median image already exists, take that one. Must be named "name_img_smooth"
-    try:
-        img_smooth = loadMHD(targetPath, name + "_" + 'img_smooth')
-    except:  # smoothed img not already created
-        img_smooth = medianFilter(img, 1)  # size anpassen und schauen ob es schneller läuft size = 5
-        #write(img_smooth, name + "_" + 'img_smooth', targetPath)
+    img_smooth = medianFilter(img, 1)  # size anpassen und schauen ob es schneller läuft size = 5
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
 
-def imageMask(img: Image, img_smooth: Image, name: str, targetPath: str) -> tuple:
+def imageMask(img: Image, img_smooth: Image) -> tuple:
     """
     This methode apply a threshold Filter on the given image
     and the given smoothed image if there is no mask. Needs to be
@@ -528,10 +525,7 @@ def imageMask(img: Image, img_smooth: Image, name: str, targetPath: str) -> tupl
 
     # first adaptive threshold value - corresponds to first cut in the histogram
     start = time.time()
-    try:
-        tooth = loadMHD(targetPath, name + "_" + 'tooth')
-    except:
-        tooth = thresholdFilter(img_smooth)
+    tooth = thresholdFilter(img_smooth)
     # original image, tooth masked
     tooth_masked = sitk.Mask(img, tooth)
     stop = time.time()
@@ -623,7 +617,6 @@ def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     start = time.time()
     enamel_layers = enamel_select + enamel_smooth_select
     enamel_layers = enamel_layers > 0
-    #enamel_layers_save = enamel_layers
     stop = time.time()
     print("enamel_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
@@ -790,12 +783,12 @@ def dentinMidSurface(dentin_layers: any) -> Image:
 
 
 # ----- Pipeline, calculate tooth dictionary ----- #
-def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
+def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
     """
     This method forms the complete pipeline for the calculation of smoothing,
     labels and medial surfaces. It is very large but therefore the clearest
-    @param path: the path to the file that should be entered in the pipeline
-    @param targetPath: the path to the directory where the generated images are saved in the file system
+    @param sourcePath: the path to the file that should be entered in the pipeline
+    @param calcMidSurface: the path to the directory where the generated images are saved in the file system
     @param filter_selection_1: the segmentation algorithm
     @param filter_selection_2: the segmentation algorithm
     @return: the full created tooth dictionary with all images
@@ -805,11 +798,11 @@ def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_select
         tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
     """
     # 1. load and filter image
-    img, name = loadImage(path, targetPath)
-    img_smooth = smoothImage(img, name, targetPath)
+    img, name = loadImage(sourcePath)
+    img_smooth = smoothImage(img)
 
     # 2. generate a mask on the image and the smooth image
-    tooth, tooth_masked = imageMask(img, img_smooth, name, targetPath)
+    tooth, tooth_masked = imageMask(img, img_smooth)
     tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
 
     # 3. select enamel area
@@ -858,7 +851,7 @@ def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_select
     dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
 
     tooth_dict = {
-        'path': path,
+        'path': sourcePath,
         'name': name,
         'img': img,
         'img_smooth': img_smooth,
@@ -887,7 +880,7 @@ def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationTyp
         targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278/'
         calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True)
     """
-    tooth_segmentation = calcPipeline(sourcePath, targetPath, calcMidSurface, segmentationType, segmentationType)
+    tooth_segmentation = calcPipeline(sourcePath, calcMidSurface, segmentationType, segmentationType)
     writeToothDict(tooth_segmentation, targetPath, calcMidSurface)
     tooth_segmentation_name = tooth_segmentation['name']
     print("Done: " + tooth_segmentation_name)
