@@ -139,6 +139,7 @@ class Batch:
     """
     sourcePath: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/"
     targetPath: str =  "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/"
+    fileType: Annotated[str, Choice([".nrrd", ".nii", ".mhd"])] = ".nrrd"
 
 @parameterNodeWrapper
 class ToothAnalyserParameterNode:
@@ -547,6 +548,7 @@ class Analytics(ToothAnalyserLogic):
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
         print("Analytics as Batch")
+        print(type(param.batch.fileType))
 
 
 ##################################################
@@ -879,6 +881,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
         segmentationType = param.anatomical.selectedAnatomicalAlgo
+        fileType = param.batch.fileType
         files = cls.collectFiles(sourcePath, cls._fileTypes)
 
         # Create result directory
@@ -900,7 +903,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 sourcePath=fullFilePath,
                 targetPath=targetFileDirectory,
                 segmentationType=segmentationType,
-                calcMidSurface=param.anatomical.calcMidSurface)
+                calcMidSurface=param.anatomical.calcMidSurface,
+                fileType=fileType)
 
 
 ##################################################

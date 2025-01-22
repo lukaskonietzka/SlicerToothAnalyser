@@ -319,7 +319,14 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>File Type:</string>
+         <string>Save files as:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="fileType">
+        <property name="SlicerParameterName" stdset="0">
+         <string>batch.fileType</string>
         </property>
        </widget>
       </item>
@@ -397,6 +404,38 @@
     <hint type="destinationlabel">
      <x>261</x>
      <y>223</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Denthal</sender>
+   <signal>customContextMenuRequested(QPoint)</signal>
+   <receiver>fileType</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>200</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>245</x>
+     <y>444</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>Denthal</sender>
+   <signal>customContextMenuRequested(QPoint)</signal>
+   <receiver>selectedAnatomicalAlgo</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>200</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>291</x>
+     <y>199</y>
     </hint>
    </hints>
   </connection>

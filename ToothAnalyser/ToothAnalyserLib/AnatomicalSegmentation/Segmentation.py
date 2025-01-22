@@ -324,7 +324,7 @@ def thresholdFilter(img: Image, mask: bool=False, filter_selection: str= 'Otsu',
 
 
 # ----- Write to file system ----- #
-def write(img: any, name: str, path: str) -> None:
+def write(img: any, name: str, path: str, fileType: str) -> None:
     """
     This method uses the simpleITK (sitk) library to store
     an image in the file system. The write action is based
@@ -335,9 +335,9 @@ def write(img: any, name: str, path: str) -> None:
     @example:
         write(sitk_img, 'P01A-C0005278') store P01A-C0005278.mhd and P01A-C0005278.raw
     """
-    sitk.WriteImage(img, path + name + ".nrrd")
+    sitk.WriteImage(img, path + name + fileType)
 
-def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
+def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -> None:
     """
     This method uses the simpleITK (sitk) library to store
     an image in the file system. The write action is based
@@ -368,7 +368,7 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool) -> None:
         elif "midsurface" in key and not calcMidSurface:
             pass
         else:
-            write(tooth[key], name + "_" + key, path)
+            write(tooth[key], name + "_" + key, path, fileType)
 
 def getDirectoryForFile(filePath: str) -> str:
     """
@@ -867,7 +867,7 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str=
     return tooth_dict
 
 
-def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool) -> None:
+def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool, fileType: str) -> None:
     """
     This methode calculates the images in a batch process.
     It is recommended to name the destination folder like the image
@@ -881,6 +881,6 @@ def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationTyp
         calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True)
     """
     tooth_segmentation = calcPipeline(sourcePath, calcMidSurface, segmentationType, segmentationType)
-    writeToothDict(tooth_segmentation, targetPath, calcMidSurface)
+    writeToothDict(tooth_segmentation, targetPath, calcMidSurface, fileType)
     tooth_segmentation_name = tooth_segmentation['name']
     print("Done: " + tooth_segmentation_name)
