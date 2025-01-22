@@ -20,7 +20,7 @@ from slicer import vtkMRMLScalarVolumeNode
 
 
 ##################################################
-# ToothAnalyser
+# Tooth Analyser Meta data
 ##################################################
 class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
@@ -92,7 +92,20 @@ def registerSampleData():
 
 
 ##################################################
-# ToothAnalyserParameterNode
+# Tooth Analyser Configuration
+##################################################
+
+class ToothAnalyserConfig:
+    anatomicalSegmentationName: str = "AnatomicalSegmentation"
+    medialSurfaceName: str = "MedialSurface"
+    segmentNames: list[str] = ["Dentin", "Enamel"]
+    fileTyps: tuple[str] = (".ISQ", ".mhd", ".nrrd")
+
+
+
+
+##################################################
+# Tooth Analyser Parameter Node
 ##################################################
 
 @parameterPack
@@ -138,7 +151,7 @@ class ToothAnalyserParameterNode:
 
 
 ##################################################
-# ToothAnalyserWidget
+# Tooth Analyser Widget
 ##################################################
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
@@ -395,7 +408,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 ##################################################
-# ToothAnalyserLogic
+# Tooth Analyser Logic
 ##################################################
 class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     """ This class should implement all the actual
@@ -471,7 +484,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
 
 ###########################################
-#     ToothAnalyser section Analytics     #
+#     Tooth Analyser section Analytics     #
 ###########################################
 class Analytics(ToothAnalyserLogic):
 
@@ -536,18 +549,16 @@ class Analytics(ToothAnalyserLogic):
 
 
 ##################################################
-# ToothAnalyser section Anatomical Segmentation
+# Tooth Analyser section Anatomical Segmentation
 ##################################################
 class AnatomicalSegmentationLogic(ToothAnalyserLogic):
-    _availableAlgorithms = []
-    _selectedAlgorithm = None
-    _anatomicalSegmentationName = "Anatomical-Segmentation"
-    _midSurfaceName = "Medial-Surface"
+    """
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if cls not in AnatomicalSegmentationLogic._availableAlgorithms:
-            AnatomicalSegmentationLogic._availableAlgorithms.append(cls)
+    """
+    _anatomicalSegmentationName = ToothAnalyserConfig.anatomicalSegmentationName
+    _midSurfaceName = ToothAnalyserConfig.medialSurfaceName
+    _segmentNames = ToothAnalyserConfig.segmentNames
+    _fileTypes = ToothAnalyserConfig.fileTyps
 
     @classmethod
     def preProcessing(cls) -> None:
@@ -589,43 +600,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             files = sorted([f for f in os.listdir(path) if f.endswith(suffix)])
         return files
 
-
-
-    @classmethod
-    def loadFromDirectory(cls, path: str, suffix: tuple) -> None:
-        """
-        Loads all data with the given suffix from the given path
-        param: path (str): path to the files
-        param; suffix (tuple[str]): Only files with this format are loaded
-        return: fileCount (int): The number of images that have been loaded
-        """
-        import os
-
-        if not os.path.exists(path):
-            logging.error(f"Folder {path} dont exists.")
-            return
-
-        # Collect all files that ends with the given suffix
-        files = sorted([f for f in os.listdir(path) if f.lower().endswith(suffix)])
-        if not files:
-            logging.error(f"No File with the given suffix in the  {path}.")
-            return
-
-        # load files from the given path as labelmap or scalenode
-        for file in files:
-            file_path = os.path.join(path, file)
-            try:
-                if "midsurface" in file.lower():
-                    slicer.util.loadVolume(file_path, properties={"labelmap": True, "show": True})
-                    continue
-                if "label" in file.lower():
-                    slicer.util.loadVolume(file_path, properties={"labelmap": True, "show": False})
-                    continue
-                else:
-                    pass
-            except Exception as e:
-                logging.error(f"Error while loading {file_path}: {e}")
-
     @classmethod
     def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool, currentImageName) -> None:
         """
@@ -643,14 +617,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         # set properties for segmentation
         print("SegName: ", currentImageName)
         seg.SetName(currentImageName + cls._anatomicalSegmentationName)
-        default_names = ["Dentin", "Schmelz"]
+        default_names = cls._segmentNames
 
         # set properties for segmentation
         num_segments = seg.GetSegmentation().GetNumberOfSegments()
         for i in range(num_segments):
             if i < len(default_names):
                 segment_name = default_names[i]
-                if segment_name == "Schmelz":
+                if segment_name == "Enamel":
                     seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.6)
             else:
                 segment_name = f"Segment {i + 1}"
@@ -668,7 +642,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         segDentin.SetName("MedialSurface_source")
 
         if segDentin.GetSegmentation().GetNumberOfSegments() > 0:
-            segDentin.GetSegmentation().GetNthSegment(0).SetName("Dentin")
+            segDentin.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[0])
             segDentin.GetSegmentation().GetNthSegment(0).SetColor(1.0, 0.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceDentin)
             if show3D:
@@ -681,7 +655,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         segEnamel.SetName(currentImageName + cls._midSurfaceName)
 
         if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
-            segEnamel.GetSegmentation().GetNthSegment(0).SetName("Enamel")
+            segEnamel.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[1])
             segEnamel.GetSegmentation().GetNthSegment(0).SetColor(0.0, 1.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
             if show3D:
@@ -754,56 +728,68 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             os.makedirs(targetDirectory, exist_ok=True)
         except Exception as e:
             print(f"Error while creating directory: {e}")
-
         return targetDirectory
+
     @classmethod
-    def itkToVtk(cls, itkImage):
+    def convertIntoVTK(cls, itkImage):
+        """
+
+        """
         import SimpleITK as sitk
         import numpy as np
 
-        # 1. Konvertiere das ITK-Bild in ein NumPy-Array
-        array_data = sitk.GetArrayFromImage(itkImage)  # NumPy-Array (z, y, x)
-
-        # 2. Prüfen und Konvertieren der Speicheranordnung
-        array_data_c = np.ascontiguousarray(array_data, dtype=np.uint8)  # LabelMaps sind typischerweise `uint8`
-
-        # 3. Konvertiere das NumPy-Array in ein VTK-Array
+        # 1. Convert the itk image into numpy array
+        array_data = sitk.GetArrayFromImage(itkImage) # numpy array (z, y, x)
+        array_data_c = np.ascontiguousarray(array_data, dtype=np.uint8)
+        # 3. Convert the numpy array into a vrk image
         vtk_array = vtk.util.numpy_support.numpy_to_vtk(array_data_c.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
-
-        # 4. Erstelle ein vtkImageData-Objekt
+        # 4. Create an vtk image object
         vtk_image = vtk.vtkImageData()
-        vtk_image.SetDimensions(array_data.shape[2], array_data.shape[1], array_data.shape[0])  # (x, y, z)
+        vtk_image.SetDimensions(array_data.shape[2], array_data.shape[1], array_data.shape[0]) # (x, y, z)
         vtk_image.SetSpacing(itkImage.GetSpacing())  # ITK-Spacings
         vtk_image.SetOrigin(itkImage.GetOrigin())  # ITK-Origin
         vtk_image.GetPointData().SetScalars(vtk_array)
+        return vtk_image
 
-        # 5. Erstelle einen LabelMap-Node in der Slicer-Szene
+    @classmethod
+    def createLabelNode(cls, itkImage, vtk_image):
+        """
+
+        """
         labelmap_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "Test")
         labelmap_node.SetAndObserveImageData(vtk_image)
         labelmap_node.SetSpacing(itkImage.GetSpacing())
         labelmap_node.SetOrigin(itkImage.GetOrigin())
+        return labelmap_node
 
-        # 6. Erstelle Anzeigeeigenschaften
+    @classmethod
+    def itkToLabelNode(cls, itkImage):
+        """
+
+        """
+        # convert the itk image in an label node
+        vtkImage = cls.convertIntoVTK(itkImage)
+        labelmap_node = cls.createLabelNode(itkImage, vtkImage)
         labelmap_node.CreateDefaultDisplayNodes()
-
-        # 7. Stelle sicher, dass der LabelMap-Node in den Slice-Ansichten angezeigt wird
         app_logic = slicer.app.applicationLogic()
         selection_node = app_logic.GetSelectionNode()
 
-        # Setze den LabelMap-Node als aktives Label-Volume
+        # set the label nod as current node
         selection_node.SetReferenceActiveLabelVolumeID(labelmap_node.GetID())
         app_logic.PropagateVolumeSelection(0)
 
-        # Erzwinge ein Redraw der Ansichten
+        # redraw the views
         layout_manager = slicer.app.layoutManager()
         for slice_view in ['Red', 'Green', 'Yellow']:
             slice_widget = layout_manager.sliceWidget(slice_view)
             slice_widget.sliceLogic().FitSliceToAll()
-
         return labelmap_node
 
     @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
+        """
+
+        """
         import time
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
@@ -811,18 +797,19 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         logging.info("Processing started")
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo
+        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetName())
+        currentImageDirectory = cls.getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
 
         # Create result directory
         targetDirectory = cls.createDirectory(
-            path=cls.getDirectoryForFile(
-                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()),
-            directoryName="/" + parseName(
-                param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()) + "AnatomicalSegmentation" + segmentationType + "/"
+            path=currentImageDirectory,
+            directoryName="/" + currentImageName + cls._anatomicalSegmentationName + segmentationType
         )
-        print("Target Directory: ", targetDirectory)
+
+        print("TargetDirectory: ", targetDirectory)
 
         # Delete the old segmentation to keep order
-        cls.clearDirectory(targetDirectory)
+        cls.clearDirectory(path=targetDirectory)
 
         # Calculate Anatomical Segmentation
         mockDirectory = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
@@ -835,24 +822,29 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             filter_selection_2=segmentationType,
         )
 
+        segmentationType = segmentationType.lower()
+        enamelMidSurfaceITK = toothDict["enamel_" + segmentationType + "_" + segmentationType + "_midsurface"]
+        dentinMidSurfaceITK = toothDict["dentin_" + segmentationType + "_" + segmentationType + "_midsurface"]
+        labelImageITK = toothDict["segmentation_" + segmentationType + "_" + segmentationType + "_labels"]
+
         # Delete all nodes form scene
         cls.clearScene(param.anatomical.currentAnatomicalVolume.GetName())
 
         try:
             currentImageName = toothDict["name"]
-            labelImage = cls.itkToVtk(toothDict["segmentation_" + segmentationType.lower() + "_" + segmentationType.lower() + "_labels"])
+            labelImageNode = cls.itkToLabelNode(labelImageITK)
             cls.createSegmentation(
-                labelImage=labelImage,
+                labelImage=labelImageNode,
                 deleteLabelImage=True,
-                currentImageName=currentImageName)
+                currentImageName=currentImageName
+            )
 
-            if toothDict["enamel_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"] is not None or toothDict[
-                "dentin_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"] is not None:
-                enamelMidSurfaceImage = cls.itkToVtk(toothDict["enamel_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"])
-                dentinMidSurfaceImage = cls.itkToVtk(toothDict["dentin_" + segmentationType.lower() + "_" + segmentationType.lower() + "_midsurface"])
+            if enamelMidSurfaceITK is not None or dentinMidSurfaceITK is not None:
+                enamelMidSurfaceNode = cls.itkToLabelNode(enamelMidSurfaceITK)
+                dentinMidSurfaceNode = cls.itkToLabelNode(dentinMidSurfaceITK)
                 cls.createMedialSurface(
-                    midSurfaceDentin=dentinMidSurfaceImage,
-                    midSurfaceEnamel=enamelMidSurfaceImage,
+                    midSurfaceDentin=dentinMidSurfaceNode,
+                    midSurfaceEnamel=enamelMidSurfaceNode,
                     show3D=param.anatomical.showMidSurfaceAs3D,
                     currentImageName=currentImageName)
             else:
@@ -866,18 +858,21 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
+        """
+
+        """
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
 
         # create local variables for all parameters
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
         segmentationType = param.anatomical.selectedAnatomicalAlgo
-        files = cls.collectFiles(sourcePath, (".ISQ", ".mhd", ".nrrd"))
+        files = cls.collectFiles(sourcePath, cls._fileTypes)
 
         # Create result directory
         targetDirectory = cls.createDirectory(
             path=targetPath,
-            directoryName="AnatomicalSegmentation" + segmentationType
+            directoryName=cls._anatomicalSegmentationName + segmentationType
         )
 
         # Delete the old segmentation to keep order
@@ -900,7 +895,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
 
 ##################################################
-# ToothAnalyserTests
+# Tooth Analyser Tests
 ##################################################
 class ToothAnalyserTest(ScriptedLoadableModuleTest):
     """
