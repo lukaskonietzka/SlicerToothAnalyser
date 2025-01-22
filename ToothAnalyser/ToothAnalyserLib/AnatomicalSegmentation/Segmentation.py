@@ -215,13 +215,39 @@ def gradGaussianFilter(img, sigma=0.03):
 
 # ----- Typinformation und Typumwandlung ----- #
 # WIRD NICHT VERWENDET
-def cast_255(img):
+def cast255(img: Image) -> Image:
+    """
+    Rescales the intensity of an image to the range [0, 255]
+    and casts it to an 8-bit unsigned integer type.
+    @param img: The input image to be processed.
+    @returns: The processed image with intensity values rescaled to [0, 255] and cast to sitkUInt8.
+    @example:
+        castImg = cast255(itkImg)
+    """
     return sitk.Cast(sitk.RescaleIntensity(img), sitk.sitkUInt8)
 
-def cast_accordingly(img, img2):
+def castAccordingly(img: Image, img2: Image) -> Image:
+    """
+    Casts the pixel type of the input image to match the
+    pixel type of a reference image.
+    @param img: The input image to be cast to a new pixel type
+    @param img2: The reference image whose pixel type will be used for the casting
+    @return: The input image `img` cast to the pixel type of the reference image `img2`
+    @example:
+        castImg = castAccordingly(itkImg1, itkImg2)
+    """
     return sitk.Cast(img, img2.GetPixelID())
 
-def pixel_type(img):
+def pixelType(img: Image) -> str:
+    """
+    Retrieves the pixel type of the given image as a
+    human-readable string.
+    @param img: The input image whose pixel type is to be retrieved
+    @return: A string representing the pixel type of the image (e.g., 'sitkUInt8', 'sitkFloat32')
+    @example:
+        pixel = pixelType(itkImg)
+        pixel -> 'Float32'
+    """
     return img.GetPixelIDTypeAsString()
 
 
@@ -530,9 +556,15 @@ def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
     print("tooth_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return tooth_smooth_masked
 
-def enamelSelect(filter_selection_1: str, tooth_masked: any):
+def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     """
-
+    This methode extract the enamel area from the rest of the tooth by
+    choosing the largest coherent object in the image.
+    @param filter_selection_1: the current segmentation typ (eg. "otsu", "renyi")
+    @param tooth_masked: the created tooth mask
+    @return: the extracted enamel from the tooth
+    @example:
+        enamel_select = enamelSelect(filter_selection_1, tooth_masked)
     """
     import time
 
@@ -551,49 +583,65 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any):
     print("enamel_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_select
 
-def enamelSmoothSelect(filter_selection_2, tooth_smooth_masked):
+def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Image:
     """
-
+    This methode apply an smoothing on the extracted enamel segment
+    @param filter_selection_2: the current segmentation typ (eg. "otsu", "renyi")
+    @param tooth_smooth_masked: the created tooth mask
+    @return: the smoothed enamel area
+    @example:
+        enamel_smooth_select = enamelSmoothSelect(filter_selection_2, tooth_smooth_masked)
     """
     import time
 
     # second adaptive threshold value - corresponds to second cut in the histogram
     # on masked original tooth
     start = time.time()
-    enamel_smooth_select = thresholdFilter(img=tooth_smooth_masked,
-                                           mask=tooth_smooth_masked,
-                                           filter_selection=filter_selection_2)
+    enamel_smooth_select = thresholdFilter(
+        img=tooth_smooth_masked,
+        mask=tooth_smooth_masked,
+        filter_selection=filter_selection_2)
     # preparation
     enamel_smooth_select = bcbr(enamel_smooth_select)
-    # Schmelzsegment auf maskierten geglätteten Zahn fertig
+    # Enamel segment finished on masked smoothed tooth
     stop = time.time()
     print("enamel_smooth_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_smooth_select
 
-def enamelLayering(enamel_select, enamel_smooth_select):
+def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     """
-
+    This methode takes the enamel selection and the smoothed enamel selection
+    and create a layer image for the enamel segment.
+    @param enamel_select: the selected enamel area
+    @param enamel_smooth_select: the selected and smoothed enamel area
+    @return: the enamel layer image
+    @example:
+        enamelLayers = enamelLayering(enamelSelect, enamelSmoothSelect)
     """
     import time
 
     start = time.time()
     enamel_layers = enamel_select + enamel_smooth_select
     enamel_layers = enamel_layers > 0
-    enamel_layers_save = enamel_layers
+    #enamel_layers_save = enamel_layers
     stop = time.time()
     print("enamel_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
 
-def enamelPreparation(enamel_layers):
+def enamelPreparation(enamel_layers: Image) -> NotImplemented:
     """
-
+    This methode performs an extended smoothing on the given enamel layer
+    @param enamel_layers: the enamel layer to be smooth extended
+    @return: the extended smoothed enamel layer image
+    @example:
+        enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
     """
     import time
 
     start = time.time()
     enamel_layers_extended = bcbr(enamel_layers)
     enamel_layers_extended_2 = bmc(enamel_layers_extended, 2)  # size = 2
-    # vergleichbar mit Binary Opening Ergebnis, nur schneller
+    # comparable to binary opening result, only faster
     enamel_layers_extended_smooth = sitk.SmoothingRecursiveGaussian(enamel_layers_extended_2, 0.04) > 0.7
     enamel_layers_extended_smooth_2 = bmc(enamel_layers_extended_smooth) > 0
     enamel_layers_extended_smooth_2 = ccMinSize(enamel_layers_extended_smooth_2, 10) == 1  # size = 10
@@ -601,28 +649,33 @@ def enamelPreparation(enamel_layers):
     print("enamel_layers_smooth_extended: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers_extended_smooth_2
 
-def enamelFilling(enamel_layers_extended_smooth_2, tooth):
+def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
     """
-
+    This methode fills up the small structures inside the
+    enamel segment in the tooth. This happens on the filtered enamel layer
+    @param enamel_layers_extended_smooth_2: the image to be filled
+    @param tooth: the image of the tooth that contains the enamel part
+    @return: the filled and smoothed image
+    @example:
+        contourExtended, enamelLayersExtendedSmooth3 = enamelFilling(enamelLayersExtendedSmooth2, tooth)
     """
     import time
 
-    # erweiterte Zahnkontur
-    # contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), 2, sitk.BinaryDilateImageFilter.Ball) > 0
+    # extended tooth contour
     start = time.time()
     contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
-    # Hintergrund
+    # image background
     background = (~tooth) == 255
-    # enamel_layers_extended_smooth_2 + background -> Schmelz und Hintergund
-    # ... + contour_extended -> Schmelz und Hintergrund und dicke Zahnkontur
-    # ~ (...) -> NICHT Schmelz und Hintergrund und dicke Zahnkontur -> Dentin und kleine Strukturen innerhalb Zahn
-    # == 255, da die Invertierung den Vordergrund auf 255 abbildet, danach ist Label wieder == 1
+    # enamel_layers_extended_smooth_2 + background -> enamel and image background
+    # ... + contour_extended -> enamel and image background and thick tooth contour
+    # ~ (...) -> NOT enamel and image background and thick tooth contour -> dentin and small structures inside tooth
+    # == 255, as the inversion maps the foreground to 255, then Label == 1 again
     dentin_and_partial_decay = (~((((enamel_layers_extended_smooth_2 + background) > 0) + contour_extended) > 0)) == 255
-    # größter Teil in Dentin und kleine Strukturen innerhalb Zahn -> Dentin
+    # biggest part in dentin and smallest structure inside tooth -> dentin
     dentin_parts = ccMinSize(dentin_and_partial_decay, 10) == 1
-    # Dentin und kleine Strukturen innerhalb Zahn - Dentin -> kleine Strukturen innerhalb Zahn
+    # dentin and small structures inside tooth -> dentin -> small structures inside tooth
     partial_decay = dentin_and_partial_decay - dentin_parts
-    # Hinzufügen der kleinen Strukturen zu Schmelzsegment
+    # adding the small structures to the enamel segment
     enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
     stop = time.time()
     print("enamel_layers_extended_smooth_3: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
@@ -640,16 +693,16 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     """
     import time
 
-    # Invertierung Schmelz -> alles außerhalb Schmelz
+    # Inversion enamel -> everything outside enamel
     start = time.time()
     enamel_negative = ~enamel_layers_extended_smooth_3 == 255
-    # alle zusammenhängenden Komponenten -> eine große außerhalb Schmelz Komponente und kleine Komponenten in Schmelz
-    # "> 1" -> nicht die größte Kompononente -> kleine Komponenten in Schmelz
+    # all connected components -> one large component outside enamel and small components inside enamel
+    # "> 1" -> not the biggest component in enamel -> its a small component
     holes_enamel = ccMinSize(enamel_negative, 1) > 1
-    # Hinzufügen der kleinen Strukturen
+    # add small structures
     enamel_layers_extended_smooth_4 = enamel_layers_extended_smooth_3 + holes_enamel
     enamel_layers = enamel_layers_extended_smooth_4
-    ### Schmelzsegment fertig
+    # enamel segment is ready!
     stop = time.time()
     print("enamel_layers_extended_smooth_4: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
@@ -823,15 +876,15 @@ def calcPipeline(path: str, targetPath: str, calcMidSurface: bool, filter_select
 
 def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool) -> None:
     """
-    Calculates one files in the given source path with the given algorithm and store it
-    in the given target path.
-    @param sourcePath: The path to the file where the file to be calculated is located
+    This methode calculates the images in a batch process.
+    It is recommended to name the destination folder like the image
+    @param sourcePath: The directory path to the files where the file to be calculated is located
     @param targetPath: the path to the directory, where the files from the calculation should be stored
     @param segmentationType: the thresholding algorithm for segmentation
     @param calcMidSurface: true, if the medial surfaces also should be calculated. False if note
     @example:
-        sourcePath = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
-        targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278AnatomicalSegmentationOtsu/'
+        sourcePath = '/data/MicroCT/Original_ISQ/'
+        targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278/'
         calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True)
     """
     tooth_segmentation = calcPipeline(sourcePath, targetPath, calcMidSurface, segmentationType, segmentationType)
