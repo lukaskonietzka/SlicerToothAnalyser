@@ -127,7 +127,13 @@ def parseNames(path: str, offset: int=0, size: int=1) -> list[str]:
 
 def parseTyp(path: str) -> str:
     """
-
+    This method parse the typ from a given file
+    @param path: the full path to the file
+    @return: the type of the given file
+    @example:
+        path = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
+        fileType = parseType(path)
+        fileType -> 'ISQ'
     """
     fileType = os.path.basename(path).rsplit('.', 1)[1]
     return fileType.lower()
@@ -392,14 +398,12 @@ def loadISQ(path: str) -> Image:
     and convert it into an MHD-File by using the
     isq_to_mhd module from Peter Rösch
     @param path: the path to the ISQ-File to be loaded
-    @param targetPath: the path to the MHD-File
-    @param name: the name of the MHD-File
     @return: The loaded and converted MHD-File
     @example:
         path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        image = isq_to_mhd(path, "P01A-C0005278.mhd")
+        image = isq_to_mhd(path)
+        image -> "P01A-C0005278.mhd"
     """
-    #name = targetPath + name + "ISQ.mhd"
     img = isq_to_mhd_as_string(path)
     return sitk.ReadImage(img)
 
@@ -463,13 +467,12 @@ def medialSurface(segment: any) -> any:
 # ----- Pipeline methods ----- #
 def loadImage(path: str) -> tuple[Image, str]:
     """
-    This Methode try to load an .mhd file and parse the
-    name of the file.
+    This methode loads an image into the algorithm
+    depending on the type.
     @param path: the path to the file to be loaded
-    @param targetPath: the path to the storage directory
     @returns: the loaded image and the name of the loaded image
     @example:
-        img, name = loadImage(path, targetPath)
+        img, name = loadImage(path)
     """
     import time
     start = time.time()
@@ -493,11 +496,10 @@ def smoothImage(img: Image) -> Image:
     This methode apply a median filter on the given image if there
     is no smoothed image in the current directory
     @param img: the image to be smoothed
-    @param name: the name of the image to be smoothed
-    @param targetPath: the path to the directory where a smooth image could be located
     @return: the smoothed image
     @example:
-        smoothImage = smoothImage(img, name, targetPath)
+        img, name = loadImage(path)
+        smoothImage = smoothImage(img)
     """
     import time
 
@@ -515,11 +517,11 @@ def imageMask(img: Image, img_smooth: Image) -> tuple:
     named as "..._tooth_smooth".
     @param img: the image to be masked
     @param img_smooth: the smooth image to be masked
-    @param name: the name of the image to be masked
-    @param targetPath: the directory where a mask could be located
     @return: the Image with the mask
     @example:
-       tooth, tooth_masked = imageMask(img, img_smooth, name, targetPath)
+        img, name = loadImage(path)
+        smoothImage = smoothImage(img)
+        tooth, tooth_masked = imageMask(img, img_smooth)
     """
     import time
 
@@ -563,7 +565,6 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     import time
 
     # second adaptive threshold value - corresponds to second cut in the histogram
-    # on masked original tooth
     start = time.time()
     enamel_select = thresholdFilter(img=tooth_masked,
                                     mask=tooth_masked,

@@ -567,24 +567,29 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     def preProcessing(cls) -> None:
         """
         Method for defining preconditions for an algorithm
-        param: None
-        return: None
         """
-        print("Vor jedem Algorihmus")
+        print("Before each algorithm")
 
     @classmethod
     def postProcessing(cls) -> None:
         """
         Method for defining post conditions for an algorithm
-        param: None
-        return: None
         """
-        print("Nach jedem Algorithmus")
+        print("After each algorithm")
 
     @classmethod
-    def getDirectoryForFile(cls, file_path: str) -> str:
-        """"""
-        folder_path = os.path.dirname(file_path)
+    def getDirectoryForFile(cls, filePath: str) -> str:
+        """
+        This method returns the directory in which a given
+        file is located.
+        @param filePath: the full path to the file
+        @return: the full path to the directory where the file is located
+        @example:
+            filePath = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
+            directoryPath = cls.getDirectoryForFile(filePath)
+            directoryPath -> '/data/MicroCT/Original_ISQ/'
+        """
+        folder_path = os.path.dirname(filePath)
         if not folder_path:
             folder_path = os.getcwd()
 
@@ -594,9 +599,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     def collectFiles(cls, path: str, suffix: tuple) -> list:
         """
         Loads all data with the given suffix from the given path
-        @param path: the path to the files
+        @param path: the path to the directory where the files are located
         @param suffix: only files with this format are loaded
         @return: the collected files in a python list
+        @example:
+            path = '/data/MicroCT/Original_ISQ/'
+            suffix = ('.mhd', '.nrrd', '.nii')
+            files = cls.collectFiles(path, suffix)
+            files -> [file1, file2, ...]
         """
         files = []
         if os.path.exists(path):
@@ -604,13 +614,15 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return files
 
     @classmethod
-    def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool, currentImageName) -> None:
+    def createSegmentation(cls, labelImage: vtkMRMLLabelMapVolumeNode, deleteLabelImage: bool, currentImageName: str) -> None:
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
-        param: The labelNode to be segmented
-        param: Decides whether the given labelNode should be deleted after segmentation
-        return: None
+        @param labelImage: The labelNode to be segmented
+        @param deleteLabelImage: Decides whether the given labelNode should be deleted after segmentation
+        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
+        @example:
+            cls.createSegmentation(labelImageNode, True, currentImageName)
         """
         # create segmentation
         seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
@@ -638,7 +650,20 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slicer.mrmlScene.RemoveNode(labelImage)
 
     @classmethod
-    def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode, midSurfaceEnamel: vtkMRMLLabelMapVolumeNode, show3D: bool, currentImageName) -> None:
+    def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode,
+                            midSurfaceEnamel: vtkMRMLLabelMapVolumeNode,
+                            show3D: bool,
+                            currentImageName: str) -> None:
+        """
+        This method creates a segmentation for the given medial surface
+        @param midSurfaceDentin: the dentin label map image to be segmented
+        @param midSurfaceEnamel: the enamel label map image to be segmented
+        @param show3D: true if a 3D model is to be created
+        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
+        @example:
+            currentImageName = 'P01A-C0005278'
+            cls.createMedialSurface(dentinMidSurfaceNode, enamelMidSurfaceNode, True, currentImageName)
+        """
         # create dentin medial surface segmentation
         segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceDentin, segDentin)
@@ -675,9 +700,13 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     def clearScene(cls, currentImageName: str) -> None:
         """
         Deletes all nodes from the scene, that where generated
-        by the algorithm
+        by the algorithm.
+        @param currentImageName: the image to be segmented
+        @return: None
+        @example:
+            imgNode = 'P01A-C0005278.ISQ'
+            cls.clearScene(imgNode)
         """
-
         try:
             currentImage = getNode(currentImageName)
             slicer.mrmlScene.RemoveNode(currentImage)
@@ -689,13 +718,15 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slicer.mrmlScene.RemoveNode(midSurface)
         except:
             pass
-        # slicer.mrmlScene.Clear()
 
     @classmethod
     def clearDirectory(cls, path: str) -> None:
         """
         Delete all files in the given directory
-        :param path: path to the directory, that has to be cleared
+        @param path: path to the directory to be cleaned
+        @example:
+            path = "/data/MicroCT/Original_ISQ/Results"
+            cls.clearDirectory(path)
         """
         import shutil
         if not os.path.exists(path):
@@ -780,8 +811,11 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     @classmethod
     def itkToLabelNode(cls, itkImage):
         """
-        Convert an itk image into an label map node to open
-        it in the slicer scene
+        Convert an itk image into a label map node to open
+        it in the slicer scene.
+        @param itkImage: the itk image to be converted into a vtk image
+        @example:
+            labelImageNode = cls.itkToLabelNode(labelImageITK)
         """
         # convert the itk image in an label node
         vtkImage = cls.convertIntoVTK(itkImage)
@@ -924,9 +958,16 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-        self.testValidateBatchSettings()
+        self.testHandleApplyAnalyticsButton()
+        self.testGetDirectoryForFile()
+        self.testGetDirectoryForEmptyPath()
+        self.testCreateDirectory()
+        self.testValidateBatchSettingsOneEnabled()
+        self.testValidateBatchSettingsOneDisabled()
+        self.testParsName()
+        self.testParseType()
 
-    def testValidateBatchSettings(self):
+    def testHandleApplyAnalyticsButton(self):
         """
         Ideally you should have several levels of tests.  At the lowest level
         tests should exercise the functionality of the logic with different inputs
@@ -938,8 +979,103 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         module.  For example, if a developer removes a feature that you depend on,
         your test should break so they know that the feature is needed.
         """
+        from unittest.mock import MagicMock
 
-        self.delayDisplay("Starting the test")
+        self.mockedClass = MagicMock()
+        self.mockedClass.ui.applyAnalytics = MagicMock()
+        self.mockedClass._param.analytical = MagicMock()
 
-        self.delayDisplay("Test passed")
+        self.mockedClass._param.analytical.currentAnalyticalVolume = None
+        self.mockedClass.handleApplyAnalyticsButton()
+        self.mockedClass.ui.applyAnalytics.enabled = False
+        self.mockedClass._param.analytical.currentAnalyticalVolume = "SomeVolume"
+        self.mockedClass.handleApplyAnalyticsButton()
+        self.mockedClass.ui.applyAnalytics.enabled = True
 
+        self.delayDisplay("Test 1 passed")
+
+    def testGetDirectoryForFile(self):
+
+        filePath = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        expectedDirectory = "/data/MicroCT/Original_ISQ"
+        result = AnatomicalSegmentationLogic.getDirectoryForFile(filePath)
+
+        self.assertEqual(result, expectedDirectory)
+        self.delayDisplay("Test 2 passed")
+
+    def testGetDirectoryForEmptyPath(self):
+
+        filePath = ""
+        expectedDirectory = os.getcwd()
+        result = AnatomicalSegmentationLogic.getDirectoryForFile(filePath)
+
+        self.assertEqual(result, expectedDirectory)
+        self.delayDisplay("Test 3 passed")
+
+    def testCreateDirectory(self):
+
+        path = "/data/test/"
+        directoryName = "new_folder"
+        expectedDirectory = "/data/test/new_folder/"
+        result = AnatomicalSegmentationLogic.createDirectory(path, directoryName)
+
+        self.assertEqual(result, expectedDirectory)
+        self.delayDisplay("Test 4 passed")
+
+    def testValidateBatchSettingsOneEnabled(self):
+        from unittest.mock import MagicMock
+
+        self.mockedClass = MagicMock()
+        params = {
+            "option1": False,
+            "option2": True,
+            "option3": False
+        }
+        result = self.mockedClass.validateBatchSettings(params)
+
+        self.assertTrue(result)
+        self.delayDisplay("Test 5 passed")
+
+    def testValidateBatchSettingsOneDisabled(self):
+        from unittest.mock import MagicMock
+
+        self.mockedClass = MagicMock()
+        params = {
+            "option1": False,
+            "option2": False,
+            "option3": False
+        }
+        result = self.mockedClass.validateBatchSettings(params)
+
+        self.assertTrue(result)
+        self.delayDisplay("Test 6 passed")
+
+    def testParsName(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
+
+        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        expectation = "P01A-C0005278"
+        result = parseName(path)
+        self.assertEqual(result, expectation)
+
+        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        expectation = "P01A-C0005278.ISQ"
+        result = parseName(path)
+        self.assertNotEqual(result, expectation)
+
+        self.delayDisplay("Test 7 passed")
+
+    def testParseType(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseTyp
+
+        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        expectation = "isq"
+        result = parseTyp(path)
+        self.assertEqual(expectation, result)
+
+        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        expectation = "ISQ"
+        result = parseTyp(path)
+        self.assertNotEqual(expectation, result)
+
+        self.delayDisplay("Test 8 passed")
