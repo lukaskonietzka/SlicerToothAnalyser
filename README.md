@@ -21,14 +21,13 @@ research purposes.
 - [8. Licence](#licence)
 
 ## 1. Introduction and Purpose
-Die Entwicklung dieser Erweiterung ist eine Zusammenarbeit zwischen der LMU in München
-und der Fakultät für Informatik an der technischen Hochschule Augsburg. Im Rahmen einer 
-Projektausschreibung der Zahnklinik soll in ferner Zukunft durch einsatz von Neuronalen Netzwerken
+Im Rahmen einer Projektausschreibung der Zahnklinik soll in ferner Zukunft durch einsatz von Neuronalen Netzwerken
 eine automatische erkennung von Karies auf Micro CT Bildern realisiert werden. Da das identifizieren
 kariöser Stellen nicht trivial ist, soll diese Erweiterung mit einer anatomischen Segmentierung des
 Zahnes unterstüzten.
 
 ![Screenshot of the application](./Screenshots/slicerFullView.png)
+*Abbildung 1: Vollansicht der Erweiterung Tooth Analyser.*
 
 
 ## 2. Installation
@@ -37,18 +36,32 @@ To install the Extension simply follow the steps below in the right order.
 2. Start 3D Slicer application, open the Extension Manager (menu: View / Extension manager)
 3. Search for the Extension _ToothAnalyser_ and install it via the _INSTALL_ button
 
-## Quick start
+## 2. Quick start
+Um den Tooth Analyser schnell und korrekt zu verwenden befolgen Sie die nachfolgenden Schritte.
+- Start 3D Slicer
+- Laden sie ein CT Bild mittels des Imports der 3d Slicer Kernanwendung (Dieses Bild muss nicht gefiltert sein)
+- Wechseln Sie in das Modul Tooth Analyser (Modules: Segmentation/Tooth Analyser)
+- Wählen Sie im Bereich _Anatomical Segmentation_ das CT aus, dass Sie segmnetieren wollen
+- Wählen Sie die Checkbox _calculate medial surface_, wenn die medialen Flächen mitberechnet
+  werden sollen und die Checkbox _show 3D_ wenn die medialenb Flächen ebenfalls im 3D Model
+  gezeigt werden sollen.
+- Starten Sie dann den Algorithmus, durch drücken auf den Button _Apply Anatomical_
+
+⚠️ **Achtung**: Der Algorithmus benötigt iklusiver Filterung und berechnung der medial Fläche
+                ca. 17 Minuten.
+
+- Wechseln Sie nach Ende der Berechnung in das Modul Data (Modules: Data)
+- Über die Herarchie können nun die einzelnen segmente ein- und ausgeschaltet werden
 
 ## 3. Usage
-Um den Tooth Analyser korrekt zu verwenden befolgen Sie die nachfolgenden Schritte.
-- Start 3D Slicer
-- Laden sie ein CT Bild mittels des Imports der 3d Slicer Kernanwendung
-- Wechseln Sie in das Modul Tooth Analyser (Modules: Segmentation/Tooth Analyser) Hier sehen sie über
-    die UI, dass die Erweiterung unterschiedliche Funktionen bereit hält.
+In diesem Kapitel sollen die Parametereinstellungen und möglichkeiten des Tooth Analyser genauer
+beschrieben werden. Die Erweiterungen Teilt sich in mehrere Funktionen auf, die alle getrennt
+gehalten wurden und deshalb auch getrennt ausgeführt werden können. Dieses Kapitel geht über alle
+Teile und erläuter sie genauer.
 
 ### 3.1. Analytical
 mit den analytischhen Funktionen kann aktuell ein histogramm des CTs erstellt werden. Dieses kann
-bei der Wahl eines Verfahrens für die Segmentierung helfen
+bei der Wahl eines Verfahrens für die Segmentierung helfen.
 
 | Beschreibung                                                                                                                                                                                      | Parameter                                                                   |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
@@ -88,10 +101,20 @@ indem die Bilder gesichert werden.
 
 
 ## Contributors and Organisation
+Die Entwicklung dieser Erweiterung ist eine Zusammenarbeit zwischen der LMU in München
+und der Fakultät für Informatik an der technischen Hochschule Augsburg. 
+
+- Lukas Konietzka _(THA)_
+- Simon Hoffmann _(THA)_
+- Dr. med. Elias Walter _(LMU)_
+- Prof. Dr. Peter Rösch _(THA)_
 
 ## Developers
+Dieses Modul wurde im Rahmen einer Abschhlussarbeit an der Fakultät für Informatik (THA) erstellt.
 
 ## Acknowledgement
+This module was developed for the dental caries research of the Dental Clinic at
+the LMU in Munich. The development is a collaboration between the LMU and the THA.
 
 ## Licence
 This program is distributed in the hope that it will be useful,
