@@ -8,17 +8,15 @@ research purposes.
 
 ## Tabel of contents
 - [1. Introduction and purpose](#introduction-and-purpose)
-- [2. Installation](#installation)
-- [3. Quick start](#quick-start)
-- [3. Usage](#usage)
-  - [3.1. Analytical](#analytical)
-  - [3.2. Anatomical Segmentation](#anatomical-segmentation)
-  - [3.3. Batch Processing](#batch-processing)
-- [4. Tutorial](#tutorial)
+- [2. Installation](#2-installation)
+- [3. Quick start](#2-quick-start)
+- [3. Tutorial](#3-tutorial)
+  - [3.1. Analytical](#31-analytical)
+  - [3.2. Anatomical Segmentation](#32-anatomical-segmentation)
+  - [3.3. Batch Processing](#33-batch-processing)
 - [5. Contributors and Organisation](#contributors-and-organisation)
 - [6. Developers](#developers)
 - [7. Acknowledgement](#acknowledgement)
-- [8. Licence](#licence)
 
 ## 1. Introduction and Purpose
 Im Rahmen einer Projektausschreibung der Zahnklinik soll in ferner Zukunft durch einsatz von Neuronalen Netzwerken
@@ -28,7 +26,6 @@ Zahnes unterstüzten.
 
 ![Screenshot of the application](./Screenshots/slicerFullView.png)
 *Abbildung 1: Vollansicht der Erweiterung Tooth Analyser.*
-
 
 ## 2. Installation
 To install the Extension simply follow the steps below in the right order.
@@ -50,10 +47,7 @@ Um den Tooth Analyser schnell und korrekt zu verwenden befolgen Sie die nachfolg
 ⚠️ **Achtung**: Der Algorithmus benötigt iklusiver Filterung und berechnung der medial Fläche
                 ca. 17 Minuten.
 
-- Wechseln Sie nach Ende der Berechnung in das Modul Data (Modules: Data)
-- Über die Herarchie können nun die einzelnen segmente ein- und ausgeschaltet werden
-
-## 3. Usage
+## 3. Tutorial
 In diesem Kapitel sollen die Parametereinstellungen und möglichkeiten des Tooth Analyser genauer
 beschrieben werden. Die Erweiterungen Teilt sich in mehrere Funktionen auf, die alle getrennt
 gehalten wurden und deshalb auch getrennt ausgeführt werden können. Dieses Kapitel geht über alle
@@ -63,9 +57,9 @@ Teile und erläuter sie genauer.
 mit den analytischhen Funktionen kann aktuell ein histogramm des CTs erstellt werden. Dieses kann
 bei der Wahl eines Verfahrens für die Segmentierung helfen.
 
-| Beschreibung                                                                                                                                                                                      | Parameter                                                                   |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| **Volumen to be analyzed**: Wählen Sie hier das CT, da Sie analysieren möchten<br/><br/>**Show Histogram**: Wenn diese option gewählt wird, wird ein Histogram des zuvor gewählten Bildes erstellt | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png) |
+| Beschreibung                                                                                                                                                                                      | Parameter                                                                                                                                     |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Volumen to be analyzed**: Wählen Sie hier das CT, da Sie analysieren möchten<br/><br/>**Show Histogram**: Wenn diese option gewählt wird, wird ein Histogram des zuvor gewählten Bildes erstellt | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png)<br/>*Abbildung 2: Parameterauswahl für die analytische Funktion* |
 
 
 ### 3.2. Anatomical Segmentation
@@ -74,9 +68,9 @@ Micro CT Bild eines Zahlen automatisch in die Zahnhauptsubstanzen Dentin und Sch
 Außerdem können zusätzlich medial Flächen genneriert werden, welche für eine klassifizierung von
 Karies wichtig sind.
 
-| Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                                           | Parameter                                                             |
-|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| **Image for Segmentation**: Wählen Sie hier das CT, dass Sie segmentieren möchten<br/><br/>**Segmentation algorithm**: Wählen Sie hier den Algorithmus, den Sie für die Segmentieren haben wollen.<br/><br/> **Calculate Medial Surface**: Berechnet zu der Segmentierung die Medial Flächen des Dentin und des Schmelzes.<br/><br/>**Show Medial Surface As 3D**: Wenn die Medial Flächen berechnet wurden, können sie als 3D model angezeigt werden. | ![Screenshot of the application](./Screenshots/slicerASParameter.png) |
+| Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                                           | Parameter                                                                                                                                   |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| **Image for Segmentation**: Wählen Sie hier das CT, dass Sie segmentieren möchten<br/><br/>**Segmentation algorithm**: Wählen Sie hier den Algorithmus, den Sie für die Segmentieren haben wollen.<br/><br/> **Calculate Medial Surface**: Berechnet zu der Segmentierung die Medial Flächen des Dentin und des Schmelzes.<br/><br/>**Show Medial Surface As 3D**: Wenn die Medial Flächen berechnet wurden, können sie als 3D model angezeigt werden. | ![Screenshot of the application](./Screenshots/slicerASParameter.png)<br/>*Abbildung 2: Parameterauswahl für die Anatomische Segmentierung* |
 
 
 ### 3.3. Batch Processing
@@ -84,21 +78,20 @@ Im Btach processing können dann die erprobten  parameter an einem Bild auf eine
 CT Bildern angewendet werden. Die Tooth Analyser erstellt dann im Hintergrund ein Verzeichniss,
 indem die Bilder gesichert werden.
 
-| Beschreibung                                                                                                                                                                                                                                                                                                        | Parameter                                                                |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| **Load file from**: Wählen Sie hier den Ordner aus, in dem die CTs liegen, die sie bearbeiten möchten<br/><br/>**Save files in**: Wählen Sie hier den Ordner aus, in dem die CTs nach dem Prozess gespeichert werden.<br/><br/>**Save files as**: Wählen Sie hier das Format in dem Sie die CTs abspeichern möchten | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png) |
+| Beschreibung                                                                                                                                                                                                                                                                                                        | Parameter                                                                                                                           |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| **Load file from**: Wählen Sie hier den Ordner aus, in dem die CTs liegen, die sie bearbeiten möchten<br/><br/>**Save files in**: Wählen Sie hier den Ordner aus, in dem die CTs nach dem Prozess gespeichert werden.<br/><br/>**Save files as**: Wählen Sie hier das Format in dem Sie die CTs abspeichern möchten | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png)<br/>*Abbildung 3: Parameterauswahl für die Batch Funktion* |
 
-
-## Tutorial
-- In dem Modul haben Sie die Möglichkeit unter verschiedenen Hauptfunktionalitäten zu wählen.
-    Alle drei Teile sind getrennt voneinander gebaut und können so auch getrennt ausgeführt werden
-  - Analytics - liefert analytische Daten über das Bild
-  - Anatomical Segmentation - zerlegt ein Zahn CT in die Zahnhauptteile Dentin und Schmelz
-  - Batch Processing - Mittels Batch lässt sich die Anatomical Segmentation auf mehrere Bilder loslassen
-
+## Visualize and save results
+Wenn der Algorithmus fertig ist, werden die Ergebnisse automatisch in die SLicer Szene geladen,
+sodass sie sofort einsehbar sind. Sie können jedoch mit dieser Segmentierung auch genauere
+Analysen vornehemn. Gehen Sie dafür wie folgt vor.
+- öffnen sie das Modul Data (Modules: Data)
+- schalten sie die gewünschten segmente über die Hierarchie ein und aus
+- Speichern Sie Ihre ergebnise über das Menü (Menü: Save)
 
 ![Screenshot of the application](./Screenshots/ResultatAS.gif)
-
+*Abbildung 4: Ansicht der Ergebnisse im Modul Data*
 
 ## Contributors and Organisation
 Die Entwicklung dieser Erweiterung ist eine Zusammenarbeit zwischen der LMU in München
@@ -116,10 +109,6 @@ Dieses Modul wurde im Rahmen einer Abschhlussarbeit an der Fakultät für Inform
 This module was developed for the dental caries research of the Dental Clinic at
 the LMU in Munich. The development is a collaboration between the LMU and the THA.
 
-## Licence
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
 
