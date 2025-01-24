@@ -6,16 +6,17 @@ The clinic captures three-dimensional micro-CT images of teeth, which are stored
 With this extension, you can directly and unfiltered segment three-dimensional micro-CT scans in *Scanco* ISQ format.
 
 ## Tabel of contents
-- [1. Introduction and purpose](#introduction-and-purpose)
+- [1. Introduction and purpose](#1-introduction-and-purpose)
 - [2. Installation](#2-installation)
-- [3. Quick start](#2-quick-start)
-- [3. Tutorial](#3-tutorial)
-  - [3.1. Analytical](#31-analytical)
-  - [3.2. Anatomical Segmentation](#32-anatomical-segmentation)
-  - [3.3. Batch Processing](#33-batch-processing)
-- [5. Contributors and Organisation](#contributors-and-organisation)
-- [6. Developers](#developers)
-- [7. Acknowledgement](#acknowledgement)
+- [3. Quick start](#3-quick-start)
+- [4. Tutorial](#4-tutorial)
+  - [4.1. Analytical](#41-analytical)
+  - [4.2. Anatomical Segmentation](#42-anatomical-segmentation)
+  - [4.3. Batch Processing](#43-batch-processing)
+- [5. Visualize and save results](#5-visualize-and-save-results)
+- [6. Contributors and Organisation](#6-contributors-and-organisation)
+- [7. Developers](#7-developers)
+- [8. Acknowledgement](#8-acknowledgement)
 
 ## 1. Introduction and Purpose
 As part of a proposal by the Dental Clinic, the goal is to implement an automatic detection of cavities on
@@ -32,7 +33,7 @@ To install the Extension simply follow the steps below in the right order.
 2. Start 3D Slicer application, open the Extension Manager (menu: View / Extension manager)
 3. Search for the Extension _ToothAnalyser_ and install it via the _INSTALL_ button
 
-## 2. Quick start
+## 3. Quick start
 To use the Tooth Analyser quickly and correctly, follow the steps below:
 
 - Start 3D Slicer.  
@@ -44,12 +45,12 @@ To use the Tooth Analyser quickly and correctly, follow the steps below:
 
 ⚠️ **Warning**: The algorithm, including filtering and medial surface calculation, requires approximately 17 minutes to complete.
 
-## 3. Tutorial
+## 4. Tutorial
 This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
 The extension is divided into several functions, each of which has been kept separate. As a result, they can also
 be executed independently of one another. This chapter covers all components and explains them in detail.
 
-### 3.1. Analytical
+### 4.1. Analytical
 With the analytical functions, it is currently possible to create a histogram of the CT scan. This can be very
 helpful when selecting a method for anatomical segmentation.
 
@@ -58,7 +59,7 @@ helpful when selecting a method for anatomical segmentation.
 | **Volume to be analyzed**: Select the CT scan you want to analyze here.<br/><br/>**Show Histogram**: If this option is selected, a histogram of the previously chosen image will be created. | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png)<br/>*Figure 2: Parameter selection for the analytical function* |
 
 
-### 3.2. Anatomical Segmentation
+### 4.2. Anatomical Segmentation
 The anatomical segmentation is the core of this extension. It allows the automatic segmentation of the
 micro-CT image of a tooth into the main dental substances, dentin and enamel. Additionally, medial surfaces can
 be generated, which are important for the classification of cavities.
@@ -68,7 +69,7 @@ be generated, which are important for the classification of cavities.
 | **Image for Segmentation**: Select the CT scan you want to segment here.<br/><br/> **Segmentation algorithm**: Choose the algorithm you want to use for segmentation.<br/><br/> **Calculate Medial Surface**: Calculates the medial surfaces of the dentin and enamel based on the segmentation.<br/><br/> **Show Medial Surface As 3D**: If the medial surfaces have been calculated, they can be displayed as a 3D model.  | ![Screenshot of the application](./Screenshots/slicerASParameter.png) <br/> *Figure 3: Parameter selection for anatomical segmentation* |
 
 
-### 3.3. Batch Processing
+### 4.3. Batch Processing
 In batch processing, the tested parameters can then be applied to a whole series of CT images. The Tooth Analyser
 will then create a directory in the background where the images will be saved.
 
@@ -77,7 +78,7 @@ will then create a directory in the background where the images will be saved.
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | **Load file from**: Select the folder where the CTs you want to process are located.<br/><br/> **Save files in**: Select the folder where the CTs will be saved after processing.<br/><br/> **Save files as**: Choose the format in which you want to save the CTs. | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png)<br/> *Figure 3: Parameter selection for the batch function* |
 
-## Visualize and save results
+## 5. Visualize and save results
 When the algorithm is finished, the results are automatically loaded into the Slicer scene, so they are immediately accessible.  
 However, you can also perform more detailed analyses with this segmentation. Follow these steps:
 - Open the Data module (Modules: Data)  
@@ -87,7 +88,7 @@ However, you can also perform more detailed analyses with this segmentation. Fol
 ![Screenshot of the application](./Screenshots/ResultatAS.gif)
 *Abbildung 4: Result view in the module Data*
 
-## Contributors and Organisation
+## 6. Contributors and Organisation
 The development of this extension is a collaboration between LMU Munich and the Faculty of Computer Science at the
 Technical University of Augsburg.
 
@@ -96,9 +97,9 @@ Technical University of Augsburg.
 - Dr. med. Elias Walter _(LMU)_
 - Prof. Dr. Peter Rösch _(THA)_
 
-## Developers
+## 7. Developers
 
-## Acknowledgement
+## 8. Acknowledgement
 This module was developed for the dental caries research of the Dental Clinic at
 the LMU in Munich. The development is a collaboration between the LMU and the THA.
 
