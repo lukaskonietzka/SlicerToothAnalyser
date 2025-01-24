@@ -1,14 +1,26 @@
 """
-Contains the pipeline to calculate a label image from
-an .ISQ image
+Copyright (C) 2025  Lukas Konietzka, lukas.konietzka@tha.de
+                    Simon Hoffmann, simon.hoffmann@tha.de
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+--------------------------------------------------------------------
+
+This package contains all the logic required to
+calculate an anatomical segmentation of one or more tooth CTs
 """
 
 import os
-from wsgiref.util import request_uri
-
 import SimpleITK as sitk
 from SimpleITK import Image
-from .isq_to_mhd import isq_to_mhd, isq_to_mhd_as_string
+from .isq_to_mhd import isq_to_mhd_as_string
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -44,7 +56,6 @@ def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> se
     tooth_set.add(segmentation_labels_key)
     tooth_set.add(enamel_midsurface_key)
     tooth_set.add(dentin_midsurface_key)
-
     return tooth_set
 
 
@@ -76,11 +87,6 @@ __THRESHOLD_FILTERS = {'Otsu': sitk.OtsuThresholdImageFilter(),
                      'Moments' : sitk.MomentsThresholdImageFilter(),
                      'Shanbhag' : sitk.ShanbhagThresholdImageFilter(),
                      'Yen' : sitk.YenThresholdImageFilter()}
-
-# Absolute Pfade der Originalbilder NICHT NÖTIG
-#__PATH_1_100 = '/data/shofmann/MicroCT/Original_ISQ/1_100/'
-#__PATH_101_200 = '/data/shofmann/MicroCT/Original_ISQ/101_200/'
-#__PATH_201_250 = '/data/shofmann/MicroCT/Original_ISQ/201_250/'
 
 
 # ----- Name parser -----#
@@ -213,14 +219,24 @@ def medianFilter(img: Image, size: int=1) -> Image:
     return sitk.Median(img, [size,size,size])
 
 
-# ----- Glättungsfilter ----- #
-def gradGaussianFilter(img, sigma=0.03):
-    # nicht verwendet, aber liefert bestes Ergebnis mit diesem Filter
+# ----- Smoothing filter ----- #
+def gradGaussianFilter(img: Image, sigma: float=0.03) -> Image:
+    """
+    This method apply a gaussian filter on the given image
+    to perform a smoothing
+    @param img: the image to be smoothed
+    @param sigma: the intensity
+    @return: the smoothed image
+    @example:
+        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
+        image = isq_to_mhd(path=path, name="P01A-C0005278.mhd")
+        filteredImage = gradGaussianFilter(img=Image, sigma=0.05)
+    """
+    # provides the best result
     return sitk.GradientMagnitudeRecursiveGaussian(img, sigma)
 
 
-# ----- Typinformation und Typumwandlung ----- #
-# WIRD NICHT VERWENDET
+# ----- Typ information and typ parsing ----- #
 def cast255(img: Image) -> Image:
     """
     Rescales the intensity of an image to the range [0, 255]
@@ -257,7 +273,7 @@ def pixelType(img: Image) -> str:
     return img.GetPixelIDTypeAsString()
 
 
-# ----- Zusammenhangskomponente ----- #
+# ----- Context component ----- #
 def ccMinSize(img: any, size: int=10) -> Image:
     """
     This filter searches for related components. Then components
@@ -285,9 +301,7 @@ def ccMinSize(img: any, size: int=10) -> Image:
     return cc_objects
 
 
-#
-# Adaptive Schwellwertverfahren
-#
+# ----- Adaptive threshold method ----- #
 def thresholdFilter(img: Image, mask: bool=False, filter_selection: str= 'Otsu', debug: bool=False) -> Image:
     """
     This methode apply a threshold filter on the given
@@ -338,6 +352,7 @@ def write(img: any, name: str, path: str, fileType: str) -> None:
     @param img: the image to be stored
     @param name: the name of the stored image
     @param path: the storage location in the file system
+    @param fileType: the typ of the file to be written
     @example:
         write(sitk_img, 'P01A-C0005278') store P01A-C0005278.mhd and P01A-C0005278.raw
     """
@@ -351,6 +366,8 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -
     skip this key.‚
     @param tooth: the dictionary to be stored
     @param path: the storage location in the file system
+    @param calcMidSurface: true if the medial surface should be calculated
+    @param fileType: the typ of the file to be written
     @example:
         name = parse_names(__PATH_1_100, offset=0, size=1)[0]
         tooth = load_full_dict_by_name(name, __TOOTH_SET_OTSU_OTSU)
@@ -505,7 +522,7 @@ def smoothImage(img: Image) -> Image:
 
     start = time.time()
     # If a median image already exists, take that one. Must be named "name_img_smooth"
-    img_smooth = medianFilter(img, 1)  # size anpassen und schauen ob es schneller läuft size = 5
+    img_smooth = medianFilter(img, 1)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
@@ -556,7 +573,7 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     """
     This methode extract the enamel area from the rest of the tooth by
     choosing the largest coherent object in the image.
-    @param filter_selection_1: the current segmentation typ (eg. "otsu", "renyi")
+    @param filter_selection_1: the current segmentation typ (e.g. "otsu", "renyi")
     @param tooth_masked: the created tooth mask
     @return: the extracted enamel from the tooth
     @example:
@@ -580,8 +597,8 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
 
 def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Image:
     """
-    This methode apply an smoothing on the extracted enamel segment
-    @param filter_selection_2: the current segmentation typ (eg. "otsu", "renyi")
+    This methode apply a smoothing on the extracted enamel segment
+    @param filter_selection_2: the current segmentation typ (e.g. "otsu", "renyi")
     @param tooth_smooth_masked: the created tooth mask
     @return: the smoothed enamel area
     @example:
@@ -782,6 +799,14 @@ def dentinMidSurface(dentin_layers: any) -> Image:
     print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return dentin_midsurface
 
+def isSmoothed(image: Image) -> bool:
+    import numpy as np
+    array = sitk.GetArrayFromImage(image)
+    std_dev = np.std(array)
+    print(f"Standardabweichung des Bildes: {std_dev}")
+    # Beispielschwelle anpassen:
+    return std_dev < 3200.00
+
 
 # ----- Pipeline, calculate tooth dictionary ----- #
 def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
@@ -800,7 +825,13 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str=
     """
     # 1. load and filter image
     img, name = loadImage(sourcePath)
-    img_smooth = smoothImage(img)
+
+    if isSmoothed(image=img):
+        print("Bild ist gefiltert")
+        img_smooth = img
+    else:
+        print("Bild ist nicht gefiltert")
+        img_smooth = smoothImage(img)
 
     # 2. generate a mask on the image and the smooth image
     tooth, tooth_masked = imageMask(img, img_smooth)
@@ -868,7 +899,8 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str=
     return tooth_dict
 
 
-def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool, fileType: str) -> None:
+# ----- calculate pipeline in a batch process ----- #
+def calcPipelineAsBatch(sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool, fileType: str) -> None:
     """
     This methode calculates the images in a batch process.
     It is recommended to name the destination folder like the image
@@ -876,10 +908,11 @@ def calcAnatomicalSegmentation(sourcePath: str, targetPath: str, segmentationTyp
     @param targetPath: the path to the directory, where the files from the calculation should be stored
     @param segmentationType: the thresholding algorithm for segmentation
     @param calcMidSurface: true, if the medial surfaces also should be calculated. False if note
+    @param fileType: the format in which the files are to be saved (e.g. '.nii' or '.mhd' or ...)
     @example:
         sourcePath = '/data/MicroCT/Original_ISQ/'
         targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278/'
-        calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True)
+        calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True, '.nii')
     """
     tooth_segmentation = calcPipeline(sourcePath, calcMidSurface, segmentationType, segmentationType)
     writeToothDict(tooth_segmentation, targetPath, calcMidSurface, fileType)

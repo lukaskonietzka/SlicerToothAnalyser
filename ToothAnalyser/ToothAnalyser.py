@@ -556,7 +556,8 @@ class Analytics(ToothAnalyserLogic):
 ##################################################
 class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     """
-
+    this class contains all the logic needed to visualise
+    the anatomical segmentation
     """
     _anatomicalSegmentationName = ToothAnalyserConfig.anatomicalSegmentationName
     _midSurfaceName = ToothAnalyserConfig.medialSurfaceName
@@ -909,7 +910,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcAnatomicalSegmentation, parseName
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcPipelineAsBatch, parseName
 
         # create local variables for all parameters
         sourcePath = param.batch.sourcePath
@@ -933,7 +934,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             targetFileDirectory = cls.createDirectory(
                 path=targetDirectory,
                 directoryName=fileName)
-            calcAnatomicalSegmentation(
+            calcPipelineAsBatch(
                 sourcePath=fullFilePath,
                 targetPath=targetFileDirectory,
                 segmentationType=segmentationType,
