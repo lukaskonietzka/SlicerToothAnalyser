@@ -1,10 +1,9 @@
-# Tooth Analyser Extension
-This is a 3D Slicer Extension for the examination of dental structures.
-This module was developed for the dental caries research of the Dental
-Clinic at the LMU in Munich. In this institution, three-dimensional
-Micro CT images of teeth are captured. These images are stored in
-the Scanio ISQ format and are intended for further processing for
-research purposes.
+# Tooth Analyser
+This 3D Slicer extension (SEM) is designed for dental research. It was developed to support
+dental caries research conducted by the Poliklinik für Zahnerhaltung und Parodontologie.
+The clinic captures three-dimensional micro-CT images of teeth, which are stored in the Scanio ISQ format.
+
+With this extension, you can directly and unfiltered segment three-dimensional micro-CT scans in *Scanco* ISQ format.
 
 ## Tabel of contents
 - [1. Introduction and purpose](#introduction-and-purpose)
@@ -19,13 +18,13 @@ research purposes.
 - [7. Acknowledgement](#acknowledgement)
 
 ## 1. Introduction and Purpose
-Im Rahmen einer Projektausschreibung der Zahnklinik soll in ferner Zukunft durch einsatz von Neuronalen Netzwerken
-eine automatische erkennung von Karies auf Micro CT Bildern realisiert werden. Da das identifizieren
-kariöser Stellen nicht trivial ist, soll diese Erweiterung mit einer anatomischen Segmentierung des
-Zahnes unterstüzten.
+As part of a proposal by the Dental Clinic, the goal is to implement an automatic detection of cavities on
+micro-CT images in the future using neural networks. Since identifying carious lesions is not trivial, this
+extension is designed to assist with the anatomical segmentation of the tooth.
+
 
 ![Screenshot of the application](./Screenshots/slicerFullView.png)
-*Abbildung 1: Vollansicht der Erweiterung Tooth Analyser.*
+*Figure 1: Full view of the Tooth Analyser extension.*
 
 ## 2. Installation
 To install the Extension simply follow the steps below in the right order.
@@ -34,68 +33,63 @@ To install the Extension simply follow the steps below in the right order.
 3. Search for the Extension _ToothAnalyser_ and install it via the _INSTALL_ button
 
 ## 2. Quick start
-Um den Tooth Analyser schnell und korrekt zu verwenden befolgen Sie die nachfolgenden Schritte.
-- Start 3D Slicer
-- Laden sie ein CT Bild mittels des Imports der 3d Slicer Kernanwendung (Dieses Bild muss nicht gefiltert sein)
-- Wechseln Sie in das Modul Tooth Analyser (Modules: Segmentation/Tooth Analyser)
-- Wählen Sie im Bereich _Anatomical Segmentation_ das CT aus, dass Sie segmnetieren wollen
-- Wählen Sie die Checkbox _calculate medial surface_, wenn die medialen Flächen mitberechnet
-  werden sollen und die Checkbox _show 3D_ wenn die medialenb Flächen ebenfalls im 3D Model
-  gezeigt werden sollen.
-- Starten Sie dann den Algorithmus, durch drücken auf den Button _Apply Anatomical_
+To use the Tooth Analyser quickly and correctly, follow the steps below:
 
-⚠️ **Achtung**: Der Algorithmus benötigt iklusiver Filterung und berechnung der medial Fläche
-                ca. 17 Minuten.
+- Start 3D Slicer.  
+- Load a CT image using the import function of the 3D Slicer core application (Menu: Data). The image does not need to be filtered.  
+- Switch to the Tooth Analyser module (Modules: Segmentation/Tooth Analyser).  
+- In the _Anatomical Segmentation_ section, select the CT image you want to segment.  
+- Check the box _calculate medial surface_ if medial surfaces should be calculated, and check the box _show 3D_ if the medial surfaces should also be displayed in the 3D model.  
+- Start the algorithm by clicking the _Apply Anatomical_ button.
+
+⚠️ **Warning**: The algorithm, including filtering and medial surface calculation, requires approximately 17 minutes to complete.
 
 ## 3. Tutorial
-In diesem Kapitel sollen die Parametereinstellungen und möglichkeiten des Tooth Analyser genauer
-beschrieben werden. Die Erweiterungen Teilt sich in mehrere Funktionen auf, die alle getrennt
-gehalten wurden und deshalb auch getrennt ausgeführt werden können. Dieses Kapitel geht über alle
-Teile und erläuter sie genauer.
+This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
+The extension is divided into several functions, each of which has been kept separate. As a result, they can also
+be executed independently of one another. This chapter covers all components and explains them in detail.
 
 ### 3.1. Analytical
-mit den analytischhen Funktionen kann aktuell ein histogramm des CTs erstellt werden. Dieses kann
-bei der Wahl eines Verfahrens für die Segmentierung helfen.
+With the analytical functions, it is currently possible to create a histogram of the CT scan. This can be very
+helpful when selecting a method for anatomical segmentation.
 
-| Beschreibung                                                                                                                                                                                      | Parameter                                                                                                                                     |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| **Volumen to be analyzed**: Wählen Sie hier das CT, da Sie analysieren möchten<br/><br/>**Show Histogram**: Wenn diese option gewählt wird, wird ein Histogram des zuvor gewählten Bildes erstellt | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png)<br/>*Abbildung 2: Parameterauswahl für die analytische Funktion* |
+| Beschreibung                                                                                                                                                                                 | Parameter                                                                                                                                    |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Volume to be analyzed**: Select the CT scan you want to analyze here.<br/><br/>**Show Histogram**: If this option is selected, a histogram of the previously chosen image will be created. | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png)<br/>*Figure 2: Parameter selection for the analytical function* |
 
 
 ### 3.2. Anatomical Segmentation
-Die anatomischen Segmentierung bildet das Herzstück dieser Erweiterung. Hiermit lässt sich das
-Micro CT Bild eines Zahlen automatisch in die Zahnhauptsubstanzen Dentin und Schmelz segmentieren.
-Außerdem können zusätzlich medial Flächen genneriert werden, welche für eine klassifizierung von
-Karies wichtig sind.
+The anatomical segmentation is the core of this extension. It allows the automatic segmentation of the
+micro-CT image of a tooth into the main dental substances, dentin and enamel. Additionally, medial surfaces can
+be generated, which are important for the classification of cavities.
 
-| Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                                           | Parameter                                                                                                                                   |
-|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| **Image for Segmentation**: Wählen Sie hier das CT, dass Sie segmentieren möchten<br/><br/>**Segmentation algorithm**: Wählen Sie hier den Algorithmus, den Sie für die Segmentieren haben wollen.<br/><br/> **Calculate Medial Surface**: Berechnet zu der Segmentierung die Medial Flächen des Dentin und des Schmelzes.<br/><br/>**Show Medial Surface As 3D**: Wenn die Medial Flächen berechnet wurden, können sie als 3D model angezeigt werden. | ![Screenshot of the application](./Screenshots/slicerASParameter.png)<br/>*Abbildung 2: Parameterauswahl für die Anatomische Segmentierung* |
+| Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                 | Parameter                                                                                                                               |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| **Image for Segmentation**: Select the CT scan you want to segment here.<br/><br/> **Segmentation algorithm**: Choose the algorithm you want to use for segmentation.<br/><br/> **Calculate Medial Surface**: Calculates the medial surfaces of the dentin and enamel based on the segmentation.<br/><br/> **Show Medial Surface As 3D**: If the medial surfaces have been calculated, they can be displayed as a 3D model.  | ![Screenshot of the application](./Screenshots/slicerASParameter.png) <br/> *Figure 3: Parameter selection for anatomical segmentation* |
 
 
 ### 3.3. Batch Processing
-Im Btach processing können dann die erprobten  parameter an einem Bild auf eine ganze Reihe an
-CT Bildern angewendet werden. Die Tooth Analyser erstellt dann im Hintergrund ein Verzeichniss,
-indem die Bilder gesichert werden.
+In batch processing, the tested parameters can then be applied to a whole series of CT images. The Tooth Analyser
+will then create a directory in the background where the images will be saved.
 
-| Beschreibung                                                                                                                                                                                                                                                                                                        | Parameter                                                                                                                           |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| **Load file from**: Wählen Sie hier den Ordner aus, in dem die CTs liegen, die sie bearbeiten möchten<br/><br/>**Save files in**: Wählen Sie hier den Ordner aus, in dem die CTs nach dem Prozess gespeichert werden.<br/><br/>**Save files as**: Wählen Sie hier das Format in dem Sie die CTs abspeichern möchten | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png)<br/>*Abbildung 3: Parameterauswahl für die Batch Funktion* |
+
+| Beschreibung                                                                                                                                                                                                                                                        | Parameter                                                                                                                            |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| **Load file from**: Select the folder where the CTs you want to process are located.<br/><br/> **Save files in**: Select the folder where the CTs will be saved after processing.<br/><br/> **Save files as**: Choose the format in which you want to save the CTs. | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png)<br/> *Figure 3: Parameter selection for the batch function* |
 
 ## Visualize and save results
-Wenn der Algorithmus fertig ist, werden die Ergebnisse automatisch in die SLicer Szene geladen,
-sodass sie sofort einsehbar sind. Sie können jedoch mit dieser Segmentierung auch genauere
-Analysen vornehemn. Gehen Sie dafür wie folgt vor.
-- öffnen sie das Modul Data (Modules: Data)
-- schalten sie die gewünschten segmente über die Hierarchie ein und aus
-- Speichern Sie Ihre ergebnise über das Menü (Menü: Save)
+When the algorithm is finished, the results are automatically loaded into the Slicer scene, so they are immediately accessible.  
+However, you can also perform more detailed analyses with this segmentation. Follow these steps:
+- Open the Data module (Modules: Data)  
+- Toggle the desired segments on and off using the hierarchy  
+- Save your results via the menu (Menu: Save)
 
 ![Screenshot of the application](./Screenshots/ResultatAS.gif)
-*Abbildung 4: Ansicht der Ergebnisse im Modul Data*
+*Abbildung 4: Result view in the module Data*
 
 ## Contributors and Organisation
-Die Entwicklung dieser Erweiterung ist eine Zusammenarbeit zwischen der LMU in München
-und der Fakultät für Informatik an der technischen Hochschule Augsburg. 
+The development of this extension is a collaboration between LMU Munich and the Faculty of Computer Science at the
+Technical University of Augsburg.
 
 - Lukas Konietzka _(THA)_
 - Simon Hoffmann _(THA)_
@@ -103,7 +97,6 @@ und der Fakultät für Informatik an der technischen Hochschule Augsburg.
 - Prof. Dr. Peter Rösch _(THA)_
 
 ## Developers
-Dieses Modul wurde im Rahmen einer Abschhlussarbeit an der Fakultät für Informatik (THA) erstellt.
 
 ## Acknowledgement
 This module was developed for the dental caries research of the Dental Clinic at
