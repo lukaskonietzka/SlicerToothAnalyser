@@ -522,7 +522,7 @@ def smoothImage(img: Image) -> Image:
 
     start = time.time()
     # If a median image already exists, take that one. Must be named "name_img_smooth"
-    img_smooth = medianFilter(img, 1)
+    img_smooth = medianFilter(img, 5)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
