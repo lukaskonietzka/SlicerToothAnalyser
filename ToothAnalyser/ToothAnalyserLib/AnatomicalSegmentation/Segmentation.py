@@ -804,7 +804,6 @@ def isSmoothed(image: Image) -> bool:
     array = sitk.GetArrayFromImage(image)
     std_dev = np.std(array)
     print(f"Standardabweichung des Bildes: {std_dev}")
-    # Beispielschwelle anpassen:
     return std_dev < 3200.00
 
 

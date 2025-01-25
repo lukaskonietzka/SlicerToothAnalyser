@@ -8,7 +8,7 @@ With this extension, you can directly and unfiltered segment three-dimensional m
 ## Tabel of contents
 - [1. Introduction and purpose](#1-introduction-and-purpose)
 - [2. Installation](#2-installation)
-- [3. Quick start](#3-quick-start)
+- [3. Quick start guide](#3-quick-start-guide)
 - [4. Tutorial](#4-tutorial)
   - [4.1. Analytical](#41-analytical)
   - [4.2. Anatomical Segmentation](#42-anatomical-segmentation)
@@ -33,7 +33,7 @@ To install the Extension simply follow the steps below in the right order.
 2. Start 3D Slicer application, open the Extension Manager (menu: View / Extension manager)
 3. Search for the Extension _ToothAnalyser_ and install it via the _INSTALL_ button
 
-## 3. Quick start
+## 3. Quick start guide
 To use the Tooth Analyser quickly and correctly, follow the steps below:
 
 - Start 3D Slicer.  
@@ -43,7 +43,7 @@ To use the Tooth Analyser quickly and correctly, follow the steps below:
 - Check the box _calculate medial surface_ if medial surfaces should be calculated, and check the box _show 3D_ if the medial surfaces should also be displayed in the 3D model.  
 - Start the algorithm by clicking the _Apply Anatomical_ button.
 
-⚠️ **Warning**: The algorithm, including filtering and medial surface calculation, requires approximately 17 minutes to complete.
+⚠️ **Notice**: The algorithm, including filtering and medial surface calculation, requires approximately 17 minutes to complete.
 
 ## 4. Tutorial
 This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
@@ -54,8 +54,8 @@ be executed independently of one another. This chapter covers all components and
 With the analytical functions, it is currently possible to create a histogram of the CT scan. This can be very
 helpful when selecting a method for anatomical segmentation.
 
-| Beschreibung                                                                                                                                                                                 | Parameter                                                                                                                                    |
-|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| Description                                                                                                                                                                                 | Parameters                                                                                                                                   |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | **Volume to be analyzed**: Select the CT scan you want to analyze here.<br/><br/>**Show Histogram**: If this option is selected, a histogram of the previously chosen image will be created. | ![Screenshot of the application](./Screenshots/slicerAnalyticsParameter.png)<br/>*Figure 2: Parameter selection for the analytical function* |
 
 
@@ -64,17 +64,17 @@ The anatomical segmentation is the core of this extension. It allows the automat
 micro-CT image of a tooth into the main dental substances, dentin and enamel. Additionally, medial surfaces can
 be generated, which are important for the classification of cavities.
 
-| Beschreibung                                                                                                                                                                                                                                                                                                                                                                                                                 | Parameter                                                                                                                               |
+| Description                                                                                                                                                                                                                                                                                                                                                                                                                 | Parameters                                                                                                                              |
 |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | **Image for Segmentation**: Select the CT scan you want to segment here.<br/><br/> **Segmentation algorithm**: Choose the algorithm you want to use for segmentation.<br/><br/> **Calculate Medial Surface**: Calculates the medial surfaces of the dentin and enamel based on the segmentation.<br/><br/> **Show Medial Surface As 3D**: If the medial surfaces have been calculated, they can be displayed as a 3D model.  | ![Screenshot of the application](./Screenshots/slicerASParameter.png) <br/> *Figure 3: Parameter selection for anatomical segmentation* |
 
 
 ### 4.3. Batch Processing
 In batch processing, the tested parameters can then be applied to a whole series of CT images. The Tooth Analyser
-will then create a directory in the background where the images will be saved.
+will then create a directory in your file system where the images will be saved.
 
 
-| Beschreibung                                                                                                                                                                                                                                                        | Parameter                                                                                                                            |
+| Description                                                                                                                                                                                                                                                        | Parameters                                                                                                                           |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | **Load file from**: Select the folder where the CTs you want to process are located.<br/><br/> **Save files in**: Select the folder where the CTs will be saved after processing.<br/><br/> **Save files as**: Choose the format in which you want to save the CTs. | ![Screenshot of the application](./Screenshots/slicerBatchParameter.png)<br/> *Figure 3: Parameter selection for the batch function* |
 

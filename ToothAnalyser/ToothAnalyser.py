@@ -967,6 +967,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testValidateBatchSettingsOneDisabled()
         self.testParsName()
         self.testParseType()
+        self.testSampleData()
 
     def testHandleApplyAnalyticsButton(self):
         """
@@ -1080,3 +1081,9 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.assertNotEqual(expectation, result)
 
         self.delayDisplay("Test 8 passed")
+
+    def testSampleData(self):
+        import SampleData
+        node1 = SampleData.downloadSample('ToothAnalyser1')
+
+        self.assertIsNotNone(node1, "ToothAnalyser1 konnte nicht geladen werden.")
