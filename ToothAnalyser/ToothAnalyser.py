@@ -60,19 +60,17 @@ def registerSampleData():
 
     # ToothAnalyser1
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
+        # Kategorie und Name der Beispiel-Daten
         category="ToothAnalyser",
         sampleName="ToothAnalyser1",
-        # Thumbnail should have size of approximately 260x280 pixels and stored in Resources/Icons folder.
-        # It can be created by Screen Capture module, "Capture all views" option enabled, "Number of images" set to "Single".
+        # Thumbnail-Bild
         thumbnailFileName=os.path.join(iconsPath, "ToothAnalyser1.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        fileNames="ToothAnalyser1.nrrd",
-        # Checksum to ensure file integrity. Can be computed by this command:
-        #  import hashlib; print(hashlib.sha256(open(filename, "rb").read()).hexdigest())
-        checksums="SHA256:998cb522173839c78657f4bc0ea907cea09fd04e44601f17c82ea27927937b95",
-        # This node name will be used when the data set is loaded
+        # Download-URL und Ziel-Dateiname
+        uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz",
+        fileNames="P01A-C0005278.nii.gz",  # Der heruntergeladene Dateiname
+        # Überprüfungs-Hash (SHA256-Checksumme)
+        checksums=None,
+        # Der Name des Nodes, der beim Laden der Daten verwendet wird
         nodeNames="ToothAnalyser1",
     )
 
@@ -149,6 +147,7 @@ class ToothAnalyserParameterNode:
     analytical: AnalyticalParameters
     anatomical: AnatomicalParameters
     batch: Batch
+    status: str = "Test"
 
 
 ##################################################
@@ -384,6 +383,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+            import hashlib
+            print(hashlib.sha256(open("P01A-C0005278.nii.gz", "rb").read()).hexdigest())
             Analytics.execute(self._param)
         self.showProgressBar(False)
 

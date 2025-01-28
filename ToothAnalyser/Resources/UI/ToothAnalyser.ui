@@ -279,6 +279,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QLineEdit" name="lineEdit">
+     <property name="SlicerParameterName" stdset="0">
+      <string>status</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
