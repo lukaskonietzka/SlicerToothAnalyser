@@ -128,14 +128,13 @@ class AnatomicalParameters:
     currentAnatomicalVolume: vtkMRMLScalarVolumeNode
     selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
     calcMidSurface: bool
-    showMidSurfaceAs3D: bool
     useAnatomicalForBatch: bool
 
 @parameterPack
 class Batch:
     """
     The parameters needed by the section
-    Batch Processing
+    Batch Processy ing
     """
     sourcePath: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/"
     targetPath: str =  "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/"
@@ -328,18 +327,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.handleApplyBatchButton()
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
-        self.handleShow3DCheckBox()
-
-    def handleShow3DCheckBox(self):
-        """
-        This method ensures that a 3D model of the MidSurface
-        can only be generated if it has also been calculated
-        """
-        if self._param.anatomical.calcMidSurface:
-            self.ui.showMidSurfaceAs3D.enabled = True
-        else:
-            self.ui.showMidSurfaceAs3D.enabled = False
-            self.ui.showMidSurfaceAs3D.checked = False
 
     def handleApplyBatchButton(self):
         """
@@ -673,7 +660,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     @classmethod
     def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode,
                             midSurfaceEnamel: vtkMRMLLabelMapVolumeNode,
-                            show3D: bool,
                             currentImageName: str) -> None:
         """
         This method creates a segmentation for the given medial surface
@@ -694,8 +680,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             segDentin.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[0])
             segDentin.GetSegmentation().GetNthSegment(0).SetColor(1.0, 0.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceDentin)
-            if show3D:
-                segDentin.CreateClosedSurfaceRepresentation()
 
         # create enamel medial surface segmentation
         segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
@@ -707,8 +691,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             segEnamel.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[1])
             segEnamel.GetSegmentation().GetNthSegment(0).SetColor(0.0, 1.0, 0.0)
             slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
-            if show3D:
-                segEnamel.CreateClosedSurfaceRepresentation()
 
         # copy all segments from dentin to enamel and delete dentin
         for i in range(segDentin.GetSegmentation().GetNumberOfSegments()):
@@ -867,37 +849,22 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             AnatomicalSegmentationLogic.execute(param=self._param)
         """
         import time
-        import threading
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
         logging.info("Processing started")
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo
-        currentImageName = parseName(param.anatomical.currentAnatomicalVolume.GetName())
         currentImageNameWithTyp = param.anatomical.currentAnatomicalVolume.GetName()
-        currentImageDirectory = cls.getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
         sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
 
-        toothDict ={}
-        stopEvent = threading.Event()
-        algo = threading.Thread(
-            target=calcPipeline,
-            args=(sourcePath, param.anatomical.calcMidSurface, toothDict, stopEvent, segmentationType, segmentationType,))
-        algo.start()
-
-        super().monitorProgress(1200, stopEvent)
-        algo.join()
-
-
-
-        # Calculate Anatomical Segmentation by executing pipeline
-        # toothDict = calcPipeline(
-        #     sourcePath=sourcePath, #path to file
-        #     calcMidSurface=param.anatomical.calcMidSurface,
-        #     filter_selection_1=segmentationType,
-        #     filter_selection_2=segmentationType,
-        # )
+        #Calculate Anatomical Segmentation by executing pipeline
+        toothDict = calcPipeline(
+            sourcePath=sourcePath, #path to file
+            calcMidSurface=param.anatomical.calcMidSurface,
+            filter_selection_1=segmentationType,
+            filter_selection_2=segmentationType,
+        )
 
         # extract itk images from the calculated tooth dictionary
         segmentationType = segmentationType.lower()
@@ -924,7 +891,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 cls.createMedialSurface(
                     midSurfaceDentin=dentinMidSurfaceNode,
                     midSurfaceEnamel=enamelMidSurfaceNode,
-                    show3D=param.anatomical.showMidSurfaceAs3D,
                     currentImageName=currentImageName)
             else:
                 pass

@@ -808,7 +808,7 @@ def isSmoothed(image: Image) -> bool:
 
 
 # ----- Pipeline, calculate tooth dictionary ----- #
-def calcPipeline(sourcePath: str, calcMidSurface: bool, toothDict, stop, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> None:
+def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
     """
     This method forms the complete pipeline for the calculation of smoothing,
     labels and medial surfaces. It is very large but therefore the clearest
@@ -822,7 +822,7 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, toothDict, stop, filter_
         targetPath = '/data/MicroCT/Original_ISQ/anatomicalSegmentationOtsu/'
         tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
     """
-    import threading
+
     # 1. load and filter image
     img, name = loadImage(sourcePath)
 
@@ -896,8 +896,7 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, toothDict, stop, filter_
         enamel_midsurface_key: enamel_midsurface,
         dentin_midsurface_key: dentin_midsurface
     }
-    toothDict.update(tooth_dict)
-    stop.set()
+    return tooth_dict
 
 
 # ----- calculate pipeline in a batch process ----- #

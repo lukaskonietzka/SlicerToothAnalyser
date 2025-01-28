@@ -1,3 +1,5 @@
+![Screenshot of the application](./Screenshots/Logo_ToothAnalyser.png)
+
 # Tooth Analyser
 This 3D Slicer extension (SEM) is designed for dental research. It was developed to support
 dental caries research conducted by the Poliklinik für Zahnerhaltung und Parodontologie.
