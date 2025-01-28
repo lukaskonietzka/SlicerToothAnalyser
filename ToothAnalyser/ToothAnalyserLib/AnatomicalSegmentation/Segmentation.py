@@ -522,7 +522,7 @@ def smoothImage(img: Image) -> Image:
 
     start = time.time()
     # If a median image already exists, take that one. Must be named "name_img_smooth"
-    img_smooth = medianFilter(img, 5)
+    img_smooth = medianFilter(img, 1)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
@@ -808,7 +808,7 @@ def isSmoothed(image: Image) -> bool:
 
 
 # ----- Pipeline, calculate tooth dictionary ----- #
-def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> dict:
+def calcPipeline(sourcePath: str, calcMidSurface: bool, toothDict, stop, filter_selection_1: str= 'Renyi', filter_selection_2: str= 'Renyi') -> None:
     """
     This method forms the complete pipeline for the calculation of smoothing,
     labels and medial surfaces. It is very large but therefore the clearest
@@ -822,6 +822,7 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str=
         targetPath = '/data/MicroCT/Original_ISQ/anatomicalSegmentationOtsu/'
         tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
     """
+    import threading
     # 1. load and filter image
     img, name = loadImage(sourcePath)
 
@@ -895,7 +896,8 @@ def calcPipeline(sourcePath: str, calcMidSurface: bool, filter_selection_1: str=
         enamel_midsurface_key: enamel_midsurface,
         dentin_midsurface_key: dentin_midsurface
     }
-    return tooth_dict
+    toothDict.update(tooth_dict)
+    stop.set()
 
 
 # ----- calculate pipeline in a batch process ----- #

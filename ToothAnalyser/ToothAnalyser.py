@@ -298,6 +298,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # select medial surfaces by default
         self.ui.calcMidSurface.checked = True
+        self.ui.executing.setVisible(False)
+        self.ui.progressBar.setVisible(False)
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -381,32 +383,44 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         return sum(value for value in paramsToCheck.values() if isinstance(value, bool)) == 1
 
+    def showProgressBar(self, isVisible: bool) -> None:
+        # Sichtbarkeit des Labels umschalten
+
+        self.ui.executing.setVisible(isVisible)
+        self.ui.progressBar.setVisible(isVisible)
+        slicer.app.processEvents()
+
     def onApplyAnalyticsButton(self) -> None:
         """
         Run the analytical processing in an error display
         when user clicks "Apply Analytics" Button.
         """
+        self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             Analytics.execute(self._param)
+        self.showProgressBar(False)
 
     def onApplyAnatomicalButton(self) -> None:
         """
         Run the anatomical segmentation processing in an error display
         when user clicks "Apply Analytics" Button.
         """
+        self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.execute(param=self._param)
-
+        self.showProgressBar(False)
     def onApplyBatchButton(self) -> None:
         """
         Run the batch processing in an error display
         when user clicks "Apply Batch" button.
         """
+        self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             if self._param.analytical.useAnalyticForBatch:
                 Analytics.executeAsBatch(param=self._param)
             elif self._param.anatomical.useAnatomicalForBatch:
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
+        self.showProgressBar(False)
 
 
 ##################################################
@@ -454,7 +468,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """Abstract method"""
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
-    def monitorProgress(self, estimatedRuntimeInSec: int) -> None:
+    @classmethod
+    def monitorProgress(cls, estimatedRuntimeInSec: int, stop) -> None:
         """
         Monitors the progress of the running algorithm
         based on the estimated runtime.
@@ -467,22 +482,27 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         progressDialog = slicer.util.createProgressDialog(
             value=0,
             maximum=100,
-            labelText="Please wait until the algorithm is ready.",
-            windowTitle="Executing algorithm"
+            labelText="The anatomical segmentation of the CT takes approx. 17 minutes, depending on the parameters. Please wait while the algorithm is running.",
+            windowTitle="Executing algorithm..."
         )
+        print("stop event: ", stop.is_set())
         try:
             start_time = time.time()
             elapsed_time = 0
-            while elapsed_time < estimatedRuntimeInSec:
+            while elapsed_time < estimatedRuntimeInSec and not progressDialog.wasCanceled and not stop.is_set():
                 elapsed_time = time.time() - start_time
                 progress_value = int((elapsed_time / estimatedRuntimeInSec) * 100)
                 progressDialog.setValue(progress_value)
                 slicer.app.processEvents()  # GUI-Update sicherstellen
                 time.sleep(0.5)
+
+            stop.set()
             progressDialog.setValue(100)
             slicer.app.processEvents()
         finally:
             progressDialog.close()
+
+
 
 
 ###########################################
@@ -847,6 +867,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             AnatomicalSegmentationLogic.execute(param=self._param)
         """
         import time
+        import threading
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
@@ -858,13 +879,25 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         currentImageDirectory = cls.getDirectoryForFile(param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName())
         sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
 
+        toothDict ={}
+        stopEvent = threading.Event()
+        algo = threading.Thread(
+            target=calcPipeline,
+            args=(sourcePath, param.anatomical.calcMidSurface, toothDict, stopEvent, segmentationType, segmentationType,))
+        algo.start()
+
+        super().monitorProgress(1200, stopEvent)
+        algo.join()
+
+
+
         # Calculate Anatomical Segmentation by executing pipeline
-        toothDict = calcPipeline(
-            sourcePath=sourcePath, #path to file
-            calcMidSurface=param.anatomical.calcMidSurface,
-            filter_selection_1=segmentationType,
-            filter_selection_2=segmentationType,
-        )
+        # toothDict = calcPipeline(
+        #     sourcePath=sourcePath, #path to file
+        #     calcMidSurface=param.anatomical.calcMidSurface,
+        #     filter_selection_1=segmentationType,
+        #     filter_selection_2=segmentationType,
+        # )
 
         # extract itk images from the calculated tooth dictionary
         segmentationType = segmentationType.lower()

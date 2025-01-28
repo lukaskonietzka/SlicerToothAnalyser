@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>402</width>
-    <height>497</height>
+    <height>560</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -313,6 +313,23 @@
       </size>
      </property>
     </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="executing">
+     <property name="text">
+      <string>executing algorithm. This may take a few minues,  please wait...</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="progressBar">
+     <property name="maximum">
+      <number>0</number>
+     </property>
+     <property name="value">
+      <number>-1</number>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

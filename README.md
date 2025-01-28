@@ -14,9 +14,10 @@ With this extension, you can directly and unfiltered segment three-dimensional m
   - [4.2. Anatomical Segmentation](#42-anatomical-segmentation)
   - [4.3. Batch Processing](#43-batch-processing)
 - [5. Visualize and save results](#5-visualize-and-save-results)
-- [6. Contributors and Organisation](#6-contributors-and-organisation)
-- [7. Developers](#7-developers)
-- [8. Acknowledgement](#8-acknowledgement)
+- [6. Sample Data](#6-sample-data)
+- [7. Contributors and Organisation](#7-contributors-and-organisation)
+- [8. Developers](#8-developers)
+- [9. Acknowledgement](#9-acknowledgement)
 
 ## 1. Introduction and Purpose
 As part of a proposal by the Dental Clinic, the goal is to implement an automatic detection of cavities on
@@ -86,9 +87,12 @@ However, you can also perform more detailed analyses with this segmentation. Fol
 - Save your results via the menu (Menu: Save)
 
 ![Screenshot of the application](./Screenshots/ResultatAS.gif)
-*Abbildung 4: Result view in the module Data*
+*Figure 4: Result view in the module Data*
 
-## 6. Contributors and Organisation
+## 6. Sample Data
+
+
+## 7. Contributors and Organisation
 The development of this extension is a collaboration between LMU Munich and the Faculty of Computer Science at the
 Technical University of Augsburg.
 
@@ -97,9 +101,9 @@ Technical University of Augsburg.
 - Dr. med. Elias Walter _(LMU)_
 - Prof. Dr. Peter Rösch _(THA)_
 
-## 7. Developers
+## 8. Developers
 
-## 8. Acknowledgement
+## 9. Acknowledgement
 This module was developed for the dental caries research of the Dental Clinic at
 the LMU in Munich. The development is a collaboration between the LMU and the THA.
 
