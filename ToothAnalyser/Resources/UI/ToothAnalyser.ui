@@ -251,7 +251,7 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>Save files as:b                         </string>
+         <string>Save files as:                            </string>
         </property>
        </widget>
       </item>
@@ -279,13 +279,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="SlicerParameterName" stdset="0">
-      <string>status</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -299,9 +292,9 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="executing">
-     <property name="text">
-      <string>executing algorithm. This may take a few minues,  please wait...</string>
+    <widget class="QLineEdit" name="status">
+     <property name="SlicerParameterName" stdset="0">
+      <string>status</string>
      </property>
     </widget>
    </item>

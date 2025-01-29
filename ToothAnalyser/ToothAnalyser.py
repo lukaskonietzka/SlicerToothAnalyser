@@ -47,45 +47,25 @@ class ToothAnalyser(ScriptedLoadableModule):
 # Register sample data for the module tests
 ##################################################
 def registerSampleData():
-    """Add data sets to Sample Data module."""
-    # It is always recommended to provide sample data for users to make it easy to try the module,
-    # but if no sample data is available then this method (and associated startupCompeted signal connection) can be removed.
-
+    """
+    This Methode provides sample Data for the module tests
+    To ensure that the source code repository remains small
+    (can be downloaded and installed quickly) it is recommended to
+    store data sets that are larger than a few MB in a GitHub release.
+    """
     import SampleData
-
     iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
 
-    # To ensure that the source code repository remains small (can be downloaded and installed quickly)
-    # it is recommended to store data sets that are larger than a few MB in a Github release.
-
-    # ToothAnalyser1
+    # fist sample CT -> ToothAnalyser1
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Kategorie und Name der Beispiel-Daten
         category="ToothAnalyser",
         sampleName="ToothAnalyser1",
-        # Thumbnail-Bild
         thumbnailFileName=os.path.join(iconsPath, "ToothAnalyser1.png"),
-        # Download-URL und Ziel-Dateiname
+        # path to sample image
         uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz",
-        fileNames="P01A-C0005278.nii.gz",  # Der heruntergeladene Dateiname
-        # Überprüfungs-Hash (SHA256-Checksumme)
+        fileNames="P01A-C0005278.nii.gz",
         checksums=None,
-        # Der Name des Nodes, der beim Laden der Daten verwendet wird
         nodeNames="ToothAnalyser1",
-    )
-
-    # ToothAnalyser2
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        # Category and sample name displayed in Sample Data module
-        category="ToothAnalyser",
-        sampleName="ToothAnalyser2",
-        thumbnailFileName=os.path.join(iconsPath, "ToothAnalyser2.png"),
-        # Download URL and target file name
-        uris="https://github.com/Slicer/SlicerTestingData/releases/download/SHA256/1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        fileNames="ToothAnalyser2.nrrd",
-        checksums="SHA256:1a64f3f422eb3d1c9b093d1a18da354b13bcf307907c66317e2463ee530b7a97",
-        # This node name will be used when the data set is loaded
-        nodeNames="ToothAnalyser2",
     )
 
 
@@ -99,8 +79,6 @@ class ToothAnalyserConfig:
     segmentNames: list[str] = ["Dentin", "Enamel"]
     fileTyps: tuple[str] = (".ISQ", ".mhd", ".nrrd")
     mockDirectory: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
-
-
 
 
 ##################################################
@@ -296,8 +274,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # select medial surfaces by default
         self.ui.calcMidSurface.checked = True
-        self.ui.executing.setVisible(False)
         self.ui.progressBar.setVisible(False)
+        self.ui.status.setVisible(False)
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -372,7 +350,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def showProgressBar(self, isVisible: bool) -> None:
         # Sichtbarkeit des Labels umschalten
 
-        self.ui.executing.setVisible(isVisible)
+        self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
         slicer.app.processEvents()
 
@@ -383,8 +361,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            import hashlib
-            print(hashlib.sha256(open("P01A-C0005278.nii.gz", "rb").read()).hexdigest())
             Analytics.execute(self._param)
         self.showProgressBar(False)
 
@@ -423,7 +399,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-    _availableTypes = [".nrrd", ".mhd", "nii"]
+   # _availableTypes = [".nrrd", ".mhd", "nii"]
 
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
@@ -565,7 +541,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         folder_path = os.path.dirname(filePath)
         if not folder_path:
             folder_path = os.getcwd()
-
         return folder_path
 
     @classmethod
@@ -828,6 +803,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         except:
             cls.createTemporaryStorageNode(param)
             sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
+
+        param.status = "start processing..."
+        slicer.app.processEvents()
 
         #Calculate Anatomical Segmentation by executing pipeline
         toothDict = calcPipeline(
