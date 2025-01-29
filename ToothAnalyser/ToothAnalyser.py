@@ -456,42 +456,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """Abstract method"""
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
-    @classmethod
-    def monitorProgress(cls, estimatedRuntimeInSec: int, stop) -> None:
-        """
-        Monitors the progress of the running algorithm
-        based on the estimated runtime.
-        param: algorithm_runtime_seconds (int): Estimated runtime of the algorithm.
-        return: None
-        """
-        import time
-
-        # create a dialog with a progress bar
-        progressDialog = slicer.util.createProgressDialog(
-            value=0,
-            maximum=100,
-            labelText="The anatomical segmentation of the CT takes approx. 17 minutes, depending on the parameters. Please wait while the algorithm is running.",
-            windowTitle="Executing algorithm..."
-        )
-        print("stop event: ", stop.is_set())
-        try:
-            start_time = time.time()
-            elapsed_time = 0
-            while elapsed_time < estimatedRuntimeInSec and not progressDialog.wasCanceled and not stop.is_set():
-                elapsed_time = time.time() - start_time
-                progress_value = int((elapsed_time / estimatedRuntimeInSec) * 100)
-                progressDialog.setValue(progress_value)
-                slicer.app.processEvents()  # GUI-Update sicherstellen
-                time.sleep(0.5)
-
-            stop.set()
-            progressDialog.setValue(100)
-            slicer.app.processEvents()
-        finally:
-            progressDialog.close()
-
-
-
 
 ###########################################
 #     Tooth Analyser section Analytics     #
@@ -649,7 +613,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             if i < len(default_names):
                 segment_name = default_names[i]
                 if segment_name == "Enamel":
-                    seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.6)
+                    seg.GetSegmentation().GetNthSegment(i).SetColor(0.435, 0.722, 0.824)
+                if segment_name == "Dentin":
+                    seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.8)
             else:
                 segment_name = f"Segment {i + 1}"
             seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
@@ -857,7 +823,11 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo
         currentImageNameWithTyp = param.anatomical.currentAnatomicalVolume.GetName()
-        sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
+        try:
+            sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
+        except:
+            cls.createTemporaryStorageNode(param)
+            sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
 
         #Calculate Anatomical Segmentation by executing pipeline
         toothDict = calcPipeline(
@@ -900,6 +870,17 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
+
+    @classmethod
+    def createTemporaryStorageNode(cls, param):
+        tempPath = slicer.app.temporaryPath
+        print("temp pfad: ", tempPath)
+        fileName = param.anatomical.currentAnatomicalVolume.GetName() + ".nrrd"
+        filePath = os.path.join(tempPath, fileName)
+        storageNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
+        storageNode.SetFileName(filePath)
+        param.anatomical.currentAnatomicalVolume.SetAndObserveStorageNodeID(storageNode.GetID())
+        storageNode.WriteData(param.anatomical.currentAnatomicalVolume)
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
