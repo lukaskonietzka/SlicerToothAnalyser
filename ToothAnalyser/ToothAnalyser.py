@@ -381,9 +381,13 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             if self._param.analytical.useAnalyticForBatch:
+                self.showProgressBar(False)
                 Analytics.executeAsBatch(param=self._param)
+                self.showProgressBar(False)
             elif self._param.anatomical.useAnatomicalForBatch:
+                self.showProgressBar(True)
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
+                self.showProgressBar(False)
         self.showProgressBar(False)
 
 
@@ -781,6 +785,150 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return labelmap_node
 
     @classmethod
+    def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode,
+                     filter_selection_1: str = 'Renyi',
+                     filter_selection_2: str = 'Renyi') -> dict:
+        """
+        This method forms the complete pipeline for the calculation of smoothing,
+        labels and medial surfaces. It is very large but therefore the clearest
+        @param sourcePath: the path to the file that should be entered in the pipeline
+        @param calcMidSurface: the path to the directory where the generated images are saved in the file system
+        @param filter_selection_1: the segmentation algorithm
+        @param filter_selection_2: the segmentation algorithm
+        @return: the full created tooth dictionary with all images
+        @example:
+            path = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
+            targetPath = '/data/MicroCT/Original_ISQ/anatomicalSegmentationOtsu/'
+            tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
+        """
+
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import (
+            loadImage, isSmoothed, smoothImage, imageMask, smoothImageMask, enamelSelect, enamelSmoothSelect,
+            enamelLayering, enamelPreparation, enamelFilling, additionalEnamelFilling, dentinLayers,
+            segmentationLabels, enamelMidSurface, dentinMidSurface)
+
+        # 1. load and filter image
+
+        img, name = loadImage(sourcePath)
+        param.status = "loading image: " + name
+        slicer.app.processEvents()
+
+        if isSmoothed(img):
+            img_smooth = img
+        else:
+            param.status = "smoothing image"
+            slicer.app.processEvents()
+            img_smooth = smoothImage(img)
+
+        # 2. generate a mask on the image and the smooth image
+        param.status = "generating tooth mask"
+        slicer.app.processEvents()
+        tooth, tooth_masked = imageMask(img, img_smooth)
+        tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
+        # 3. select enamel area
+        param.status = "extracting enamel layers"
+        slicer.app.processEvents()
+        enamel_select = enamelSelect(filter_selection_1, tooth_masked)
+        enamel_smooth_select = enamelSmoothSelect(filter_selection_2, tooth_smooth_masked)
+
+        # 4. stack the enamels
+        param.status = "creating enamel layer"
+        slicer.app.processEvents()
+        enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
+
+        # 5. Prepare the enamel
+        param.status = "smoothing enamel layer"
+        slicer.app.processEvents()
+        enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
+
+        # 6. Filling of small structures within the tooth
+        param.status = "filling structures on enamel"
+        slicer.app.processEvents()
+        contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
+
+        # 7. Filling of small structures within the tooth, important with many datasets
+        param.status = "filling structures on enamel"
+        slicer.app.processEvents()
+        enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
+
+        # 8. generate dentin segment
+        param.status = "extracting dentin segment"
+        slicer.app.processEvents()
+        dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
+
+        # 9. generate label file for segmentation
+        param.status = "creating segmentation labels"
+        slicer.app.processEvents()
+        segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
+
+        # 10. generating medial surface for enamel and dentin
+        if calcMidSurface:
+            param.status = "creating medial surfaces enamel"
+            slicer.app.processEvents()
+            enamel_midsurface = enamelMidSurface(enamel_layers)
+            param.status = "creating medial surfaces dentin"
+            slicer.app.processEvents()
+            dentin_midsurface = dentinMidSurface(dentin_layers)
+        else:
+            enamel_midsurface = None
+            dentin_midsurface = None
+
+        # 11. generate tooth dictionary to store all generated data sets local
+        filt_1 = filter_selection_1.lower()
+        filt_2 = filter_selection_2.lower()
+
+        enamel_key = 'enamel_' + filt_1
+        enamel_smooth_key = 'enamel_smooth_' + filt_2
+
+        enamel_layers_key = 'enamel_' + filt_1 + '_' + filt_2 + '_layers'
+        dentin_layers_key = 'dentin_' + filt_1 + '_' + filt_2 + '_layers'
+
+        segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
+
+        enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
+        dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
+
+        tooth_dict = {
+            'path': sourcePath,
+            'name': name,
+            'img': img,
+            'img_smooth': img_smooth,
+            'tooth': tooth,
+            enamel_key: enamel_select,
+            enamel_smooth_key: enamel_smooth_select,
+            enamel_layers_key: enamel_layers,
+            dentin_layers_key: dentin_layers,
+            segmentation_labels_key: segmentation_labels,
+            enamel_midsurface_key: enamel_midsurface,
+            dentin_midsurface_key: dentin_midsurface
+        }
+        return tooth_dict
+
+    @classmethod
+    def calcPipelineAsBatch(cls, sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool,
+                            fileType: str, param: ToothAnalyserParameterNode) -> None:
+        """
+        This methode calculates the images in a batch process.
+        It is recommended to name the destination folder like the image
+        @param sourcePath: The directory path to the files where the file to be calculated is located
+        @param targetPath: the path to the directory, where the files from the calculation should be stored
+        @param segmentationType: the thresholding algorithm for segmentation
+        @param calcMidSurface: true, if the medial surfaces also should be calculated. False if note
+        @param fileType: the format in which the files are to be saved (e.g. '.nii' or '.mhd' or ...)
+        @example:
+            sourcePath = '/data/MicroCT/Original_ISQ/'
+            targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278/'
+            calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True, '.nii')
+        """
+
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import writeToothDict
+
+        tooth_segmentation = cls.calcPipeline(sourcePath, calcMidSurface, param, segmentationType, segmentationType)
+        writeToothDict(tooth_segmentation, targetPath, calcMidSurface, fileType)
+        tooth_segmentation_name = tooth_segmentation['name']
+        print("Done: " + tooth_segmentation_name)
+
+    @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
         """
         This methode starts the pipeline to compute the output
@@ -791,7 +939,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             AnatomicalSegmentationLogic.execute(param=self._param)
         """
         import time
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, calcPipeline
 
         start = time.time()
         logging.info("Processing started")
@@ -808,9 +955,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         slicer.app.processEvents()
 
         #Calculate Anatomical Segmentation by executing pipeline
-        toothDict = calcPipeline(
+        toothDict = cls.calcPipeline(
             sourcePath=sourcePath, #path to file
             calcMidSurface=param.anatomical.calcMidSurface,
+            param=param,
             filter_selection_1=segmentationType,
             filter_selection_2=segmentationType,
         )
@@ -869,7 +1017,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcPipelineAsBatch, parseName
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
 
         # create local variables for all parameters
         sourcePath = param.batch.sourcePath
@@ -877,6 +1025,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         segmentationType = param.anatomical.selectedAnatomicalAlgo
         fileType = param.batch.fileType
         files = cls.collectFiles(sourcePath, cls._fileTypes)
+        numOfFiles = len(files)
+        param.status = "detecting " + str(numOfFiles) + "files"
 
         # Create result directory
         targetDirectory = cls.createDirectory(
@@ -893,12 +1043,13 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             targetFileDirectory = cls.createDirectory(
                 path=targetDirectory,
                 directoryName=fileName)
-            calcPipelineAsBatch(
+            cls.calcPipelineAsBatch(
                 sourcePath=fullFilePath,
                 targetPath=targetFileDirectory,
                 segmentationType=segmentationType,
                 calcMidSurface=param.anatomical.calcMidSurface,
-                fileType=fileType)
+                fileType=fileType,
+                param=param)
 
 
 ##################################################
