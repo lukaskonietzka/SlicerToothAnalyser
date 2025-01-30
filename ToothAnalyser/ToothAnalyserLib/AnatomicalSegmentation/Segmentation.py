@@ -483,6 +483,14 @@ def medialSurface(segment: any) -> any:
     return medial_surface
 
 
+def isSmoothed(image: Image) -> bool:
+    import numpy as np
+    array = sitk.GetArrayFromImage(image)
+    std_dev = np.std(array)
+    print(f"Standardabweichung des Bildes: {std_dev}")
+    return std_dev < 3200.00
+
+
 # ----- Pipeline methods ----- #
 def loadImage(path: str) -> tuple[Image, str]:
     """
@@ -508,8 +516,6 @@ def loadImage(path: str) -> tuple[Image, str]:
         img = loadFile(path)
     stop = time.time()
     print("img: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("Image loaded")
-    slicer.app.processEvents()
     return img, name
 
 def smoothImage(img: Image) -> Image:
@@ -529,8 +535,6 @@ def smoothImage(img: Image) -> Image:
     img_smooth = medianFilter(img, 1)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("Image smoothed")
-    slicer.app.processEvents()
     return img_smooth
 
 def imageMask(img: Image, img_smooth: Image) -> tuple:
@@ -555,8 +559,6 @@ def imageMask(img: Image, img_smooth: Image) -> tuple:
     tooth_masked = sitk.Mask(img, tooth)
     stop = time.time()
     print("tooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("generated tooth set")
-    slicer.app.processEvents()
     return tooth, tooth_masked
 
 def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
@@ -575,8 +577,6 @@ def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
     tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
     stop = time.time()
     print("tooth_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("tooth smoothed")
-    slicer.app.processEvents()
     return tooth_smooth_masked
 
 def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
@@ -599,12 +599,10 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     # preparation
     enamel_select = bcbr(enamel_select)
     # largest coherent object
-    enamel_select = ccMinSize(enamel_select, 50) == 1
+    enamel_select = ccMinSize(enamel_select, 50) == 1 # war mal 50
     # Enamel segment finished on masked original tooth
     stop = time.time()
     print("enamel_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("detect enamel on tooth")
-    slicer.app.processEvents()
     return enamel_select
 
 def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Image:
@@ -630,8 +628,6 @@ def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Ima
     # Enamel segment finished on masked smoothed tooth
     stop = time.time()
     print("enamel_smooth_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    logging.info("enamel segment smoothed")
-    slicer.app.processEvents()
     return enamel_smooth_select
 
 def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
@@ -651,7 +647,6 @@ def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     enamel_layers = enamel_layers > 0
     stop = time.time()
     print("enamel_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return enamel_layers
 
 def enamelPreparation(enamel_layers: Image) -> NotImplemented:
@@ -673,7 +668,6 @@ def enamelPreparation(enamel_layers: Image) -> NotImplemented:
     enamel_layers_extended_smooth_2 = ccMinSize(enamel_layers_extended_smooth_2, 10) == 1  # size = 10
     stop = time.time()
     print("enamel_layers_smooth_extended: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return enamel_layers_extended_smooth_2
 
 def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
@@ -706,7 +700,6 @@ def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
     enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
     stop = time.time()
     print("enamel_layers_extended_smooth_3: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return contour_extended, enamel_layers_extended_smooth_3
 
 def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
@@ -733,7 +726,6 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     # enamel segment is ready!
     stop = time.time()
     print("enamel_layers_extended_smooth_4: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return enamel_layers
 
 def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> any:
@@ -762,7 +754,6 @@ def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> a
     dentin_layers = ccMinSize(dentin_layers, 50) == 1
     stop = time.time()
     print("dentin_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return dentin_layers
 
 def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
@@ -782,7 +773,6 @@ def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
     segmentation_labels = enamel_layers * 3 + dentin_layers * 2
     stop = time.time()
     print("segmentation_labels: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return segmentation_labels
 
 def enamelMidSurface(enamel_layers: any) -> Image:
@@ -800,7 +790,6 @@ def enamelMidSurface(enamel_layers: any) -> Image:
     enamel_midsurface = medialSurface(enamel_layers)
     stop = time.time()
     print("enamel_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
     return enamel_midsurface
 
 def dentinMidSurface(dentin_layers: any) -> Image:
@@ -818,13 +807,5 @@ def dentinMidSurface(dentin_layers: any) -> Image:
     dentin_midsurface = medialSurface(dentin_layers)
     stop = time.time()
     print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-    slicer.app.processEvents()
-    return dentin_midsurface
 
-def isSmoothed(image: Image) -> bool:
-    import numpy as np
-    array = sitk.GetArrayFromImage(image)
-    std_dev = np.std(array)
-    print(f"Standardabweichung des Bildes: {std_dev}")
-    slicer.app.processEvents()
-    return std_dev < 3200.00
+    return dentin_midsurface

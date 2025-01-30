@@ -349,7 +349,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def showProgressBar(self, isVisible: bool) -> None:
         # Sichtbarkeit des Labels umschalten
-
         self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
         slicer.app.processEvents()
@@ -361,6 +360,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+            print("analytical")
             Analytics.execute(self._param)
         self.showProgressBar(False)
 
@@ -373,6 +373,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.execute(param=self._param)
         self.showProgressBar(False)
+
     def onApplyBatchButton(self) -> None:
         """
         Run the batch processing in an error display
@@ -403,7 +404,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-   # _availableTypes = [".nrrd", ".mhd", "nii"]
 
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
@@ -713,6 +713,17 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return targetDirectory
 
     @classmethod
+    def createTemporaryStorageNode(cls, param):
+        tempPath = slicer.app.temporaryPath
+        print("temp pfad: ", tempPath)
+        fileName = param.anatomical.currentAnatomicalVolume.GetName() + ".nrrd"
+        filePath = os.path.join(tempPath, fileName)
+        storageNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
+        storageNode.SetFileName(filePath)
+        param.anatomical.currentAnatomicalVolume.SetAndObserveStorageNodeID(storageNode.GetID())
+        storageNode.WriteData(param.anatomical.currentAnatomicalVolume)
+
+    @classmethod
     def convertIntoVTK(cls, itkImage):
         """
         This methode converts an itk image into a vtk image
@@ -785,9 +796,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return labelmap_node
 
     @classmethod
-    def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode,
-                     filter_selection_1: str = 'Renyi',
-                     filter_selection_2: str = 'Renyi') -> dict:
+    def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode) -> dict:
         """
         This method forms the complete pipeline for the calculation of smoothing,
         labels and medial surfaces. It is very large but therefore the clearest
@@ -810,63 +819,63 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         # 1. load and filter image
 
         img, name = loadImage(sourcePath)
-        param.status = "loading image: " + name
+        param.status = "loading image " + name + "..."
         slicer.app.processEvents()
 
         if isSmoothed(img):
             img_smooth = img
         else:
-            param.status = "smoothing image"
+            param.status = "smoothing image..."
             slicer.app.processEvents()
             img_smooth = smoothImage(img)
 
         # 2. generate a mask on the image and the smooth image
-        param.status = "generating tooth mask"
+        param.status = "generating tooth mask..."
         slicer.app.processEvents()
         tooth, tooth_masked = imageMask(img, img_smooth)
         tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
         # 3. select enamel area
-        param.status = "extracting enamel layers"
+        param.status = "extracting enamel layers..."
         slicer.app.processEvents()
-        enamel_select = enamelSelect(filter_selection_1, tooth_masked)
-        enamel_smooth_select = enamelSmoothSelect(filter_selection_2, tooth_smooth_masked)
+        enamel_select = enamelSelect(param.anatomical.selectedAnatomicalAlgo, tooth_masked)
+        enamel_smooth_select = enamelSmoothSelect(param.anatomical.selectedAnatomicalAlgo, tooth_smooth_masked)
 
         # 4. stack the enamels
-        param.status = "creating enamel layer"
+        param.status = "creating enamel layer..."
         slicer.app.processEvents()
         enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
 
         # 5. Prepare the enamel
-        param.status = "smoothing enamel layer"
+        param.status = "smoothing enamel layer..."
         slicer.app.processEvents()
         enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
 
         # 6. Filling of small structures within the tooth
-        param.status = "filling structures on enamel"
+        param.status = "filling structures on enamel..."
         slicer.app.processEvents()
         contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
 
         # 7. Filling of small structures within the tooth, important with many datasets
-        param.status = "filling structures on enamel"
+        param.status = "filling structures on enamel..."
         slicer.app.processEvents()
         enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
 
         # 8. generate dentin segment
-        param.status = "extracting dentin segment"
+        param.status = "extracting dentin segment..."
         slicer.app.processEvents()
         dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
 
         # 9. generate label file for segmentation
-        param.status = "creating segmentation labels"
+        param.status = "creating segmentation labels..."
         slicer.app.processEvents()
         segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
         # 10. generating medial surface for enamel and dentin
         if calcMidSurface:
-            param.status = "creating medial surfaces enamel"
+            param.status = "creating medial surfaces enamel..."
             slicer.app.processEvents()
             enamel_midsurface = enamelMidSurface(enamel_layers)
-            param.status = "creating medial surfaces dentin"
+            param.status = "creating medial surfaces dentin..."
             slicer.app.processEvents()
             dentin_midsurface = dentinMidSurface(dentin_layers)
         else:
@@ -874,8 +883,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             dentin_midsurface = None
 
         # 11. generate tooth dictionary to store all generated data sets local
-        filt_1 = filter_selection_1.lower()
-        filt_2 = filter_selection_2.lower()
+        filt_1 = param.anatomical.selectedAnatomicalAlgo.lower()
+        filt_2 = param.anatomical.selectedAnatomicalAlgo.lower()
 
         enamel_key = 'enamel_' + filt_1
         enamel_smooth_key = 'enamel_smooth_' + filt_2
@@ -905,7 +914,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return tooth_dict
 
     @classmethod
-    def calcPipelineAsBatch(cls, sourcePath: str, targetPath: str, segmentationType: str, calcMidSurface: bool,
+    def calcPipelineAsBatch(cls, sourcePath: str, targetPath: str, calcMidSurface: bool,
                             fileType: str, param: ToothAnalyserParameterNode) -> None:
         """
         This methode calculates the images in a batch process.
@@ -923,7 +932,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import writeToothDict
 
-        tooth_segmentation = cls.calcPipeline(sourcePath, calcMidSurface, param, segmentationType, segmentationType)
+        tooth_segmentation = cls.calcPipeline(sourcePath, calcMidSurface, param)
         writeToothDict(tooth_segmentation, targetPath, calcMidSurface, fileType)
         tooth_segmentation_name = tooth_segmentation['name']
         print("Done: " + tooth_segmentation_name)
@@ -959,8 +968,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             sourcePath=sourcePath, #path to file
             calcMidSurface=param.anatomical.calcMidSurface,
             param=param,
-            filter_selection_1=segmentationType,
-            filter_selection_2=segmentationType,
         )
 
         # extract itk images from the calculated tooth dictionary
@@ -997,16 +1004,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
 
-    @classmethod
-    def createTemporaryStorageNode(cls, param):
-        tempPath = slicer.app.temporaryPath
-        print("temp pfad: ", tempPath)
-        fileName = param.anatomical.currentAnatomicalVolume.GetName() + ".nrrd"
-        filePath = os.path.join(tempPath, fileName)
-        storageNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
-        storageNode.SetFileName(filePath)
-        param.anatomical.currentAnatomicalVolume.SetAndObserveStorageNodeID(storageNode.GetID())
-        storageNode.WriteData(param.anatomical.currentAnatomicalVolume)
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
@@ -1017,7 +1014,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, writeToothDict
 
         # create local variables for all parameters
         sourcePath = param.batch.sourcePath
@@ -1043,13 +1040,18 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             targetFileDirectory = cls.createDirectory(
                 path=targetDirectory,
                 directoryName=fileName)
-            cls.calcPipelineAsBatch(
-                sourcePath=fullFilePath,
-                targetPath=targetFileDirectory,
-                segmentationType=segmentationType,
-                calcMidSurface=param.anatomical.calcMidSurface,
-                fileType=fileType,
-                param=param)
+
+            toothDict = cls.calcPipeline(sourcePath=fullFilePath, calcMidSurface=param.anatomical.calcMidSurface, param=param)
+            writeToothDict(tooth=toothDict, path=targetFileDirectory, calcMidSurface=param.anatomical.calcMidSurface, fileType=param.batch.fileType)
+            toothDictName = toothDict['name']
+            print("Done: " + toothDictName)
+
+            # cls.calcPipelineAsBatch(
+            #     sourcePath=fullFilePath,
+            #     targetPath=targetFileDirectory,
+            #     calcMidSurface=param.anatomical.calcMidSurface,
+            #     fileType=fileType,
+            #     param=param)
 
 
 ##################################################
