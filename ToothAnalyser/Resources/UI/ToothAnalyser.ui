@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Denthal</class>
- <widget class="qMRMLWidget" name="Denthal">
+ <class>ToothAnalyserWidget</class>
+ <widget class="qMRMLWidget" name="ToothAnalyserWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>396</width>
-    <height>596</height>
+    <height>502</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -54,16 +54,6 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="showHistogram">
-        <property name="text">
-         <string>Show Histogram              </string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>analytical.showHistogram</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="1">
        <widget class="QPushButton" name="applyAnalytics">
         <property name="toolTip">
@@ -71,6 +61,16 @@
         </property>
         <property name="text">
          <string>Apply Analytics</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="showHistogram">
+        <property name="text">
+         <string>Show Histogram              </string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>analytical.showHistogram</string>
         </property>
        </widget>
       </item>
@@ -150,6 +150,22 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="calcMidSurface">
+        <property name="text">
+         <string>calculate medial surface</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.calcMidSurface</string>
+        </property>
+       </widget>
+      </item>
       <item row="5" column="0">
        <widget class="QCheckBox" name="useAnatomicalForBatch">
         <property name="text">
@@ -167,22 +183,6 @@
         </property>
         <property name="text">
          <string>Apply Anatomical</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="calcMidSurface">
-        <property name="text">
-         <string>calculate medial surface</string>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.calcMidSurface</string>
         </property>
        </widget>
       </item>
@@ -338,7 +338,7 @@
  <resources/>
  <connections>
   <connection>
-   <sender>Denthal</sender>
+   <sender>ToothAnalyserWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>currentAnalyticalVolume</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
@@ -354,7 +354,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>Denthal</sender>
+   <sender>ToothAnalyserWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>currentAnatomicalVolume</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
@@ -370,7 +370,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>Denthal</sender>
+   <sender>ToothAnalyserWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
    <receiver>fileType</receiver>
    <slot>show()</slot>
@@ -386,7 +386,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>Denthal</sender>
+   <sender>ToothAnalyserWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
    <receiver>selectedAnatomicalAlgo</receiver>
    <slot>show()</slot>

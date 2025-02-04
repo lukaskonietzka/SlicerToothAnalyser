@@ -1,10 +1,9 @@
 import logging
 import os
-import time
-from gc import enable
 
 from typing import Annotated, Optional
 
+import SimpleITK
 import vtk
 
 import slicer
@@ -19,7 +18,6 @@ from slicer.parameterNodeWrapper import (
 )
 
 from slicer import vtkMRMLScalarVolumeNode
-from vtkmodules.util.misc import calldata_type
 
 
 ##################################################
@@ -75,7 +73,6 @@ def registerSampleData():
 ##################################################
 # Tooth Analyser Configuration
 ##################################################
-
 class ToothAnalyserConfig:
     anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
     medialSurfaceName: str = "_MedialSurface_"
@@ -87,7 +84,6 @@ class ToothAnalyserConfig:
 ##################################################
 # Tooth Analyser Parameter Node
 ##################################################
-
 @parameterPack
 class AnalyticalParameters:
     """
@@ -184,7 +180,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         This method connects all static ui elements that has no specific parameter
         More elements can be added.
-        Example: buttons
         """
         self.ui.applyAnalytics.connect("clicked(bool)", self.onApplyAnalyticsButton)
         self.ui.applyAnatomical.connect("clicked(bool)", self.onApplyAnatomicalButton)
@@ -214,6 +209,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def cleanup(self) -> None:
         """
+        EVENT FUNCTION
         Called when the application closes and
         the module widget is destroyed.
         """
@@ -221,6 +217,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def enter(self) -> None:
         """
+        EVENT FUNCTION
         Called each time the user opens this module
         Make sure parameter node exists and observed
         """
@@ -228,6 +225,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def exit(self) -> None:
         """
+        EVENT FUNCTION
         Called each time the user opens a different module.
         """
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
@@ -238,6 +236,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onSceneStartClose(self, caller, event) -> None:
         """
+        EVENT FUNCTION
         Called just before the scene is closed.
         :param: caller
         :param: event
@@ -247,6 +246,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onSceneEndClose(self, caller, event) -> None:
         """
+        EVENT FUNCTION
         Called just after the scene is closed.
         param: caller
         param: event
@@ -275,20 +275,19 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if firstVolumeNode:
                 self._param.analytical.currentAnalyticalVolume = firstVolumeNode
 
-        # select medial surfaces by default
+        # default settings for the parameters
         self.ui.calcMidSurface.checked = True
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
+        self.ui.status.enabled = False
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
         Note: Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each.
-        param:  The ParameterNode from the module
+        @param inputParameterNode:  The ParameterNode from the module
         """
-
-        from slicer.util import VTKObservationMixin
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
             self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self.observerParameters)
@@ -297,6 +296,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # ui element that needs connection.
             self._parameterNodeGuiTag = self._param.connectGui(self.ui)
 
+            # attach an observer to the parameters in the Tooth Analyser widget
             self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent,self.observerParameters)
             self.observerParameters()
 
@@ -320,21 +320,20 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def observerParameters(self, caller=None, event=None) -> None:
         """
-        This is an event function.
-        Called everytime when the UI changes.
-        :param:  caller
-        :param:  event
+        This is an event function connected to the parameters in the widget.
+        Called everytime a Tooth Analyser parameter changes.
+        call up everything that is to be updated here if the parameters in the ui change
+        @param caller:
+        @param event. the event that triggered the funktion (ModifiedEvent)
         """
         self.handleApplyBatchButton()
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
 
-        # probieren ob mein event feuern kann und geziehlt nur das verwendet um die UI zu sperren
-
     def handleApplyBatchButton(self):
         """
         This methode check if there is exactly one
-        enabled checkbox.
+        enabled checkbox for the batch process.
         """
         if not self.validateBatchSettings(
             paramsToCheck={
@@ -374,21 +373,33 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def validateBatchSettings(self, paramsToCheck: dict) -> bool:
         """
         The method checks if exactly one batch setting checkbox is enabled.
-        :param: A dictionary with the checkboxes to be checked
-        :return: True, if there is exactly one enabled checkbox
+        @param paramsToCheck: A dictionary with the checkboxes to be checked
+        @return: True, if there is exactly one enabled checkbox
         """
         return sum(value for value in paramsToCheck.values() if isinstance(value, bool)) == 1
 
-    def showProgressBar(self, isVisible: bool) -> None:
-        # Sichtbarkeit des Labels umschalten
+    def activateComputingMode(self, isVisible: bool) -> None:
+        """
+        This method sets the Ui to calculation mode so that
+        no unwanted user input can occur
+        @param isVisible: computing mode ist activated when TRUE
+        """
         slicer.app.processEvents()
+
+        self.ui.anatomicaCollapsible.enabled = not isVisible
+        self.ui.batchCollapsible.enabled = not isVisible
+        self.ui.analyticalCollapsible.enabled = not isVisible
+        self.ui.progressBar.enabled = isVisible
 
         self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
+        self.ui.progressBar.enabled = isVisible
 
-        self.handleApplyBatchButton()
-        self.handleApplyAnalyticsButton()
-        self.handleApplyAnatomicalButton()
+
+
+        #self.handleApplyBatchButton()
+        #self.handleApplyAnalyticsButton()
+        #self.handleApplyAnatomicalButton()
 
         slicer.app.processEvents()
 
@@ -398,40 +409,37 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Run the analytical processing in an error display
         when user clicks "Apply Analytics" Button.
         """
-        self.showProgressBar(True)
+        self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             print("analytical")
             Analytics.execute(self._param)
-        self.showProgressBar(False)
+        self.activateComputingMode(False)
 
     def onApplyAnatomicalButton(self) -> None:
         """
         Run the anatomical segmentation processing in an error display
         when user clicks "Apply Analytics" Button.
         """
-        self.showProgressBar(True)
+        self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.execute(param=self._param)
             print("anatomical")
             #time.sleep(3)
-        self.showProgressBar(False)
+        self.activateComputingMode(False)
 
     def onApplyBatchButton(self) -> None:
         """
         Run the batch processing in an error display
         when user clicks "Apply Batch" button.
         """
-        self.showProgressBar(True)
+        self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             if self._param.analytical.useAnalyticForBatch:
-                #self.showProgressBar(False)
                 Analytics.executeAsBatch(param=self._param)
-                self.showProgressBar(False)
+                self.activateComputingMode(False)
             elif self._param.anatomical.useAnatomicalForBatch:
-                #self.showProgressBar(True)
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
-                #self.showProgressBar(False)
-        self.showProgressBar(False)
+        self.activateComputingMode(False)
 
 
 ##################################################
@@ -819,7 +827,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             labelImageNode = cls.itkToLabelNode(labelImageITK)
         """
-        # convert the itk image in an label node
+        #convert the itk image in an label node
         vtkImage = cls.convertIntoVTK(itkImage)
         labelmap_node = cls.createLabelNode(itkImage, vtkImage)
         labelmap_node.CreateDefaultDisplayNodes()
@@ -836,6 +844,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slice_widget = layout_manager.sliceWidget(slice_view)
             slice_widget.sliceLogic().FitSliceToAll()
         return labelmap_node
+
+        # import SimpleITK as sitk
+        #
+        # itkImage = sitk.Cast(itkImage, sitk.sitkUInt8)
+        # labelMaleNode = sitk.LabelImageToLabelMap(itkImage)
+        #
+        # print(labelMaleNode)
+        # return labelMaleNode
 
     @classmethod
     def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode) -> dict:
@@ -956,30 +972,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return tooth_dict
 
     @classmethod
-    def calcPipelineAsBatch(cls, sourcePath: str, targetPath: str, calcMidSurface: bool,
-                            fileType: str, param: ToothAnalyserParameterNode) -> None:
-        """
-        This methode calculates the images in a batch process.
-        It is recommended to name the destination folder like the image
-        @param sourcePath: The directory path to the files where the file to be calculated is located
-        @param targetPath: the path to the directory, where the files from the calculation should be stored
-        @param segmentationType: the thresholding algorithm for segmentation
-        @param calcMidSurface: true, if the medial surfaces also should be calculated. False if note
-        @param fileType: the format in which the files are to be saved (e.g. '.nii' or '.mhd' or ...)
-        @example:
-            sourcePath = '/data/MicroCT/Original_ISQ/'
-            targetPath = '/data/MicroCT/Original_ISQ/P01A-C0005278/'
-            calcAnatomicalSegmentation(sourcePath, targetPath, "Otsu", True, '.nii')
-        """
-
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import writeToothDict
-
-        tooth_segmentation = cls.calcPipeline(sourcePath, calcMidSurface, param)
-        writeToothDict(tooth_segmentation, targetPath, calcMidSurface, fileType)
-        tooth_segmentation_name = tooth_segmentation['name']
-        print("Done: " + tooth_segmentation_name)
-
-    @classmethod
     def execute(cls, param: ToothAnalyserParameterNode) -> None:
         """
         This methode starts the pipeline to compute the output
@@ -1087,13 +1079,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             writeToothDict(tooth=toothDict, path=targetFileDirectory, calcMidSurface=param.anatomical.calcMidSurface, fileType=param.batch.fileType)
             toothDictName = toothDict['name']
             print("Done: " + toothDictName)
-
-            # cls.calcPipelineAsBatch(
-            #     sourcePath=fullFilePath,
-            #     targetPath=targetFileDirectory,
-            #     calcMidSurface=param.anatomical.calcMidSurface,
-            #     fileType=fileType,
-            #     param=param)
 
 
 ##################################################
