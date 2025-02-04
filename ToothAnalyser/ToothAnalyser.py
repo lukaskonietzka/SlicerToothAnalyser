@@ -1,5 +1,7 @@
 import logging
 import os
+import time
+from gc import enable
 
 from typing import Annotated, Optional
 
@@ -17,6 +19,7 @@ from slicer.parameterNodeWrapper import (
 )
 
 from slicer import vtkMRMLScalarVolumeNode
+from vtkmodules.util.misc import calldata_type
 
 
 ##################################################
@@ -125,7 +128,7 @@ class ToothAnalyserParameterNode:
     analytical: AnalyticalParameters
     anatomical: AnatomicalParameters
     batch: Batch
-    status: str = "Test"
+    status: str = ""
 
 
 ##################################################
@@ -231,7 +234,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
             self._parameterNodeGuiTag = None
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
+            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self.observerParameters)
 
     def onSceneStartClose(self, caller, event) -> None:
         """
@@ -284,17 +287,38 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Note: Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each.
         param:  The ParameterNode from the module
         """
+
+        from slicer.util import VTKObservationMixin
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
+            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self.observerParameters)
         self._param = inputParameterNode
         if self._param:
             # ui element that needs connection.
             self._parameterNodeGuiTag = self._param.connectGui(self.ui)
-            self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent, self._uiObserver)
-            self._uiObserver()
 
-    def _uiObserver(self, caller=None, event=None) -> None:
+            self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent,self.observerParameters)
+            self.observerParameters()
+
+            #VTKObservationMixin.__init__(self)
+            #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self._setComputingMode)
+            #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeRemovedEvent, self.observerRemoveNode)
+
+            #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeAddedEvent, self._setComputingMode)
+            #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeRemovedEvent, self.observerRemoveNode)
+
+    @vtk.calldata_type(vtk.VTK_OBJECT)
+    def _setComputingMode(self, caller, event, callData):
+        pass
+
+
+    @vtk.calldata_type(vtk.VTK_OBJECT)
+    def observerRemoveNode(self, caller, event, callData):
+        pass
+
+
+
+    def observerParameters(self, caller=None, event=None) -> None:
         """
         This is an event function.
         Called everytime when the UI changes.
@@ -305,19 +329,23 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
 
+        # probieren ob mein event feuern kann und geziehlt nur das verwendet um die UI zu sperren
+
     def handleApplyBatchButton(self):
         """
         This methode check if there is exactly one
         enabled checkbox.
         """
-        if self.validateBatchSettings(
+        if not self.validateBatchSettings(
             paramsToCheck={
                 "analytics": self._param.analytical.useAnalyticForBatch,
                 "anatomical": self._param.anatomical.useAnatomicalForBatch})\
-            and self._param.batch.sourcePath and self._param.batch.targetPath:
-                self.ui.applyBatch.enabled = True
-        else:
+            or not self._param.batch.sourcePath or not self._param.batch.targetPath:
+                self.ui.applyBatch.enabled = False
+        elif self.ui.status.isVisible():
             self.ui.applyBatch.enabled = False
+        else:
+            self.ui.applyBatch.enabled = True
 
     def handleApplyAnalyticsButton(self):
         """
@@ -325,6 +353,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         loaded to the scene.
         """
         if not self._param.analytical.currentAnalyticalVolume:
+            self.ui.applyAnalytics.enabled = False
+        elif self.ui.status.isVisible():
             self.ui.applyAnalytics.enabled = False
         else:
             self.ui.applyAnalytics.enabled = True
@@ -335,6 +365,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         loaded to the scene.
         """
         if not self._param.anatomical.currentAnatomicalVolume:
+            self.ui.applyAnatomical.enabled = False
+        elif self.ui.status.isVisible():
             self.ui.applyAnatomical.enabled = False
         else:
             self.ui.applyAnatomical.enabled = True
@@ -349,9 +381,17 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def showProgressBar(self, isVisible: bool) -> None:
         # Sichtbarkeit des Labels umschalten
+        slicer.app.processEvents()
+
         self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
+
+        self.handleApplyBatchButton()
+        self.handleApplyAnalyticsButton()
+        self.handleApplyAnatomicalButton()
+
         slicer.app.processEvents()
+
 
     def onApplyAnalyticsButton(self) -> None:
         """
@@ -372,6 +412,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.execute(param=self._param)
+            print("anatomical")
+            #time.sleep(3)
         self.showProgressBar(False)
 
     def onApplyBatchButton(self) -> None:
@@ -382,13 +424,13 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.showProgressBar(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             if self._param.analytical.useAnalyticForBatch:
-                self.showProgressBar(False)
+                #self.showProgressBar(False)
                 Analytics.executeAsBatch(param=self._param)
                 self.showProgressBar(False)
             elif self._param.anatomical.useAnatomicalForBatch:
-                self.showProgressBar(True)
+                #self.showProgressBar(True)
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
-                self.showProgressBar(False)
+                #self.showProgressBar(False)
         self.showProgressBar(False)
 
 
