@@ -63,7 +63,7 @@ of the *use parameters for batch* needs to be checked.
 
 | Description                                                                                                                                                                                           | Result View                                                                                          |
 |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| The Tooth Analyser creates an folder in your file System where the Segmentation will be stored. For each image in the batch process der will be a subfolder where the segmentation files are located. | ![Screenshot of the application](/Screenshots/resultBatch.png)<br/> *Figure 7: Result Batch process* |
+| The Tooth Analyser creates an folder in your file System where the Segmentation will be stored. For each image in the batch process der will be a subfolder where the segmentation files are located. | ![Screenshot of the application](/Screenshots/resultbatch.png)<br/> *Figure 7: Result Batch process* |
 
 
 ## 4. Processing Mode

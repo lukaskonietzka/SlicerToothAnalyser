@@ -77,7 +77,7 @@ class ToothAnalyserConfig:
     anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
     medialSurfaceName: str = "_MedialSurface_"
     segmentNames: list[str] = ["Dentin", "Enamel"]
-    fileTyps: tuple[str] = (".ISQ", ".mhd", ".nrrd")
+    fileTyps: tuple[str] = (".ISQ", ".mhd", ".nrrd", "nii")
     mockDirectory: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
 
 
@@ -875,8 +875,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             segmentationLabels, enamelMidSurface, dentinMidSurface)
 
         # 1. load and filter image
-
         img, name = loadImage(sourcePath)
+        print("type: ", img.GetPixelIDTypeAsString())
         param.status = "loading image " + name + "..."
         slicer.app.processEvents()
 
@@ -887,39 +887,39 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             slicer.app.processEvents()
             img_smooth = smoothImage(img)
 
-        # 2. generate a mask on the image and the smooth image
-        param.status = "generating tooth mask..."
+        # 2. extract the tooth from the background
+        param.status = "extracting tooth from background..."
         slicer.app.processEvents()
         tooth, tooth_masked = imageMask(img, img_smooth)
         tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
         # 3. select enamel area
-        param.status = "extracting enamel layers..."
+        param.status = "extracting enamel segment from tooth..."
         slicer.app.processEvents()
         enamel_select = enamelSelect(param.anatomical.selectedAnatomicalAlgo, tooth_masked)
         enamel_smooth_select = enamelSmoothSelect(param.anatomical.selectedAnatomicalAlgo, tooth_smooth_masked)
 
         # 4. stack the enamels
-        param.status = "creating enamel layer..."
+        param.status = "creating enamel segment..."
         slicer.app.processEvents()
         enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
 
         # 5. Prepare the enamel
-        param.status = "smoothing enamel layer..."
+        param.status = "smoothing enamel segment..."
         slicer.app.processEvents()
         enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
 
         # 6. Filling of small structures within the tooth
-        param.status = "filling structures on enamel..."
+        param.status = "filling structures on enamel segment..."
         slicer.app.processEvents()
         contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
 
         # 7. Filling of small structures within the tooth, important with many datasets
-        param.status = "filling structures on enamel..."
+        param.status = "filling structures on enamel segment..."
         slicer.app.processEvents()
         enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
 
         # 8. generate dentin segment
-        param.status = "extracting dentin segment..."
+        param.status = "extracting dentin segment from tooth..."
         slicer.app.processEvents()
         dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
 
@@ -1094,6 +1094,12 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
     def setUp(self):
         """Do whatever is needed to reset the state - typically a scene clear will be enough."""
         slicer.mrmlScene.Clear()
+        self.loadSampleData()
+
+    def loadSampleData(self):
+        import SampleData
+        self.delayDisplay("loading sample data...")
+        return SampleData.downloadSample('ToothAnalyser1')
 
     def runTest(self):
         """Run as few or as many tests as needed here."""
@@ -1106,7 +1112,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testValidateBatchSettingsOneDisabled()
         self.testParsName()
         self.testParseType()
-        self.testSampleData()
+        self.testCast255()
 
     def testHandleApplyAnalyticsButton(self):
         """
@@ -1221,8 +1227,8 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
         self.delayDisplay("Test 8 passed")
 
-    def testSampleData(self):
-        import SampleData
-        node1 = SampleData.downloadSample('ToothAnalyser1')
-
-        self.assertIsNotNone(node1, "ToothAnalyser1 konnte nicht geladen werden.")
+    def testCast255(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
+        node = slicer.util.getFirstNodeByName("ToothAnalyser1")
+        t = node.GetImageData().GetScalarTypeAsString()
+        self.delayDisplay("Test 9 passed")

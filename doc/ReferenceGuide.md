@@ -29,8 +29,31 @@ BILD der SECTION
 
 **Modul über den Extension Wizard laden:**
 
+Sobald der Developer Modus aktiviert und die Software neu gestartet wurde, muss der Tooth Analyser in der lokalen
+Umgebung gestartet werden. Hierzu muss das Modul über den Extension Wizard dem 3D Slicer Path hinzugefügt werden.
+
+- clone the main Branch of the Repository to your file system
+- open 3D Slicer
+- open the module Extension Wizward (Modules: Developers Tools / Extension Wizard)
+- kick the Button *Select Extension*
+- now select the cloned Tooth Analyser repo
+- klick ok
+- switch to the Modul Tooth Analyser (Modules: Segmentation/Tooth Analyser)
+- now you can edit the source code and the ui
 
 ## 2. Setup your IDE and Python environment
+Wenn efektiv am Tooth Analyser weiterentwickelt werden soll, dann ist es sehr zu empfehlen, eine IDE zu nutzen.
+Hierfür eignet sich [PyCharm](https://www.jetbrains.com/pycharm/download/). Es kann aber auch jede andere Umgebung
+verwendet werden. Slicer bringt sein eigenes Python environment mit, dass in den Einstellungen ausgewählt werden muss.
+Zu finden ist es im Install ordner von Slicer:
+```
+./Slicer/bin/PythonSlicer
+```
+Es stehen dann alle packete zur verfügung, die dieses Packet mitbringt. Für genauere Informationen sei auf die
+Dokumentation von Slicer verwiesen [3D Slicer Developer Guide](https://slicer.readthedocs.io/en/latest/developer_guide/python_faq.html).
+
+⚠️ **Notice**: Für eine Entwicklung mit Slicer ist es zwingend nötig diese Umgebung zu verwenden. Es kan kein
+eigenens Environment verwendet werden.
 
 
 ## 3. Architecture of Tooth Analyser

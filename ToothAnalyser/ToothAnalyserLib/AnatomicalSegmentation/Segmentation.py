@@ -23,6 +23,7 @@ import SimpleITK as sitk
 import slicer
 from SimpleITK import Image
 from .isq_to_mhd import isq_to_mhd_as_string
+import numpy as np
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -239,7 +240,7 @@ def gradGaussianFilter(img: Image, sigma: float=0.03) -> Image:
 
 
 # ----- Typ information and typ parsing ----- #
-def cast255(img: Image) -> Image:
+def cast8UInt(img: Image) -> Image:
     """
     Rescales the intensity of an image to the range [0, 255]
     and casts it to an 8-bit unsigned integer type.
@@ -249,6 +250,17 @@ def cast255(img: Image) -> Image:
         castImg = cast255(itkImg)
     """
     return sitk.Cast(sitk.RescaleIntensity(img), sitk.sitkUInt8)
+
+def cast16Int(img: Image) -> Image:
+    """
+    Rescales the intensity of an image to the range [0, 255]
+    and casts it to an 8-bit unsigned integer type.
+    @param img: The input image to be processed.
+    @returns: The processed image with intensity values rescaled to [0, 255] and cast to sitkUInt8.
+    @example:
+        castImg = cast255(itkImg)
+    """
+    return sitk.Cast(sitk.RescaleIntensity(img), sitk.sitkInt16)
 
 def castAccordingly(img: Image, img2: Image) -> Image:
     """
@@ -304,7 +316,7 @@ def ccMinSize(img: any, size: int=10) -> Image:
 
 
 # ----- Adaptive threshold method ----- #
-def thresholdFilter(img: Image, mask: bool=False, filter_selection: str= 'Otsu', debug: bool=False) -> Image:
+def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu', debug: bool=False) -> Image:
     """
     This methode apply a threshold filter on the given
     image. The possible threshold filters are listed in __THRESHOLD_FILTERS.
