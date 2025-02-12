@@ -24,13 +24,9 @@ With the analytical functions, it is currently possible to create a histogram of
 A histogram shows how often different grayscale values appear in the image.  
 Additionally, the intensity on the X-axis indicates the image format (8UInt, 16Int, ...).
 
-**User Interface:**
-
 | Description                                                                                                                                                                                                                                                                                                                                    | Parameters                                                                                                                                  |
 |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | **Volume to be analyzed**: Select the CT scan you want to analyze here.<br/><br/>**Show Histogram**: If this option is selected, a histogram of the previously chosen image will be created.<br/><br/> **Apply Analytics:** This button apply the selected funktion to the selected image. The button is disabled, when no image is available. | ![Screenshot of the application](/Screenshots/slicerAnalyticsParameter.png)<br/>*Figure 2: Parameter selection for the analytical function* |
-
-**Results:**
 
 | Description                                                                                                                                                           | Result View                                                                                                             |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
@@ -42,21 +38,16 @@ The anatomical segmentation is the core of this extension. It allows the automat
 micro-CT image of a tooth into the main dental substances, dentin and enamel. Additionally, medial surfaces can
 be generated, which are important for the classification of cavities.
 
-**User Interface:**
-
 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Parameters                                                                                                                             |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
 | **Image for Segmentation**: Select the CT scan you want to segment here.<br/><br/> **Segmentation algorithm**: Choose the threshold algorithm you want to use for segmentation (Otsu, Renyi).<br/><br/> **Calculate Medial Surface**: Calculates the medial surfaces of the dentin and enamel based on the segmentation.<br/><br/> **Apply Anatomical:** This button apply the anatomical segmentation to the selected image. The button is disabled, when no image is available. | ![Screenshot of the application](/Screenshots/slicerASParameter.png) <br/> *Figure 4: Parameter selection for anatomical segmentation* |
 
-
 After the algorithm has run, the result is immediately visible in the scene. The three views of
 the tooth (red, green, yellow) and a 3D model can then be seen.
 
-**Results:**
-
 | Description                                                                                                                                          | Result View                                                                                                                   |
 |------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| To toggle individual segments, switch to the Data module (Module: Data) and use the visibility settings to deactivate specific elements. | ![Screenshot of the application](../Screenshots/Result.gif) <br/> *Figure 4: Parameter selection for anatomical segmentation* |
+| To toggle individual segments, switch to the Data module (Module: Data) and use the visibility settings to deactivate specific elements. | ![Screenshot of the application](../Screenshots/Result.gif) <br/> *Figure 5: Parameter selection for anatomical segmentation* |
 
 
 
@@ -66,17 +57,13 @@ The Tooth Analyser
 will then create a directory in your file system where the images will be saved. Therefor exactly one checkbox
 of the *use parameters for batch* needs to be checked.
 
-**User Interface:**
+| Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Parameters                                                                                                                            |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| **Load file from**: Select the folder where the CTs you want to process are located.<br/><br/> **Save files in**: Select the folder where the CTs will be saved after processing.<br/><br/> **Save files as**: Choose the format in which you want to save the CTs.<br/><br/> **Apply Batch:** This button apply the selected funktion to a whole series of CT scans. the button is not active if no source and no target directory is specified and if more than one function has been selected for a batch process | ![Screenshot of the application](../Screenshots/slicerBatchParameter.png)<br/> *Figure 6: Parameter selection for the batch function* |
 
-| Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Parameters                                                                                                                           |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| **Load file from**: Select the folder where the CTs you want to process are located.<br/><br/> **Save files in**: Select the folder where the CTs will be saved after processing.<br/><br/> **Save files as**: Choose the format in which you want to save the CTs.<br/><br/> **Apply Batch:** This button apply the selected funktion to a whole series of CT scans. the button is not active if no source and no target directory is specified and if more than one function has been selected for a batch process | ![Screenshot of the application](../Screenshots/slicerBatchParameter.png)<br/> *Figure 3: Parameter selection for the batch function* |
-
-**Results:**
-
-| Description  | Parameters                                                                                                                           |
-|--------------|-------------------------------------------------------------------|
-|              | ![Screenshot of the application](../Screenshots/slicerBatchParameter.png)<br/> *Figure 3: Parameter selection for the batch function* |
+| Description                                                                                                                                                                                           | Result View                                                                                          |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| The Tooth Analyser creates an folder in your file System where the Segmentation will be stored. For each image in the batch process der will be a subfolder where the segmentation files are located. | ![Screenshot of the application](/Screenshots/resultBatch.png)<br/> *Figure 7: Result Batch process* |
 
 
 ## 4. Processing Mode
@@ -86,7 +73,7 @@ progress bar, which appears at the bottom of the widget as soon as a calculation
 The current processing step can be identified via the status bar above the progress bar.
 
 ![Screenshot of the application](../Screenshots/progressBar.png)
-*Figure 4:* Progress bar and status message
+*Figure 8:* Progress bar and status message
 
 
 ## 5. Runtime
