@@ -3,7 +3,7 @@ import os
 
 from typing import Annotated, Optional
 
-import SimpleITK
+import sitkUtils
 import vtk
 
 import slicer
@@ -395,8 +395,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
-
-
         #self.handleApplyBatchButton()
         #self.handleApplyAnalyticsButton()
         #self.handleApplyAnatomicalButton()
@@ -409,6 +407,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Run the analytical processing in an error display
         when user clicks "Apply Analytics" Button.
         """
+        self._param.status = "start analytics..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             print("analytical")
@@ -420,11 +419,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Run the anatomical segmentation processing in an error display
         when user clicks "Apply Analytics" Button.
         """
+        self._param.status = "start anatomical segmentation..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
             AnatomicalSegmentationLogic.execute(param=self._param)
             print("anatomical")
-            #time.sleep(3)
         self.activateComputingMode(False)
 
     def onApplyBatchButton(self) -> None:
@@ -545,6 +544,7 @@ class Analytics(ToothAnalyserLogic):
         for the analytics
         """
         if param.analytical.showHistogram:
+            param.status = "calculate histogram"
             cls.showHistogram(param.analytical.currentAnalyticalVolume)
 
     @classmethod
@@ -656,7 +656,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     @classmethod
     def createMedialSurface(cls, midSurfaceDentin: vtkMRMLLabelMapVolumeNode,
                             midSurfaceEnamel: vtkMRMLLabelMapVolumeNode,
-                            currentImageName: str) -> None:
+                            currentImageName: str,
+                            deleteLabelImage: bool) -> None:
         """
         This method creates a segmentation for the given medial surface
         @param midSurfaceDentin: the dentin label map image to be segmented
@@ -695,6 +696,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             segEnamel.GetSegmentation().CopySegmentFromSegmentation(segDentin.GetSegmentation(), segment_id, True)
         slicer.mrmlScene.RemoveNode(getNode("MedialSurface_source"))
 
+        if deleteLabelImage:
+            slicer.mrmlScene.RemoveNode(midSurfaceEnamel)
+            slicer.mrmlScene.RemoveNode(midSurfaceDentin)
+
     @classmethod
     def clearScene(cls, currentImageName: str) -> None:
         """
@@ -707,8 +712,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             cls.clearScene(imgNode)
         """
         try:
-            currentImage = getNode(currentImageName)
-            slicer.mrmlScene.RemoveNode(currentImage)
+            #currentImage = getNode(currentImageName)
+            #slicer.mrmlScene.RemoveNode(currentImage)
 
             anatomicalSegmentation = getNode("*" + cls._anatomicalSegmentationName)
             slicer.mrmlScene.RemoveNode(anatomicalSegmentation)
@@ -772,86 +777,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         storageNode.SetFileName(filePath)
         param.anatomical.currentAnatomicalVolume.SetAndObserveStorageNodeID(storageNode.GetID())
         storageNode.WriteData(param.anatomical.currentAnatomicalVolume)
-
-    @classmethod
-    def convertIntoVTK(cls, itkImage):
-        """
-        This methode converts an itk image into a vtk image
-        by using the numpy array of an image. Then a vtk image
-        object will be created.
-        @param: the itk image to be converted
-        @return: the converted vtk image
-        @example:
-            vtkImage = cls.convertIntoVTK(itkImage)
-        """
-        import SimpleITK as sitk
-        import numpy as np
-
-        # convert the itk image into numpy array
-        array_data = sitk.GetArrayFromImage(itkImage) # numpy array (z, y, x)
-        array_data_c = np.ascontiguousarray(array_data, dtype=np.uint8)
-        # convert the numpy array into a vtk image
-        vtk_array = vtk.util.numpy_support.numpy_to_vtk(array_data_c.ravel(), deep=True, array_type=vtk.VTK_UNSIGNED_CHAR)
-        # create an vtk image object
-        vtk_image = vtk.vtkImageData()
-        vtk_image.SetDimensions(array_data.shape[2], array_data.shape[1], array_data.shape[0]) # (x, y, z)
-        vtk_image.SetSpacing(itkImage.GetSpacing())  # ITK-Spacings
-        vtk_image.SetOrigin(itkImage.GetOrigin())  # ITK-Origin
-        vtk_image.GetPointData().SetScalars(vtk_array)
-        return vtk_image
-
-    @classmethod
-    def createLabelNode(cls, itkImage, vtk_image):
-        """
-        This methode creates a label map node based
-        on an itk image and a vtk image
-        @param itkImage: the itk image for the calculation
-        @param vtk_image: the vtk image to load the label node
-        @return: the created label image
-        @example:
-            vtkImage = cls.convertIntoVTK(itkImage)
-            labelMapNode = cls.createLabelNode(itkImage, vtkImage)
-        """
-        labelmap_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "Test")
-        labelmap_node.SetAndObserveImageData(vtk_image)
-        labelmap_node.SetSpacing(itkImage.GetSpacing())
-        labelmap_node.SetOrigin(itkImage.GetOrigin())
-        return labelmap_node
-
-    @classmethod
-    def itkToLabelNode(cls, itkImage):
-        """
-        Convert an itk image into a label map node to open
-        it in the slicer scene.
-        @param itkImage: the itk image to be converted into a vtk image
-        @example:
-            labelImageNode = cls.itkToLabelNode(labelImageITK)
-        """
-        #convert the itk image in an label node
-        vtkImage = cls.convertIntoVTK(itkImage)
-        labelmap_node = cls.createLabelNode(itkImage, vtkImage)
-        labelmap_node.CreateDefaultDisplayNodes()
-        app_logic = slicer.app.applicationLogic()
-        selection_node = app_logic.GetSelectionNode()
-
-        # set the label nod as current node
-        selection_node.SetReferenceActiveLabelVolumeID(labelmap_node.GetID())
-        app_logic.PropagateVolumeSelection(0)
-
-        # redraw the views
-        layout_manager = slicer.app.layoutManager()
-        for slice_view in ['Red', 'Green', 'Yellow']:
-            slice_widget = layout_manager.sliceWidget(slice_view)
-            slice_widget.sliceLogic().FitSliceToAll()
-        return labelmap_node
-
-        # import SimpleITK as sitk
-        #
-        # itkImage = sitk.Cast(itkImage, sitk.sitkUInt8)
-        # labelMaleNode = sitk.LabelImageToLabelMap(itkImage)
-        #
-        # print(labelMaleNode)
-        # return labelMaleNode
 
     @classmethod
     def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode) -> dict:
@@ -1001,37 +926,32 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         toothDict = cls.calcPipeline(
             sourcePath=sourcePath, #path to file
             calcMidSurface=param.anatomical.calcMidSurface,
-            param=param,
-        )
+            param=param,)
 
         # extract itk images from the calculated tooth dictionary
         segmentationType = segmentationType.lower()
         enamelMidSurfaceITK = toothDict["enamel_" + segmentationType + "_" + segmentationType + "_midsurface"]
         dentinMidSurfaceITK = toothDict["dentin_" + segmentationType + "_" + segmentationType + "_midsurface"]
         labelImageITK = toothDict["segmentation_" + segmentationType + "_" + segmentationType + "_labels"]
+        currentImageName = toothDict["name"]
 
         # Delete unused nodes from the scene
         cls.clearScene(currentImageName=currentImageNameWithTyp)
 
         try:
             # try to create the segmentation based on the label image
-            currentImageName = toothDict["name"]
-            labelImageNode = cls.itkToLabelNode(labelImageITK)
             cls.createSegmentation(
-                labelImage=labelImageNode,
+                labelImage=sitkUtils.PushVolumeToSlicer(labelImageITK, None, "temp", "vtkMRMLLabelMapVolumeNode"),
                 deleteLabelImage=True,
-                currentImageName=currentImageName
-            )
+                currentImageName=currentImageName)
+
             # try to create medial surfaces if there were calculated
             if enamelMidSurfaceITK is not None or dentinMidSurfaceITK is not None:
-                enamelMidSurfaceNode = cls.itkToLabelNode(enamelMidSurfaceITK)
-                dentinMidSurfaceNode = cls.itkToLabelNode(dentinMidSurfaceITK)
                 cls.createMedialSurface(
-                    midSurfaceDentin=dentinMidSurfaceNode,
-                    midSurfaceEnamel=enamelMidSurfaceNode,
-                    currentImageName=currentImageName)
-            else:
-                pass
+                    midSurfaceDentin=sitkUtils.PushVolumeToSlicer(dentinMidSurfaceITK, None, "tempDentin", "vtkMRMLLabelMapVolumeNode"),
+                    midSurfaceEnamel=sitkUtils.PushVolumeToSlicer(enamelMidSurfaceITK, None, "tempEnamel", "vtkMRMLLabelMapVolumeNode"),
+                    currentImageName=currentImageName,
+                    deleteLabelImage=True)
         except:
             pass
 

@@ -18,12 +18,9 @@ calculate an anatomical segmentation of one or more tooth CTs
 """
 
 import os
-import logging
 import SimpleITK as sitk
-import slicer
 from SimpleITK import Image
 from .isq_to_mhd import isq_to_mhd_as_string
-import numpy as np
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -544,7 +541,7 @@ def smoothImage(img: Image) -> Image:
 
     start = time.time()
     # apply a median filter on the loaded image
-    img_smooth = medianFilter(img, 1)
+    img_smooth = medianFilter(img, 5)
     stop = time.time()
     print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
