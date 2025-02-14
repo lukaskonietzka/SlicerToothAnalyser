@@ -18,6 +18,7 @@ calculate an anatomical segmentation of one or more tooth CTs
 """
 
 import os
+import time
 import SimpleITK as sitk
 from SimpleITK import Image
 from .isq_to_mhd import isq_to_mhd_as_string
@@ -510,7 +511,6 @@ def loadImage(path: str) -> tuple[Image, str]:
     @example:
         img, name = loadImage(path)
     """
-    import time
     start = time.time()
     name = parseName(path)
     fileType = parseTyp(path)
@@ -537,8 +537,6 @@ def smoothImage(img: Image) -> Image:
         img, name = loadImage(path)
         smoothImage = smoothImage(img)
     """
-    import time
-
     start = time.time()
     # apply a median filter on the loaded image
     img_smooth = medianFilter(img, 5)
@@ -559,8 +557,6 @@ def imageMask(img: Image, img_smooth: Image) -> tuple:
         smoothImage = smoothImage(img)
         tooth, tooth_masked = imageMask(img, img_smooth)
     """
-    import time
-
     # first adaptive threshold value - corresponds to first cut in the histogram
     start = time.time()
     tooth = thresholdFilter(img_smooth)
@@ -579,8 +575,6 @@ def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
     @example:
         tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
     """
-    import time
-
     # smoothed image, tooth masked
     start = time.time()
     tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
@@ -598,13 +592,12 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     @example:
         enamel_select = enamelSelect(filter_selection_1, tooth_masked)
     """
-    import time
-
     # second adaptive threshold value - corresponds to second cut in the histogram
     start = time.time()
-    enamel_select = thresholdFilter(img=tooth_masked,
-                                    mask=tooth_masked,
-                                    filter_selection=filter_selection_1)
+    enamel_select = thresholdFilter(
+        img=tooth_masked,
+        mask=tooth_masked,
+        filter_selection=filter_selection_1)
     # preparation
     enamel_select = bcbr(enamel_select)
     # largest coherent object
@@ -623,8 +616,6 @@ def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Ima
     @example:
         enamel_smooth_select = enamelSmoothSelect(filter_selection_2, tooth_smooth_masked)
     """
-    import time
-
     # second adaptive threshold value - corresponds to second cut in the histogram
     # on masked original tooth
     start = time.time()
@@ -649,8 +640,6 @@ def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     @example:
         enamelLayers = enamelLayering(enamelSelect, enamelSmoothSelect)
     """
-    import time
-
     start = time.time()
     enamel_layers = enamel_select + enamel_smooth_select
     enamel_layers = enamel_layers > 0
@@ -666,8 +655,6 @@ def enamelPreparation(enamel_layers: Image) -> NotImplemented:
     @example:
         enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
     """
-    import time
-
     start = time.time()
     enamel_layers_extended = bcbr(enamel_layers)
     enamel_layers_extended_2 = bmc(enamel_layers_extended, 2)  # size = 2
@@ -689,8 +676,6 @@ def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
     @example:
         contourExtended, enamelLayersExtendedSmooth3 = enamelFilling(enamelLayersExtendedSmooth2, tooth)
     """
-    import time
-
     # extended tooth contour
     start = time.time()
     contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
@@ -721,8 +706,6 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     @example:
        enamelLayers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
     """
-    import time
-
     # Inversion enamel -> everything outside enamel
     start = time.time()
     enamel_negative = ~enamel_layers_extended_smooth_3 == 255
@@ -749,8 +732,6 @@ def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> a
     @example:
         dentinLayers = dentinLayers(contour_extended, enamel_layers, tooth)
     """
-    import time
-
     # ~tooth -> not tooth -> everything outside tooth
     # Enamel + everything outside the tooth + thick contour -> everything except dentin
     start = time.time()
@@ -775,8 +756,6 @@ def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
     @example:
         segmentationLabels = segmentationLabels(dentinLayers, enamelLayers)
     """
-    import time
-
     # Label file, dentin == 2, enamel == 3
     start = time.time()
     segmentation_labels = enamel_layers * 3 + dentin_layers * 2
@@ -793,8 +772,6 @@ def enamelMidSurface(enamel_layers: any) -> Image:
     @example:
         enamelMidSurface = enamelMidSurface(enamel_layers)
     """
-    import time
-
     start = time.time()
     enamel_midsurface = medialSurface(enamel_layers)
     stop = time.time()
@@ -810,11 +787,8 @@ def dentinMidSurface(dentin_layers: any) -> Image:
     @example:
         dentinMidSurface = dentinMidSurface(dentin_layers)
     """
-    import time
-
     start = time.time()
     dentin_midsurface = medialSurface(dentin_layers)
     stop = time.time()
     print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
-
     return dentin_midsurface

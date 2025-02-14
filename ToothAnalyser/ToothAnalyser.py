@@ -11,7 +11,7 @@ from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode, getNodes
+from slicer.util import VTKObservationMixin, getNode
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     Choice, parameterPack
@@ -36,9 +36,12 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hoffmann (THA)", "Prof. Dr. Peter Rösch (THA)"]
         self.parent.helpText = _("""This is an example of scripted loadable module bundled in an extension. See more
-        information in <a href="https://github.com/organization/projectname#ToothAnalyser">module documentation</a>.""")
-        self.parent.acknowledgementText = _("""This module was developed for the dental caries research of the Dental
-        Clinic at the LMU in Munich. The development is a collaboration between the LMU and the THA""")
+        information in <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.""")
+        self.parent.acknowledgementText = _("""This 3D Slicer extension (SEM) is designed for dental research. It was
+        developed to support dental caries research conducted by the Poliklinik für Zahnerhaltung und Parodontologie.
+        The clinic captures three-dimensional micro-CT images of teeth, which are stored in the Scanio ISQ format.
+        
+        \nWith this extension, you can directly and unfiltered segment three-dimensional micro-CT scans in Scanco ISQ format.""")
 
         # Additional initialization step after application startup is complete
         slicer.app.connect("startupCompleted()", registerSampleData)
@@ -184,8 +187,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.applyAnalytics.connect("clicked(bool)", self.onApplyAnalyticsButton)
         self.ui.applyAnatomical.connect("clicked(bool)", self.onApplyAnatomicalButton)
         self.ui.applyBatch.connect("clicked(bool)", self.onApplyBatchButton)
-        # self.ui.selectedAlgorithm.addItems(ToothAnalyserLogic.getAlgorithmsByName())
-        # self.ui.selectedAlgorithm.currentText = ToothAnalyserLogic.getAlgorithmsByName()[0]
 
     def connectObservers(self) -> None:
         """
@@ -300,24 +301,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent,self.observerParameters)
             self.observerParameters()
 
-            #VTKObservationMixin.__init__(self)
-            #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self._setComputingMode)
-            #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeRemovedEvent, self.observerRemoveNode)
-
-            #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeAddedEvent, self._setComputingMode)
-            #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeRemovedEvent, self.observerRemoveNode)
-
-    @vtk.calldata_type(vtk.VTK_OBJECT)
-    def _setComputingMode(self, caller, event, callData):
-        pass
-
-
-    @vtk.calldata_type(vtk.VTK_OBJECT)
-    def observerRemoveNode(self, caller, event, callData):
-        pass
-
-
-
     def observerParameters(self, caller=None, event=None) -> None:
         """
         This is an event function connected to the parameters in the widget.
@@ -396,11 +379,10 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.enabled = isVisible
 
         #self.handleApplyBatchButton()
-        #self.handleApplyAnalyticsButton()
-        #self.handleApplyAnatomicalButton()
+        self.handleApplyAnalyticsButton()
+        self.handleApplyAnatomicalButton()
 
         slicer.app.processEvents()
-
 
     def onApplyAnalyticsButton(self) -> None:
         """
@@ -662,7 +644,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         This method creates a segmentation for the given medial surface
         @param midSurfaceDentin: the dentin label map image to be segmented
         @param midSurfaceEnamel: the enamel label map image to be segmented
-        @param show3D: true if a 3D model is to be created
+        @param deleteLabelImage: True if labeImage should be deleted after segmentation
         @param currentImageName: the name of the segmented image, so give the segmentation a unique name
         @example:
             currentImageName = 'P01A-C0005278'
@@ -712,9 +694,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             cls.clearScene(imgNode)
         """
         try:
-            #currentImage = getNode(currentImageName)
-            #slicer.mrmlScene.RemoveNode(currentImage)
-
             anatomicalSegmentation = getNode("*" + cls._anatomicalSegmentationName)
             slicer.mrmlScene.RemoveNode(anatomicalSegmentation)
 
@@ -785,13 +764,12 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         labels and medial surfaces. It is very large but therefore the clearest
         @param sourcePath: the path to the file that should be entered in the pipeline
         @param calcMidSurface: the path to the directory where the generated images are saved in the file system
-        @param filter_selection_1: the segmentation algorithm
-        @param filter_selection_2: the segmentation algorithm
+        @param param: parameters from the UI
         @return: the full created tooth dictionary with all images
         @example:
             path = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
             targetPath = '/data/MicroCT/Original_ISQ/anatomicalSegmentationOtsu/'
-            tooth_dict = pipe_full_dict_selection(path, 'Otsu', 'Otsu')
+            tooth_dict = pipe_full_dict_selection(path, param)
         """
 
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import (
@@ -853,7 +831,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         slicer.app.processEvents()
         segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
-        # 10. generating medial surface for enamel and dentin
+        # 10. generating medial surface for enamel and dentin if needed
         if calcMidSurface:
             param.status = "creating medial surfaces enamel..."
             slicer.app.processEvents()
@@ -871,12 +849,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         enamel_key = 'enamel_' + filt_1
         enamel_smooth_key = 'enamel_smooth_' + filt_2
-
         enamel_layers_key = 'enamel_' + filt_1 + '_' + filt_2 + '_layers'
         dentin_layers_key = 'dentin_' + filt_1 + '_' + filt_2 + '_layers'
-
         segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
-
         enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
         dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
 
@@ -1148,7 +1123,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 8 passed")
 
     def testCast255(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
         node = slicer.util.getFirstNodeByName("ToothAnalyser1")
         t = node.GetImageData().GetScalarTypeAsString()
         self.delayDisplay("Test 9 passed")
