@@ -15,7 +15,7 @@ rather on the functionality.
 To better understand the algorithm, the main steps in the pipeline are shown here.
 This chapter briefly covers each of these steps and highlights the most important features.
 
-![pipeline](/Screenshots/ASAlgorithm.png)
+![pipeline](/Screenshots/asAlgorithm.png)
 *Figure 1:* Pipeline steps for the anatomical segmentation of the CT scans
 
 ## 1. Loading an image
