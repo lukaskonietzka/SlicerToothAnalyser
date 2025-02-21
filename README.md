@@ -1,7 +1,7 @@
 ![Screenshot of the application](./Screenshots/logoToothAnalyser.png)
 This 3D Slicer extension (SEM) is for for dental research, specifically to support studies on dental caries at the
 *Poliklinik für Zahnerhaltung und Parodontologie* at the LMU in Munich. The clinic captures 3D micro-CT images of teeth, which are stored
-in the Scanio ISQ format.
+in the Scanco ISQ format.
 
 With this extension, you can directly segment 3D micro-CT scans in the Scanco ISQ format without any
 filtering.
@@ -27,7 +27,7 @@ extension is designed to assist with the anatomical segmentation of the tooth.
 
 ## 2. Installation
 To install the Extension simply follow the steps below in the right order.
-1. Download and install a latest stable version of 3D Slicer for our operating system (https://download.slicer.org).
+1. Download and install a latest stable version of 3D Slicer for your operating system (https://download.slicer.org).
 2. Start 3D Slicer application, open the Extension Manager (menu: View / Extension manager)
 3. Search for the Extension _ToothAnalyser_ and install it via the _INSTALL_ button
 
@@ -105,7 +105,7 @@ The development of this extension is a collaboration between LMU Munich and the 
 Technical University of Augsburg.
 
 - Lukas Konietzka _(THA)_
-- Simon Hoffmann _(THA)_
+- Simon Hofmann _(THA)_
 - Dr. med. Elias Walter _(LMU)_
 - Prof. Dr. Peter Rösch _(THA)_
 
