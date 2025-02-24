@@ -34,14 +34,24 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.title = _("Tooth Analyser")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
-        self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hoffmann (THA)", "Prof. Dr. Peter Rösch (THA)"]
-        self.parent.helpText = _("""This is an example of scripted loadable module bundled in an extension. See more
-        information in <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.""")
-        self.parent.acknowledgementText = _("""This 3D Slicer extension (SEM) is designed for dental research. It was
-        developed to support dental caries research conducted by the Poliklinik für Zahnerhaltung und Parodontologie.
-        The clinic captures three-dimensional micro-CT images of teeth, which are stored in the Scanio ISQ format.
-        
-        \nWith this extension, you can directly and unfiltered segment three-dimensional micro-CT scans in Scanco ISQ format.""")
+        self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
+        self.parent.helpText = _("""
+            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logo.png" width="300">
+            <br>
+            This 3D Slicer extension is designed for dental research, specifically to support studies at the  Poliklinik
+            für Zahnerhaltung und Parodontologie at LMU Munich. With this extension, you can apply anatomical segmentation
+            on dental CT scans, dividing the image into the segments enamel and dentin.
+            <br>
+            If you need more information
+            check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
+        """)
+        self.parent.acknowledgementText = _("""The development of this extension is a collaboration between LMU Munich  
+            and the Faculty of Computer Science at the Technical University of Augsburg.
+            <br>
+            As part of a proposal by the Dental Clinic, the goal is to implement automatic detection of cavities in  
+            micro CT scans using neural networks in the future. Since identifying carious lesions is not trivial,  
+            this extension is designed to assist with anatomical segmentation of the tooth.
+        """)
 
         # Additional initialization step after application startup is complete
         slicer.app.connect("startupCompleted()", registerSampleData)
@@ -281,6 +291,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
         self.ui.status.enabled = False
+        self._param.anatomical.selectedAnatomicalAlgo = "Otsu"
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -369,10 +380,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         slicer.app.processEvents()
 
-        self.ui.anatomicaCollapsible.enabled = not isVisible
-        self.ui.batchCollapsible.enabled = not isVisible
-        self.ui.analyticalCollapsible.enabled = not isVisible
         self.ui.progressBar.enabled = isVisible
+
+        self.ui.applyAnalytics.enabled = not isVisible
+        self.ui.applyAnatomical.enabled = not isVisible
+        self.ui.applyBatch.enabled = not isVisible
 
         self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
@@ -404,7 +416,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._param.status = "start anatomical segmentation..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            AnatomicalSegmentationLogic.execute(param=self._param)
+            slicer.util.warningDisplay("The anatomical segmentation may take up to 17 minutes, depending on the image and your local machine.")
+            try:
+                AnatomicalSegmentationLogic.execute(param=self._param)
+            except:
+                slicer.util.errorDisplay("An error occurred while processing the image. Please note that this module is specifically designed for CT scans of teeth.")
             print("anatomical")
         self.activateComputingMode(False)
 
@@ -419,6 +435,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 Analytics.executeAsBatch(param=self._param)
                 self.activateComputingMode(False)
             elif self._param.anatomical.useAnatomicalForBatch:
+                slicer.util.warningDisplay(
+                    "The Batch processing of the anatomical segmentation may take a lot of resources on your local machine.")
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         self.activateComputingMode(False)
 
@@ -499,7 +517,7 @@ class Analytics(ToothAnalyserLogic):
 
         # create histogram data
         imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins=50)
+        histogram = np.histogram(imageData, bins=200)
 
         # create plot
         chartNode = slicer.util.plot(
@@ -514,6 +532,7 @@ class Analytics(ToothAnalyserLogic):
         chartNode.SetXAxisTitle(axes.x)
         chartNode.SetLegendVisibility(True)
         chartNode.SetYAxisRange(0, 4e5)
+        chartNode.SetXAxisRange(0, 4e5)
         # set properties for  plot series
         plotSeries = getNode("*PlotSeries*")
         plotSeries.SetName(axes.y)
@@ -712,11 +731,11 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         import shutil
         if not os.path.exists(path):
-            print(f"Das Verzeichnis '{path}' existiert nicht.")
+            print(f"The directory '{path}' does not exists.")
             return
 
         if not os.path.isdir(path):
-            print(f"Der Pfad '{path}' ist kein Verzeichnis.")
+            print(f"The path '{path}' is not an directory.")
             return
 
         try:
@@ -727,7 +746,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 elif os.path.isdir(item_path):
                     shutil.rmtree(item_path)
         except Exception as e:
-            print(f"Fehler beim Leeren des Ordners '{path}': {e}")
+            print(f"Error while cleaning directory '{path}': {e}")
 
     @classmethod
     def createDirectory(cls, path: str, directoryName: str) -> str:
@@ -931,7 +950,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                     currentImageName=currentImageName,
                     deleteLabelMapNodes=True)
         except:
-            pass
+            slicer.util.errorDisplay("An error occurred while processing the image. Please note that this module is specifically designed for CT scans of teeth.")
 
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
@@ -949,6 +968,12 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, writeToothDict
 
         # create local variables for all parameters
+        if not os.path.isdir(param.batch.sourcePath):
+            slicer.util.errorDisplay("The given source path is not an directory.")
+            return
+        if not os.path.isdir(param.batch.targetPath):
+            slicer.util.errorDisplay("The given target path is not an directory.")
+            return
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
         segmentationType = param.anatomical.selectedAnatomicalAlgo

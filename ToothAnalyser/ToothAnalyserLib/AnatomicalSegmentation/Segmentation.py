@@ -493,14 +493,6 @@ def medialSurface(segment: any) -> any:
     return medial_surface
 
 
-def isSmoothed(image: Image) -> bool:
-    import numpy as np
-    array = sitk.GetArrayFromImage(image)
-    std_dev = np.std(array)
-    print(f"Standardabweichung des Bildes: {std_dev}")
-    return 3200.00 > std_dev > 3100.00
-
-
 # ----- Pipeline methods ----- #
 def loadImage(path: str) -> tuple[Image, str]:
     """
@@ -526,6 +518,18 @@ def loadImage(path: str) -> tuple[Image, str]:
     stop = time.time()
     print("img: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img, name
+
+def isSmoothed(image: Image) -> bool:
+    """
+    This methode returns true if the given image is already smoothed
+    @param image: the image to be checked
+    @return true if the given image is smoothed
+    """
+    import numpy as np
+    array = sitk.GetArrayFromImage(image)
+    std_dev = np.std(array)
+    print(f"Standardabweichung des Bildes: {std_dev}")
+    return 3200.00 > std_dev > 3100.00
 
 def smoothImage(img: Image) -> Image:
     """
