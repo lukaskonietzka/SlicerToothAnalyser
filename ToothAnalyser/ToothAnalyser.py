@@ -39,14 +39,16 @@ class ToothAnalyser(ScriptedLoadableModule):
             <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logo.png" width="300">
             <br>
             This 3D Slicer extension is designed for dental research, specifically to support studies at the  Poliklinik
-            für Zahnerhaltung und Parodontologie at LMU Munich. With this extension, you can apply anatomical segmentation
+            für Zahnerhaltung und Parodontologie at LMU in Munich. With this extension, you can apply anatomical segmentation
             on dental CT scans, dividing the image into the segments enamel and dentin.
+            <br>
             <br>
             If you need more information
             check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
         """)
-        self.parent.acknowledgementText = _("""The development of this extension is a collaboration between LMU Munich  
+        self.parent.acknowledgementText = _("""The development of this extension is a collaboration between LMU in Munich  
             and the Faculty of Computer Science at the Technical University of Augsburg.
+            <br>
             <br>
             As part of a proposal by the Dental Clinic, the goal is to implement automatic detection of cavities in  
             micro CT scans using neural networks in the future. Since identifying carious lesions is not trivial,  
@@ -124,8 +126,8 @@ class Batch:
     The parameters needed by the section
     Batch Processy ing
     """
-    sourcePath: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Orginale/"
-    targetPath: str =  "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Ergebnisse/"
+    sourcePath: str
+    targetPath: str
     fileType: Annotated[str, Choice([".nrrd", ".nii", ".mhd"])] = ".nrrd"
 
 @parameterNodeWrapper
@@ -287,6 +289,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self._param.analytical.currentAnalyticalVolume = firstVolumeNode
 
         # default settings for the parameters
+        self.ui.showHistogram.checked = True
         self.ui.calcMidSurface.checked = True
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
