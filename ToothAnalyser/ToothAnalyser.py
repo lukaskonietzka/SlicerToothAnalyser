@@ -36,7 +36,8 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
         self.parent.helpText = _("""
-            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logo.png" width="300">
+            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logo.png" width="200">
+            <br>
             <br>
             This 3D Slicer extension is designed for dental research, specifically to support studies at the  Poliklinik
             für Zahnerhaltung und Parodontologie at LMU in Munich. With this extension, you can apply anatomical segmentation
@@ -46,7 +47,12 @@ class ToothAnalyser(ScriptedLoadableModule):
             If you need more information
             check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
         """)
-        self.parent.acknowledgementText = _("""The development of this extension is a collaboration between LMU in Munich  
+        self.parent.acknowledgementText = _("""
+            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logoTHA.png" width="100">
+            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logoLMU.svg" width="100">
+            <br>
+            <br>
+            The development of this extension is a collaboration between LMU in Munich  
             and the Faculty of Computer Science at the Technical University of Augsburg.
             <br>
             <br>
