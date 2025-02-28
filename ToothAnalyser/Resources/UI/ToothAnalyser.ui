@@ -10,11 +10,17 @@
     <height>502</height>
    </rect>
   </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="qMRMLCollapsibleButton" name="analyticalCollapsible">
      <property name="autoFillBackground">
       <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true"/>
      </property>
      <property name="text">
       <string>Analytics</string>
@@ -66,8 +72,14 @@
       </item>
       <item row="1" column="0">
        <widget class="QCheckBox" name="showHistogram">
+        <property name="toolTip">
+         <string/>
+        </property>
         <property name="text">
          <string>Show Histogram              </string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>analytical.showHistogram</string>
@@ -105,7 +117,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>Image for segmentation:</string>
+         <string>Volumen for segmentation:</string>
         </property>
        </widget>
       </item>
@@ -142,6 +154,9 @@
       </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="selectedAnatomicalAlgo">
+        <property name="toolTip">
+         <string>Switch the threshold method for segmentation</string>
+        </property>
         <property name="placeholderText">
          <string>select an algorithm</string>
         </property>
@@ -152,6 +167,9 @@
       </item>
       <item row="3" column="0">
        <widget class="QCheckBox" name="calcMidSurface">
+        <property name="toolTip">
+         <string>Uncheck this checkbox if you don´t need medial surface</string>
+        </property>
         <property name="text">
          <string>calculate medial surface</string>
         </property>
@@ -168,6 +186,9 @@
       </item>
       <item row="5" column="0">
        <widget class="QCheckBox" name="useAnatomicalForBatch">
+        <property name="toolTip">
+         <string>Select this checkbox to apply the parameters for the anatomical Segmentation to the batch mode</string>
+        </property>
         <property name="text">
          <string>use parameters for batch</string>
         </property>
@@ -182,7 +203,7 @@
          <string>Select a node to apply the anatomical segmentation</string>
         </property>
         <property name="text">
-         <string>Apply Anatomical</string>
+         <string>Apply Segmentation</string>
         </property>
        </widget>
       </item>
@@ -217,7 +238,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Load file from:</string>
+         <string>Load files from: </string>
         </property>
        </widget>
       </item>
@@ -251,12 +272,15 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>Save files as:                            </string>
+         <string>Save files as:</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="fileType">
+        <property name="toolTip">
+         <string>Switch the file type for the generated files</string>
+        </property>
         <property name="SlicerParameterName" stdset="0">
          <string>batch.fileType</string>
         </property>
