@@ -1,4 +1,4 @@
-![Screenshot of the application](./Screenshots/logoToothAnalyser.png)
+![Screenshot of the application](./Screenshots/logo.png)
 
 Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM) designed for micro-computed tomography (microCT) scans of teeth. It provides specialized preprocessing, segmentation, and analysis features tailored for the analysis of tooth anatomy and pathology.
 
@@ -16,9 +16,9 @@ Developed in collaboration between the *Department of Computer Science* at the T
 - [9. Contributors and Organisation](#9-contributors-and-organization)
 
 ## 1. Introduction and Purpose
-µCT has become a cornerstone in dental research, offering high-resolution, non-destructive imaging of dental hard tissues such as enamel, dentin, and bone. Unlike conventional radiographic techniques, microCT provides three-dimensional visualization and quantitative analysis at a very high resolution, enabling detailed investigations of both healthy and pathological structures.
+MicroCT has become a cornerstone in dental research, offering high-resolution, non-destructive imaging of dental hard tissues such as enamel, dentin, and bone. Unlike conventional radiographic techniques, microCT provides three-dimensional visualization and quantitative analysis at a very high resolution, enabling detailed investigations of both healthy and pathological structures.
 
-One of the primary applications of microCT in dental research is the study of tooth morphology and development. By allowing precise examination of enamel thickness, dentin structure, and root canal anatomy, it contributes to a deeper understanding of tooth formation, variation among species, and forensic dentistry. Additionally, microCT plays a crucial role in the detection and analysis of carious lesions, structural defects, and demineralization patterns, significantly enhancing diagnostic accuracy and preventive strategies. 
+One of the primary applications in dental research is the study of tooth morphology and development. By allowing precise examination of enamel thickness, dentin structure, and root canal anatomy, it contributes to a deeper understanding of tooth formation, variation among species, and forensic dentistry. Additionally, microCT plays a crucial role in the detection and analysis of carious lesions, structural defects, and demineralization patterns, significantly enhancing diagnostic accuracy and preventive strategies. 
 
 However, detailed analysis of microCT scans remains a time-consuming process, and existing tools for automation and standardization are still limited. To address this challenge, we have developed a software backbone designed to integrate various processing methods, streamlining the analysis and enhancing reproducibility in dental research.
 
