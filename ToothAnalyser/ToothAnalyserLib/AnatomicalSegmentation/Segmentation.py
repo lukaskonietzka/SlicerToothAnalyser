@@ -528,7 +528,6 @@ def isSmoothed(image: Image) -> bool:
     import numpy as np
     array = sitk.GetArrayFromImage(image)
     std_dev = np.std(array)
-    print(f"Standardabweichung des Bildes: {std_dev}")
     return 3200.00 > std_dev > 3100.00
 
 def smoothImage(img: Image) -> Image:
