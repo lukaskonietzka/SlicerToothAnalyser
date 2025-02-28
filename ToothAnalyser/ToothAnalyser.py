@@ -19,9 +19,16 @@ from slicer.parameterNodeWrapper import (
 
 from slicer import vtkMRMLScalarVolumeNode
 
+# load images for Help and Acknowledgement
+scriptDir = os.path.dirname(__file__)
+projectRoot = os.path.abspath(os.path.join(scriptDir, ".."))
+relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
+relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
+relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
+
 
 ##################################################
-# Tooth Analyser Meta data
+# Tooth Analyser
 ##################################################
 class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
@@ -35,8 +42,8 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
-        self.parent.helpText = _("""
-            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logo.png" width="200">
+        self.parent.helpText = _(f"""
+            <img src="{relativePathLogo}" width="200">
             <br>
             <br>
             This 3D Slicer extension is designed for dental research, specifically to support studies at the  Poliklinik
@@ -47,10 +54,10 @@ class ToothAnalyser(ScriptedLoadableModule):
             If you need more information
             check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
         """)
-        self.parent.acknowledgementText = _("""
-            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logoTHA.png" width="100">
-            <img src="/Users/lukas/Documents/Development/SlicerToothAnalyser/Screenshots/logoLMU.svg" width="100">
-            <br>
+        self.parent.acknowledgementText = _(f"""
+            <img src="{relativePathTHA}" width="100">
+            <img src="{relativePathLMU}" width="100">
+            <hr>
             <br>
             The development of this extension is a collaboration between LMU in Munich  
             and the Faculty of Computer Science at the Technical University of Augsburg.
@@ -60,7 +67,6 @@ class ToothAnalyser(ScriptedLoadableModule):
             micro CT scans using neural networks in the future. Since identifying carious lesions is not trivial,  
             this extension is designed to assist with anatomical segmentation of the tooth.
         """)
-
         # Additional initialization step after application startup is complete
         slicer.app.connect("startupCompleted()", registerSampleData)
 
@@ -89,17 +95,6 @@ def registerSampleData():
         checksums=None,
         nodeNames="ToothAnalyser1",
     )
-
-
-##################################################
-# Tooth Analyser Configuration
-##################################################
-class ToothAnalyserConfig:
-    anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
-    medialSurfaceName: str = "_MedialSurface_"
-    segmentNames: list[str] = ["Dentin", "Enamel"]
-    fileTyps: tuple[str] = (".ISQ", ".mhd", ".nrrd", "nii")
-    mockDirectory: str = "/Users/lukas/Documents/THA/7.Semester/Abschlussarbeit/Beispieldatensaetze/Mock/"
 
 
 ##################################################
@@ -413,7 +408,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._param.status = "start analytics..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            print("analytical")
             Analytics.execute(self._param)
         self.activateComputingMode(False)
 
@@ -425,11 +419,13 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._param.status = "start anatomical segmentation..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            slicer.util.warningDisplay("The anatomical segmentation may take up to 17 minutes, depending on the image and your local machine.")
+            slicer.util.warningDisplay("""The anatomical segmentation may take up to 17 minutes, depending on the image and your local machine.""")
             try:
                 AnatomicalSegmentationLogic.execute(param=self._param)
             except:
-                slicer.util.errorDisplay("An error occurred while processing the image. Please note that this module is specifically designed for CT scans of teeth.")
+                slicer.util.errorDisplay("""An error occurred while processing the image. Please note
+                    that this module is specifically designed for CT scans of teeth."""
+                )
             print("anatomical")
         self.activateComputingMode(False)
 
@@ -444,8 +440,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 Analytics.executeAsBatch(param=self._param)
                 self.activateComputingMode(False)
             elif self._param.anatomical.useAnatomicalForBatch:
-                slicer.util.warningDisplay(
-                    "The Batch processing of the anatomical segmentation may take a lot of resources on your local machine.")
+                slicer.util.warningDisplay("""The Batch processing of the anatomical segmentation may take a lot of resources on your local machine.""")
                 AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         self.activateComputingMode(False)
 
@@ -471,20 +466,18 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     def getParameterNode(self) -> ToothAnalyserParameterNode:
         """
-        Getter methode for the ParameterNode needed
-        in the logic class
-        param: None
+        Getter methode for the ParameterNode needed in the logic class
         return: The ParameterNode from this module
         """
         return ToothAnalyserParameterNode(super().getParameterNode())
 
     def preProcessing(self) -> None:
-        """Abstract method"""
-        raise NotImplementedError("Please implement the preProcessing() methode in one of the child classes")
+        """Implement your pre processing here"""
+        pass
 
     def postProcessing(self) -> None:
-        """Abstract method"""
-        raise NotImplementedError("Please implement the postProcessing() methode in one of the child classes")
+        """Implement your post processing here"""
+        pass
 
     def execute(self, param: ToothAnalyserParameterNode) -> None:
         """Abstract method"""
@@ -499,24 +492,16 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 #     Tooth Analyser section Analytics     #
 ###########################################
 class Analytics(ToothAnalyserLogic):
+    """
+    this class contains all the logic needed to visualise
+    the analytics
+    """
 
     @classmethod
-    def preProcessing(cls):
-        print("Vor jedem analytischen Verfahren")
-
-    @classmethod
-    def postProcessing(cls):
-        print("Nach jedem analytischen Verfahren")
-
-    @classmethod
-    def showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
+    def _showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
         """
         This Methode creates a histogram from the current selected Volume
-        param: param: The parameters from the ui
-        param: title: The title for the histogram
-        param: xTitle: The title for the x-axes in the histogram
-        param: yTitle: The title for the y-axes in the histogram
-        return: None
+        @param image: the image for which a histogram is required
         """
         import numpy as np
         from collections import namedtuple
@@ -526,7 +511,7 @@ class Analytics(ToothAnalyserLogic):
 
         # create histogram data
         imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins=200)
+        histogram = np.histogram(imageData, bins= 200)
 
         # create plot
         chartNode = slicer.util.plot(
@@ -540,8 +525,8 @@ class Analytics(ToothAnalyserLogic):
         chartNode.SetYAxisTitle(axes.y)
         chartNode.SetXAxisTitle(axes.x)
         chartNode.SetLegendVisibility(True)
-        chartNode.SetYAxisRange(0, 4e5)
-        chartNode.SetXAxisRange(0, 4e5)
+        chartNode.SetYAxisRange(0, 100)
+        chartNode.SetXAxisRange(0, 100)
         # set properties for  plot series
         plotSeries = getNode("*PlotSeries*")
         plotSeries.SetName(axes.y)
@@ -555,7 +540,7 @@ class Analytics(ToothAnalyserLogic):
         """
         if param.analytical.showHistogram:
             param.status = "calculate histogram"
-            cls.showHistogram(param.analytical.currentAnalyticalVolume)
+            cls._showHistogram(param.analytical.currentAnalyticalVolume)
 
     @classmethod
     def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
@@ -571,41 +556,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     this class contains all the logic needed to visualise
     the anatomical segmentation
     """
-    _anatomicalSegmentationName = ToothAnalyserConfig.anatomicalSegmentationName
-    _midSurfaceName = ToothAnalyserConfig.medialSurfaceName
-    _segmentNames = ToothAnalyserConfig.segmentNames
-    _fileTypes = ToothAnalyserConfig.fileTyps
-
-    @classmethod
-    def preProcessing(cls) -> None:
-        """
-        Method for defining preconditions for an algorithm
-        """
-        print("Before each algorithm")
-
-    @classmethod
-    def postProcessing(cls) -> None:
-        """
-        Method for defining post conditions for an algorithm
-        """
-        print("After each algorithm")
-
-    @classmethod
-    def getDirectoryForFile(cls, filePath: str) -> str:
-        """
-        This method returns the directory in which a given
-        file is located.
-        @param filePath: the full path to the file
-        @return: the full path to the directory where the file is located
-        @example:
-            filePath = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
-            directoryPath = cls.getDirectoryForFile(filePath)
-            directoryPath -> '/data/MicroCT/Original_ISQ/'
-        """
-        folder_path = os.path.dirname(filePath)
-        if not folder_path:
-            folder_path = os.getcwd()
-        return folder_path
+    _anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
+    _midSurfaceName: str = "_MedialSurface_"
+    _segmentNames: list[str] = ["Dentin", "Enamel"]
+    _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", "nii")
 
     @classmethod
     def collectFiles(cls, path: str, suffix: tuple) -> list:
@@ -626,7 +580,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         return files
 
     @classmethod
-    def createSegmentation(cls, labelMapNode: vtkMRMLLabelMapVolumeNode, deleteLabelMapNode: bool, currentImageName: str) -> None:
+    def createSegmentation(cls, labelMapNode: vtkMRMLLabelMapVolumeNode,
+                           deleteLabelMapNode: bool,
+                           currentImageName: str) -> None:
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
@@ -740,11 +696,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         import shutil
         if not os.path.exists(path):
-            print(f"The directory '{path}' does not exists.")
-            return
-
-        if not os.path.isdir(path):
-            print(f"The path '{path}' is not an directory.")
+            slicer.util.errorDisplay("The given directory for the batch process does not exists")
             return
 
         try:
@@ -756,6 +708,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                     shutil.rmtree(item_path)
         except Exception as e:
             print(f"Error while cleaning directory '{path}': {e}")
+            slicer.util.errorDisplay("Error while cleaning directory")
 
     @classmethod
     def createDirectory(cls, path: str, directoryName: str) -> str:
@@ -959,7 +912,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                     currentImageName=currentImageName,
                     deleteLabelMapNodes=True)
         except:
-            slicer.util.errorDisplay("An error occurred while processing the image. Please note that this module is specifically designed for CT scans of teeth.")
+            slicer.util.errorDisplay("""An error occurred while processing the image.
+                Please note that this module is specifically designed for CT scans of teeth."""
+            )
 
         stop = time.time()
         print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
@@ -1007,10 +962,15 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 path=targetDirectory,
                 directoryName=fileName)
 
-            toothDict = cls.calcPipeline(sourcePath=fullFilePath, calcMidSurface=param.anatomical.calcMidSurface, param=param)
-            writeToothDict(tooth=toothDict, path=targetFileDirectory, calcMidSurface=param.anatomical.calcMidSurface, fileType=param.batch.fileType)
+            toothDict = cls.calcPipeline(
+                sourcePath=fullFilePath,
+                calcMidSurface=param.anatomical.calcMidSurface,
+                param=param)
+            writeToothDict(tooth=toothDict,
+                           path=targetFileDirectory,
+                           calcMidSurface=param.anatomical.calcMidSurface,
+                           fileType=param.batch.fileType)
             toothDictName = toothDict['name']
-            print("Done: " + toothDictName)
 
 
 ##################################################
@@ -1030,21 +990,27 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
     def loadSampleData(self):
         import SampleData
-        self.delayDisplay("loading sample data...")
+        self.delayDisplay("loading sample data. This will take some minutes...")
         return SampleData.downloadSample('ToothAnalyser1')
+
+    def getSampleDataAsITK(self):
+        node = slicer.util.getFirstNodeByName("ToothAnalyser1")
+        self.delayDisplay("Setting up test suit...")
+        return sitkUtils.PullVolumeFromSlicer(node)
 
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
         self.testHandleApplyAnalyticsButton()
-        self.testGetDirectoryForFile()
-        self.testGetDirectoryForEmptyPath()
         self.testCreateDirectory()
         self.testValidateBatchSettingsOneEnabled()
         self.testValidateBatchSettingsOneDisabled()
         self.testParsName()
         self.testParseType()
-        self.testCast255()
+        self.testCast8UInt()
+        self.testPixelType()
+        self.testSmoothImage()
+        self.testIsSmoothed()
 
     def testHandleApplyAnalyticsButton(self):
         """
@@ -1073,24 +1039,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
         self.delayDisplay("Test 1 passed")
 
-    def testGetDirectoryForFile(self):
-
-        filePath = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectedDirectory = "/data/MicroCT/Original_ISQ"
-        result = AnatomicalSegmentationLogic.getDirectoryForFile(filePath)
-
-        self.assertEqual(result, expectedDirectory)
-        self.delayDisplay("Test 2 passed")
-
-    def testGetDirectoryForEmptyPath(self):
-
-        filePath = ""
-        expectedDirectory = os.getcwd()
-        result = AnatomicalSegmentationLogic.getDirectoryForFile(filePath)
-
-        self.assertEqual(result, expectedDirectory)
-        self.delayDisplay("Test 3 passed")
-
     def testCreateDirectory(self):
 
         path = "/data/test/"
@@ -1099,7 +1047,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         result = AnatomicalSegmentationLogic.createDirectory(path, directoryName)
 
         self.assertEqual(result, expectedDirectory)
-        self.delayDisplay("Test 4 passed")
+        self.delayDisplay("Test 2 passed")
 
     def testValidateBatchSettingsOneEnabled(self):
         from unittest.mock import MagicMock
@@ -1113,7 +1061,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         result = self.mockedClass.validateBatchSettings(params)
 
         self.assertTrue(result)
-        self.delayDisplay("Test 5 passed")
+        self.delayDisplay("Test 3 passed")
 
     def testValidateBatchSettingsOneDisabled(self):
         from unittest.mock import MagicMock
@@ -1127,7 +1075,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         result = self.mockedClass.validateBatchSettings(params)
 
         self.assertTrue(result)
-        self.delayDisplay("Test 6 passed")
+        self.delayDisplay("Test 4 passed")
 
     def testParsName(self):
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
@@ -1142,7 +1090,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         result = parseName(path)
         self.assertNotEqual(result, expectation)
 
-        self.delayDisplay("Test 7 passed")
+        self.delayDisplay("Test 5 passed")
 
     def testParseType(self):
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseTyp
@@ -1157,9 +1105,52 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         result = parseTyp(path)
         self.assertNotEqual(expectation, result)
 
+        self.delayDisplay("Test 6 passed")
+
+    def testCast8UInt(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
+        import sitkUtils
+
+        sampleData = self.getSampleDataAsITK()
+        beforeCast = sampleData.GetPixelID()
+        imageCast = cast8UInt(sampleData)
+        afterCast = imageCast.GetPixelID()
+
+        self.assertNotEqual(beforeCast, afterCast)
+        self.delayDisplay("Test 7 passed")
+
+    def testPixelType(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import pixelType
+
+        sampleDate = self.getSampleDataAsITK()
+        expectation = sampleDate.GetPixelIDTypeAsString()
+        result = pixelType(sampleDate)
+
+        self.assertEqual(expectation, result)
         self.delayDisplay("Test 8 passed")
 
-    def testCast255(self):
-        node = slicer.util.getFirstNodeByName("ToothAnalyser1")
-        t = node.GetImageData().GetScalarTypeAsString()
+    def testSmoothImage(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import smoothImage
+        import numpy as np
+        import SimpleITK as sitk
+
+        sampleData = self.getSampleDataAsITK()
+        self.delayDisplay("filtering image...")
+        sampleDataFiltered = smoothImage(sampleData)
+
+        sampleData_std_dev = np.std(sitk.GetArrayFromImage(sampleData))
+        sampleDataFiltered_std_dev = np.std(sitk.GetArrayFromImage(sampleDataFiltered))
+
+        self.assertTrue(sampleDataFiltered_std_dev < sampleData_std_dev)
         self.delayDisplay("Test 9 passed")
+
+    def testIsSmoothed(self):
+        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import isSmoothed
+
+        sampleDate = self.getSampleDataAsITK()
+        result = isSmoothed(sampleDate)
+
+        self.assertFalse(result)
+        self.delayDisplay("Test 10 passed")
+
+
