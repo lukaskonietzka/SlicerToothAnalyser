@@ -46,26 +46,25 @@ class ToothAnalyser(ScriptedLoadableModule):
             <img src="{relativePathLogo}" width="200">
             <br>
             <br>
-            This 3D Slicer extension is designed for dental research, specifically to support studies at the  Poliklinik
-            für Zahnerhaltung und Parodontologie at LMU in Munich. With this extension, you can apply anatomical segmentation
-            on dental CT scans, dividing the image into the segments enamel and dentin.
+            Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM)
+            designed for micro-computed tomography (microCT) scans of teeth. It provides
+            specialized preprocessing, segmentation, and analysis features tailored for
+            the analysis of tooth anatomy and pathology.
             <br>
             <br>
             If you need more information
             check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
         """)
         self.parent.acknowledgementText = _(f"""
+            Developed in collaboration between the *Department of Computer Science* at
+            the Technical University of Augsburg and the *Department of Conservative
+            Dentistry and Periodontology* at the LMU Hospital, Munich. Tooth Analyser
+            facilitates advanced dental research through automated and semi-automate
+            workflows.
+            <br>
+            <br>
             <img src="{relativePathTHA}" width="100">
             <img src="{relativePathLMU}" width="100">
-            <hr>
-            <br>
-            The development of this extension is a collaboration between LMU in Munich  
-            and the Faculty of Computer Science at the Technical University of Augsburg.
-            <br>
-            <br>
-            As part of a proposal by the Dental Clinic, the goal is to implement automatic detection of cavities in  
-            micro CT scans using neural networks in the future. Since identifying carious lesions is not trivial,  
-            this extension is designed to assist with anatomical segmentation of the tooth.
         """)
         # Additional initialization step after application startup is complete
         slicer.app.connect("startupCompleted()", registerSampleData)
