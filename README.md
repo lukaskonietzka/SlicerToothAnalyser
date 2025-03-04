@@ -1,8 +1,15 @@
 ![Screenshot of the application](./Screenshots/logo.png)
 
-Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM) designed for micro-computed tomography (microCT) scans of teeth. It provides specialized preprocessing, segmentation, and analysis features tailored for the analysis of tooth anatomy and pathology.
+Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM)
+designed for micro-computed tomography (microCT) scans of teeth. It provides
+specialized preprocessing, segmentation, and analysis features tailored for
+the analysis of tooth anatomy and pathology.
 
-Developed in collaboration between the *Department of Computer Science* at the Technical University of Augsburg and the *Department of Conservative Dentistry and Periodontology* at the LMU Hospital, Munich. Tooth Analyser facilitates advanced dental research through automated and semi-automated workflows.
+Developed in collaboration between the *Department of Computer Science* at
+the Technical University of Augsburg and the *Department of Conservative
+Dentistry and Periodontology* at the LMU Hospital, Munich. Tooth Analyser
+facilitates advanced dental research through automated and semi-automate
+workflows.
 
 ## Table of Contents
 - [1. Introduction and Purpose](#1-introduction-and-purpose)
@@ -16,11 +23,25 @@ Developed in collaboration between the *Department of Computer Science* at the T
 - [9. Contributors and Organisation](#9-contributors-and-organization)
 
 ## 1. Introduction and Purpose
-MicroCT has become a cornerstone in dental research, offering high-resolution, non-destructive imaging of dental hard tissues such as enamel, dentin, and bone. Unlike conventional radiographic techniques, microCT provides three-dimensional visualization and quantitative analysis at a very high resolution, enabling detailed investigations of both healthy and pathological structures.
+MicroCT has become a cornerstone in dental research, offering high-resolution,
+non-destructive imaging of dental hard tissues such as enamel, dentin, and bone.
+Unlike conventional radiographic techniques, microCT provides three-dimensional
+visualization and quantitative analysis at a very high resolution, enabling
+detailed investigations of both healthy and pathological structures.
 
-One of the primary applications in dental research is the study of tooth morphology and development. By allowing precise examination of enamel thickness, dentin structure, and root canal anatomy, it contributes to a deeper understanding of tooth formation, variation among species, and forensic dentistry. Additionally, microCT plays a crucial role in the detection and analysis of carious lesions, structural defects, and demineralization patterns, significantly enhancing diagnostic accuracy and preventive strategies. 
+One of the primary applications in dental research is the study of tooth morphology
+and development. By allowing precise examination of enamel thickness, dentin
+structure, and root canal anatomy, it contributes to a deeper understanding of
+tooth formation, variation among species, and forensic dentistry. Additionally,
+microCT plays a crucial role in the detection and analysis of carious lesions,
+structural defects, and demineralization patterns, significantly enhancing diagnostic
+accuracy and preventive strategies. 
 
-However, detailed analysis of microCT scans remains a time-consuming process, and existing tools for automation and standardization are still limited. To address this challenge, we have developed a software backbone designed to integrate various processing methods, streamlining the analysis and enhancing reproducibility in dental research.
+However, detailed analysis of microCT scans remains a time-consuming process,
+and existing tools for automation and standardization are still limited. To address
+this challenge, we have developed a software backbone designed to integrate various
+processing methods, streamlining the analysis and enhancing reproducibility in
+dental research.
 
 ![Screenshot of the application](/Screenshots/fullView.png)  
 *Figure 1: Full view of the Tooth Analyser extension.*
@@ -55,14 +76,16 @@ To start a tutorial, follow this link:
 [Start a Tutorial](Documentation/Tutorial.md)
 
 ## 5. Explanations
-This chapter provides a detailed introduction to the functionality of the various features of the ToothAnalyzer. The focus is on the procedure itself rather than the technical implementation.
+This chapter provides a detailed introduction to the functionality of the various features of
+the ToothAnalyzer. The focus is on the procedure itself rather than the technical implementation.
 For more details, please refer to the documentation.
 
 
 [Check out the Explanation](Documentation/Explanation.md)
 
 ## 6. Reference Guide (Developers)
-This section goes into great detail and provides a technical introduction to the implementation. For all developers who want to extend or understand this module, this chapter is particularly relevant.  
+This section goes into great detail and provides a technical introduction to the implementation.
+For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
 
 [Check out the Reference Guide](Documentation/ReferenceGuide.md)

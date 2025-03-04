@@ -83,16 +83,16 @@ def registerSampleData():
     import SampleData
     iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
 
-    # fist sample CT -> ToothAnalyser1
+    # fist sample CT -> ToothCT
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        category="ToothAnalyser",
-        sampleName="ToothAnalyser1",
-        thumbnailFileName=os.path.join(iconsPath, "ToothAnalyser1.png"),
+        category="General",
+        sampleName="ToothCT",
+        thumbnailFileName=os.path.join(iconsPath, "toothCT.png"),
         # path to sample image
         uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz",
         fileNames="P01A-C0005278.nii.gz",
         checksums=None,
-        nodeNames="ToothAnalyser1",
+        nodeNames="ToothCT",
     )
 
 
@@ -990,10 +990,10 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
     def loadSampleData(self):
         import SampleData
         self.delayDisplay("loading sample data. This will take some minutes...")
-        return SampleData.downloadSample('ToothAnalyser1')
+        return SampleData.downloadSample('ToothCT')
 
     def getSampleDataAsITK(self):
-        node = slicer.util.getFirstNodeByName("ToothAnalyser1")
+        node = slicer.util.getFirstNodeByName("ToothCT")
         self.delayDisplay("Setting up test suit...")
         return sitkUtils.PullVolumeFromSlicer(node)
 
@@ -1151,5 +1151,3 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
         self.assertFalse(result)
         self.delayDisplay("Test 10 passed")
-
-
