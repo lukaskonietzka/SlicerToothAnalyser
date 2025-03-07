@@ -57,7 +57,8 @@ To install the extension, follow the steps below in the correct order:
 To use the Tooth Analyser efficiently, follow these steps:
 
 - Start 3D Slicer.  
-- Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**). The image does not need filtering.  
+- Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**)
+    or use the provided sample Data in (**File: Download Sample Data → ToothCrownMicroCT**)
 - Switch to the Tooth Analyser module (**Modules: Segmentation → Tooth Analyser**).  
 - In the **Anatomical Segmentation** section, select the microCT image you want to segment.  
 - Check the box **Calculate Medial Surface** if medial surfaces should be calculated.  

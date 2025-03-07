@@ -1,3 +1,14 @@
+"""
+Author:    Lukas Konietzka, lukas.konietzka@tha.de
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+--------------------------------------------------------------------
+
+This module contains all the logic related to the 3D Slicer core system
+"""
+
 import logging
 import os
 
@@ -19,7 +30,7 @@ from slicer.parameterNodeWrapper import (
 
 from slicer import vtkMRMLScalarVolumeNode
 
-# load images for Help and Acknowledgement
+# load images for Help and Acknowledgement section
 scriptDir = os.path.dirname(__file__)
 projectRoot = os.path.abspath(os.path.join(scriptDir, ".."))
 relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
@@ -40,7 +51,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("Tooth Analyser")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
-        self.parent.dependencies = []  # TODO: add here list of module names that this module requires
+        self.parent.dependencies = []
         self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
         self.parent.helpText = _(f"""
             <img src="{relativePathLogo}" width="200">
@@ -124,7 +135,7 @@ class AnatomicalParameters:
 class Batch:
     """
     The parameters needed by the section
-    Batch Processy ing
+    Batch Processing
     """
     sourcePath: str
     targetPath: str
@@ -151,7 +162,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-
     def __init__(self, parent=None) -> None:
         """
         Called when the user opens the module the first
@@ -456,7 +466,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
         Can be used for initializing member variables.
@@ -1012,17 +1021,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testIsSmoothed()
 
     def testHandleApplyAnalyticsButton(self):
-        """
-        Ideally you should have several levels of tests.  At the lowest level
-        tests should exercise the functionality of the logic with different inputs
-        (both valid and invalid).  At higher levels your tests should emulate the
-        way the user would interact with your code and confirm that it still works
-        the way you intended.
-        One of the most important features of the tests is that it should alert other
-        developers when their changes will have an impact on the behavior of your
-        module.  For example, if a developer removes a feature that you depend on,
-        your test should break so they know that the feature is needed.
-        """
         from unittest.mock import MagicMock
 
         self.mockedClass = MagicMock()
@@ -1039,7 +1037,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 1 passed")
 
     def testCreateDirectory(self):
-
         path = "/data/test/"
         directoryName = "new_folder"
         expectedDirectory = "/data/test/new_folder/"
@@ -1108,7 +1105,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
     def testCast8UInt(self):
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
-        import sitkUtils
 
         sampleData = self.getSampleDataAsITK()
         beforeCast = sampleData.GetPixelID()
