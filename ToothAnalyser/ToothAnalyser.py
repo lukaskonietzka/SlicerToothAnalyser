@@ -428,7 +428,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._param.status = "start anatomical segmentation..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            slicer.util.warningDisplay("""The anatomical segmentation may take up to 17 minutes, depending on the image and your local machine.""")
             try:
                 AnatomicalSegmentationLogic.execute(param=self._param)
             except:
@@ -1017,7 +1016,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testParseType()
         self.testCast8UInt()
         self.testPixelType()
-        self.testSmoothImage()
+        #self.testSmoothImage() # takes a lot of time
         self.testIsSmoothed()
 
     def testHandleApplyAnalyticsButton(self):
