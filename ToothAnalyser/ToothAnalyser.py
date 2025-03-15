@@ -2,8 +2,7 @@
 Author:    Lukas Konietzka, lukas.konietzka@tha.de
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+but WITHOUT ANY WARRANTY
 --------------------------------------------------------------------
 
 This module contains all the logic related to the 3D Slicer core system
@@ -38,9 +37,8 @@ relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
 
 
-##################################################
-# Tooth Analyser
-##################################################
+# ----- Tooth Analyser meta information ----- #
+
 class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
     and add the connection to the 3D Slicer core application.
@@ -81,9 +79,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerSampleData)
 
 
-##################################################
-# Register sample data for the module tests
-##################################################
+# ----- Sample Data for Tooth Analyser----- #
 def registerSampleData():
     """
     This Methode provides sample Data for the module tests
@@ -107,9 +103,7 @@ def registerSampleData():
     )
 
 
-##################################################
-# Tooth Analyser Parameter Node
-##################################################
+# ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
 class AnalyticalParameters:
     """
@@ -153,9 +147,7 @@ class ToothAnalyserParameterNode:
     status: str = ""
 
 
-##################################################
-# Tooth Analyser Widget
-##################################################
+# ----- Tooth Analyser widget clas ----- #
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic
@@ -403,7 +395,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
-        #self.handleApplyBatchButton()
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
 
@@ -453,9 +444,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.activateComputingMode(False)
 
 
-##################################################
-# Tooth Analyser Logic
-##################################################
+# ----- Tooth Analyser logic interface ----- #
 class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     """ This class should implement all the actual
     computation done by your module.  The interface
@@ -495,9 +484,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
 
-###########################################
-#     Tooth Analyser section Analytics     #
-###########################################
+# ----- Tooth Analyser section Analytics ----- #
 class Analytics(ToothAnalyserLogic):
     """
     this class contains all the logic needed to visualise
@@ -555,9 +542,8 @@ class Analytics(ToothAnalyserLogic):
         print(type(param.batch.fileType))
 
 
-##################################################
-# Tooth Analyser section Anatomical Segmentation
-##################################################
+
+# ----- Tooth Analyser section anatomical segmentation ----- #
 class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     """
     this class contains all the logic needed to visualise
@@ -980,9 +966,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             toothDictName = toothDict['name']
 
 
-##################################################
-# Tooth Analyser Tests
-##################################################
+# ----- Tooth Analyser Tests ----- #
 class ToothAnalyserTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.

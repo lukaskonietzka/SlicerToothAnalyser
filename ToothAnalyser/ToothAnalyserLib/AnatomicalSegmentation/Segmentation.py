@@ -1,10 +1,9 @@
 """
 Authors:    Lukas Konietzka, lukas.konietzka@tha.de
-            Simon Hoffmann, simon.hoffmann@tha.de
+            Simon Hofmann, simon.hofmann@tha.de
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+but WITHOUT ANY WARRANTY
 --------------------------------------------------------------------
 
 This package contains all the logic required to
