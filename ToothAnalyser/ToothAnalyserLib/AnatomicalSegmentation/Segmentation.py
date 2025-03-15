@@ -1,14 +1,13 @@
 """
-Copyright (C) 2025  Lukas Konietzka, lukas.konietzka@tha.de
-                    Simon Hoffmann, simon.hoffmann@tha.de
+Authors:    Lukas Konietzka, lukas.konietzka@tha.de
+            Simon Hofmann, simon.hofmann@tha.de
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+but WITHOUT ANY WARRANTY
 --------------------------------------------------------------------
 
 This package contains all the logic required to
-calculate an anatomical segmentation of one or more tooth CTs
+calculate an anatomical segmentation of one or more tooth µCTs
 """
 
 import os

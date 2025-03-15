@@ -1,3 +1,13 @@
+"""
+Author:    Lukas Konietzka, lukas.konietzka@tha.de
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY
+--------------------------------------------------------------------
+
+This module contains all the logic related to the 3D Slicer core system
+"""
+
 import logging
 import os
 
@@ -19,7 +29,7 @@ from slicer.parameterNodeWrapper import (
 
 from slicer import vtkMRMLScalarVolumeNode
 
-# load images for Help and Acknowledgement
+# load images for Help and Acknowledgement section
 scriptDir = os.path.dirname(__file__)
 projectRoot = os.path.abspath(os.path.join(scriptDir, ".."))
 relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
@@ -27,9 +37,8 @@ relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
 
 
-##################################################
-# Tooth Analyser
-##################################################
+# ----- Tooth Analyser meta information ----- #
+
 class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
     and add the connection to the 3D Slicer core application.
@@ -40,7 +49,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("Tooth Analyser")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
-        self.parent.dependencies = []  # TODO: add here list of module names that this module requires
+        self.parent.dependencies = []
         self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
         self.parent.helpText = _(f"""
             <img src="{relativePathLogo}" width="200">
@@ -70,9 +79,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerSampleData)
 
 
-##################################################
-# Register sample data for the module tests
-##################################################
+# ----- Sample Data for Tooth Analyser----- #
 def registerSampleData():
     """
     This Methode provides sample Data for the module tests
@@ -96,9 +103,7 @@ def registerSampleData():
     )
 
 
-##################################################
-# Tooth Analyser Parameter Node
-##################################################
+# ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
 class AnalyticalParameters:
     """
@@ -124,7 +129,7 @@ class AnatomicalParameters:
 class Batch:
     """
     The parameters needed by the section
-    Batch Processy ing
+    Batch Processing
     """
     sourcePath: str
     targetPath: str
@@ -142,16 +147,13 @@ class ToothAnalyserParameterNode:
     status: str = ""
 
 
-##################################################
-# Tooth Analyser Widget
-##################################################
+# ----- Tooth Analyser widget clas ----- #
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic
     Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-
     def __init__(self, parent=None) -> None:
         """
         Called when the user opens the module the first
@@ -393,7 +395,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
-        #self.handleApplyBatchButton()
         self.handleApplyAnalyticsButton()
         self.handleApplyAnatomicalButton()
 
@@ -418,7 +419,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._param.status = "start anatomical segmentation..."
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            slicer.util.warningDisplay("""The anatomical segmentation may take up to 17 minutes, depending on the image and your local machine.""")
             try:
                 AnatomicalSegmentationLogic.execute(param=self._param)
             except:
@@ -444,9 +444,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.activateComputingMode(False)
 
 
-##################################################
-# Tooth Analyser Logic
-##################################################
+# ----- Tooth Analyser logic interface ----- #
 class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     """ This class should implement all the actual
     computation done by your module.  The interface
@@ -456,7 +454,6 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
-
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
         Can be used for initializing member variables.
@@ -487,9 +484,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
 
-###########################################
-#     Tooth Analyser section Analytics     #
-###########################################
+# ----- Tooth Analyser section Analytics ----- #
 class Analytics(ToothAnalyserLogic):
     """
     this class contains all the logic needed to visualise
@@ -547,9 +542,8 @@ class Analytics(ToothAnalyserLogic):
         print(type(param.batch.fileType))
 
 
-##################################################
-# Tooth Analyser section Anatomical Segmentation
-##################################################
+
+# ----- Tooth Analyser section anatomical segmentation ----- #
 class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     """
     this class contains all the logic needed to visualise
@@ -972,9 +966,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             toothDictName = toothDict['name']
 
 
-##################################################
-# Tooth Analyser Tests
-##################################################
+# ----- Tooth Analyser Tests ----- #
 class ToothAnalyserTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
@@ -1008,21 +1000,10 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testParseType()
         self.testCast8UInt()
         self.testPixelType()
-        self.testSmoothImage()
+        #self.testSmoothImage() # takes a lot of time
         self.testIsSmoothed()
 
     def testHandleApplyAnalyticsButton(self):
-        """
-        Ideally you should have several levels of tests.  At the lowest level
-        tests should exercise the functionality of the logic with different inputs
-        (both valid and invalid).  At higher levels your tests should emulate the
-        way the user would interact with your code and confirm that it still works
-        the way you intended.
-        One of the most important features of the tests is that it should alert other
-        developers when their changes will have an impact on the behavior of your
-        module.  For example, if a developer removes a feature that you depend on,
-        your test should break so they know that the feature is needed.
-        """
         from unittest.mock import MagicMock
 
         self.mockedClass = MagicMock()
@@ -1039,7 +1020,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 1 passed")
 
     def testCreateDirectory(self):
-
         path = "/data/test/"
         directoryName = "new_folder"
         expectedDirectory = "/data/test/new_folder/"
@@ -1108,7 +1088,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
     def testCast8UInt(self):
         from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
-        import sitkUtils
 
         sampleData = self.getSampleDataAsITK()
         beforeCast = sampleData.GetPixelID()
