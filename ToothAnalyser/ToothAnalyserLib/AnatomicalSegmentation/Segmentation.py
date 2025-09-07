@@ -14,6 +14,7 @@ import os
 import time
 import SimpleITK as sitk
 from SimpleITK import Image
+
 from .isq_to_mhd import isq_to_mhd_as_string
 
 
@@ -759,7 +760,7 @@ def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
     print("segmentation_labels: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return segmentation_labels
 
-def enamelMidSurface(enamel_layers: any) -> Image:
+def enamelMedialSurface(enamel_layers: any) -> Image:
     """
     This method calculate the medial surfaces for the enamel
     segment by using the enamel layer
@@ -774,7 +775,7 @@ def enamelMidSurface(enamel_layers: any) -> Image:
     print("enamel_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_midsurface
 
-def dentinMidSurface(dentin_layers: any) -> Image:
+def dentinMedialSurface(dentin_layers: any) -> Image:
     """
     This method calculate the medial surfaces for the dentin
     segment by using the dentin layer
@@ -788,3 +789,99 @@ def dentinMidSurface(dentin_layers: any) -> Image:
     stop = time.time()
     print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return dentin_midsurface
+
+
+# ----- Calculate Segmentation Pipeline ----- #
+def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfaces: bool):
+    """
+
+    @param sourcePath:
+    @param selectedAlgorithm:
+    @param calcMedialSurfaces:
+    @return:
+    """
+
+    # 1. load and filter image
+    img, name = loadImage(sourcePath)
+    print("type: ", img.GetPixelIDTypeAsString())
+    yield 1
+
+    # 2. smoothing image if necessary
+    if isSmoothed(img):
+        img_smooth = img
+    else:
+        img_smooth = smoothImage(img)
+    yield 2
+
+    # 3. extract the tooth from the background
+    tooth, tooth_masked = imageMask(img, img_smooth)
+    tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
+    yield 3
+
+    # 4. select enamel area
+    enamel_select = enamelSelect(selectedAlgorithm, tooth_masked)
+    enamel_smooth_select = enamelSmoothSelect(selectedAlgorithm, tooth_smooth_masked)
+    yield 4
+
+    # 5. stack the enamels
+    enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
+    yield 5
+
+    # 6. Prepare the enamel
+    enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
+    yield 6
+
+    # 7. Filling of small structures within the tooth
+    contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
+    yield 7
+
+    # 8. Filling of small structures within the tooth, important with many datasets
+    enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
+    yield 8
+
+    # 9. generate dentin segment
+    dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
+    yield 9
+
+    # 10. generate label file for segmentation
+    segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
+
+    # 11. generating medial surface for enamel and dentin if needed
+    if calcMedialSurfaces:
+        yield 10
+
+        enamelMidSurface = enamelMedialSurface(enamel_layers)
+        yield 11
+
+        dentinMidSurface = dentinMedialSurface(dentin_layers)
+    else:
+        enamelMidSurface = None
+        dentinMidSurface = None
+
+    # 11. generate tooth dictionary to store all generated data sets local
+    filter1 = selectedAlgorithm.lower()
+    filter2 = selectedAlgorithm.lower()
+
+    enamel_key = 'enamel_' + filter1
+    enamel_smooth_key = 'enamel_smooth_' + filter2
+    enamel_layers_key = 'enamel_' + filter1 + '_' + filter2 + '_layers'
+    dentin_layers_key = 'dentin_' + filter1 + '_' + filter2 + '_layers'
+    segmentation_labels_key = 'segmentation_' + filter1 + '_' + filter2 + '_labels'
+    enamelMidSurfaceKey = 'enamel_' + filter1 + '_' + filter2 + '_midsurface'
+    dentinMidSurfaceKey = 'dentin_' + filter1 + '_' + filter2 + '_midsurface'
+
+    tooth_dict = {
+        'path': sourcePath,
+        'name': name,
+        'img': img,
+        'img_smooth': img_smooth,
+        'tooth': tooth,
+        enamel_key: enamel_select,
+        enamel_smooth_key: enamel_smooth_select,
+        enamel_layers_key: enamel_layers,
+        dentin_layers_key: dentin_layers,
+        segmentation_labels_key: segmentation_labels,
+        enamelMidSurfaceKey: enamelMidSurface,
+        dentinMidSurfaceKey: dentinMidSurface
+    }
+    yield tooth_dict
