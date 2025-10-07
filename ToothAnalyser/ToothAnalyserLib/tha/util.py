@@ -7,6 +7,9 @@ but WITHOUT ANY WARRANTY
 
 This package contains all the logic required to
 calculate an anatomical segmentation of one or more tooth µCTs
+
+Use 'import ToothAnalyserLib.tha.util as util' to use this module
+in the python console.
 """
 
 import argparse

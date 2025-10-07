@@ -7,14 +7,28 @@ but WITHOUT ANY WARRANTY
 
 This package contains all the logic required to
 calculate an anatomical segmentation of one or more tooth µCTs
+
+Use 'import ToothAnalyserLib.tha.filtering as filtering' to use
+this module in the python console
 """
 
 import argparse
 
-import numba
 import numpy as np
 import SimpleITK as sitk
+import slicer
+from typing import Union
 
+try:
+    import numba
+except ModuleNotFoundError:
+    if slicer.util.confirmOkCancelDisplay(
+            "This module requires the 'numba' Python package. Click OK to install it now."):
+        slicer.util.pip_install("numba")
+
+
+def test():
+    print('def')
 
 @numba.njit(parallel=True)
 def _replace_label_numba_uint8(
@@ -228,8 +242,8 @@ def downsample_2_main():
 def bilateral_filter(
     in_file_name: str,
     out_file_name: str,
-    domain_sigma: int | float,
-    range_sigma: int | float,
+    domain_sigma: Union[int, float],
+    range_sigma: Union[int, float],
     nr_of_samples: int,
 ) -> None:
     """
@@ -316,7 +330,7 @@ def bilateral_main():
 
 
 def bm4d_filter(
-    in_file_name: str, out_file_name: str, sigma_psd: int | float
+    in_file_name: str, out_file_name: str, sigma_psd: Union[int, float]
 ) -> None:
     """
     Apply bm4d filtering to an image,

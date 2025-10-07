@@ -10,6 +10,7 @@ This module contains all the logic related to the 3D Slicer core system
 
 import logging
 import os
+import sys
 import shutil
 import time
 
@@ -38,6 +39,16 @@ projectRoot = os.path.abspath(os.path.join(scriptDir, ".."))
 relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
 relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
+
+# Pfad zur Moduldatei (ToothAnalyser.py)
+module_dir = os.path.dirname(__file__)
+
+# Pfad zum Library-Ordner (ToothAnalyserLib)
+lib_path = os.path.join(module_dir, 'ToothAnalyserLib')
+
+# Falls noch nicht im sys.path, hinzufügen
+if lib_path not in sys.path:
+    sys.path.insert(0, lib_path)
 
 
 # ----- Tooth Analyser meta information ----- #
@@ -116,7 +127,7 @@ class ToothAnalyserParameterNode:
     status: str = ""
 
 
-# ----- Tooth Analyser widget clas ----- #
+# ----- Tooth Analyser widget class ----- #
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic

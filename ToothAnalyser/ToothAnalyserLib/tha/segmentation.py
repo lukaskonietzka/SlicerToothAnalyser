@@ -7,15 +7,26 @@ but WITHOUT ANY WARRANTY
 
 This package contains all the logic required to
 calculate an anatomical segmentation of one or more tooth µCTs
+
+Use 'import ToothAnalyserLib.tha.segmentation as seg' zo use
+the module in the python console
 """
 
 import argparse
 import os
 from typing import TextIO
 
-import numba
+import slicer.util
+
 import numpy as np
 import SimpleITK as sitk
+
+try:
+    import numba
+except ModuleNotFoundError:
+    if slicer.util.confirmOkCancelDisplay(
+            "This module requires the 'numba' Python package. Click OK to install it now."):
+        slicer.util.pip_install("numba")
 
 from .filtering import downsample_2_numba
 
