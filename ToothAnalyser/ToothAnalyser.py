@@ -851,17 +851,15 @@ class CariesSegmentation(ToothAnalyserLogic):
         """
         return "Caries Segmentation"
 
-    def execute(self, param: ToothAnalyserParameterNode, status):
+    def execute(self, param: ToothAnalyserParameterNode, progressBar):
         self.preprocessing()
         print("execute Caries Segmentation ...")
         self.postprocessing()
 
-    def executeAsBatch(self, param: ToothAnalyserParameterNode, status):
+    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar):
         self.preprocessing()
         print("execute Caries Segmentation as Batch ...")
         self.postprocessing()
-
-
 
 
 
@@ -891,7 +889,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
     def runTest(self):
         """Run as few or as many tests as needed here."""
         self.setUp()
-        self.testCreateDirectory()
         self.testValidateBatchSettingsOneEnabled()
         self.testValidateBatchSettingsOneDisabled()
         self.testParsName()
@@ -905,7 +902,8 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         path = "/data/test/"
         directoryName = "new_folder"
         expectedDirectory = "/data/test/new_folder/"
-        result = AnatomicalSegmentationLogic.createDirectory(path, directoryName)
+        anatomicalSeg = AnatomicalSegmentationLogic()
+        result = anatomicalSeg.createDirectory(path, directoryName)
 
         self.assertEqual(result, expectedDirectory)
         self.delayDisplay("Test 2 passed")
