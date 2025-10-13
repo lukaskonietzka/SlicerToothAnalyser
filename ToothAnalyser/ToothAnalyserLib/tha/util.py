@@ -1,16 +1,33 @@
 """
-Author:    Peter Rösch, peter.roesch@tha.de
+ToothAnalyserLib.tha.util
+=========================
+
+This module provides various utility functions for handling, converting,
+and visualizing µCT image data used in the ToothAnalyser framework.
+
+It includes tools for matching corresponding image files between directories,
+reading and converting Scanco ISQ image files to MetaImage (MHD) or other formats,
+and comparing intensity profiles across multiple 3D images.
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY
---------------------------------------------------------------------
+but WITHOUT ANY WARRANTY.
 
-This package contains all the logic required to
-calculate an anatomical segmentation of one or more tooth µCTs
+Example Usage
+-------------
+In Python:
+    import ToothAnalyserLib.tha.util as util
+    util.convert_isq("sample.isq", "sample.nii.gz")
+    util.corresponding_files_to_file("dirA", "dirB", r"(\d+)", ".bak", "pairs.txt")
 
-Use 'import ToothAnalyserLib.tha.util as util' to use this module
-in the python console.
+From the command line:
+    $ python -m ToothAnalyserLib.tha.util convert_isq_main sample.isq sample.nii.gz
+
+Author
+-------
+Peter Rösch, peter.roesch@tha.de
+Lukas Konietzka, lukas.konietzka@tha.de
 """
+
 
 import argparse
 from collections.abc import Sequence

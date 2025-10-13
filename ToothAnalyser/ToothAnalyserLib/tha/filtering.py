@@ -1,15 +1,29 @@
 """
-Author:    Peter Rösch, peter.roesch@tha.de
+ToothAnalyserLib.tha.filtering
+==============================
+This module provides a set of image processing utilities for 3D medical and dental image analysis,
+implemented using SimpleITK, NumPy, and Numba for high-performance computation.
+
+The functions in this module support label manipulation, spatial downsampling, and several filtering
+methods commonly used for volumetric image preprocessing and noise reduction.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY
---------------------------------------------------------------------
 
-This package contains all the logic required to
-calculate an anatomical segmentation of one or more tooth µCTs
+Example Usage
+-------------
+In Python:
+    import ToothAnalyserLib.tha.filtering as filtering
+    filtering.replace_labels(image, old_labels=(1, 2), new_labels=(10, 20))
+    filtering.downsample_2("input.nii.gz", "output.nii.gz", use_median=True)
 
-Use 'import ToothAnalyserLib.tha.filtering as filtering' to use
-this module in the python console
+From the command line:
+    $ python -m ToothAnalyserLib.tha.filtering downsample_2_main input.nii.gz output.nii.gz --use_median
+
+Authors
+-------
+- Peter Rösch, peter.roesch@tha.de
+- Lukas Konietzka, lukas.konietzka@tha.de
 """
 
 import argparse
@@ -26,9 +40,6 @@ except ModuleNotFoundError:
             "This module requires the 'numba' Python package. Click OK to install it now."):
         slicer.util.pip_install("numba")
 
-
-def test():
-    print('def')
 
 @numba.njit(parallel=True)
 def _replace_label_numba_uint8(

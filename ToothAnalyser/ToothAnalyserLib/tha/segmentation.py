@@ -1,15 +1,25 @@
 """
-Author:    Peter Rösch, peter.roesch@tha.de
+ToothAnalyserLib.tha.segmentation
+=================================
+
+This module provides functions to evaluate and compare 3D tooth µCT segmentations.
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY
---------------------------------------------------------------------
+but WITHOUT ANY WARRANTY.
 
-This package contains all the logic required to
-calculate an anatomical segmentation of one or more tooth µCTs
+Example Usage
+-------------
+In Python:
+    import ToothAnalyserLib.tha.segmentation as seg
+    seg.create_segmentation_metrics_file("pairs.txt", "metrics.txt")
 
-Use 'import ToothAnalyserLib.tha.segmentation as seg' zo use
-the module in the python console
+From the command line:
+    $ python -m ToothAnalyserLib.tha.segmentation metrics_main pairs.txt metrics.txt
+
+Author
+-------
+Peter Rösch, peter.roesch@tha.de
+Lukas Konietzka, lukas.konietzka@tha.de
 """
 
 import argparse

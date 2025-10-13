@@ -1,4 +1,21 @@
-# ----- Sample Data for Tooth Analyser----- #
+"""
+ToothAnalyserLib.SampleData.ToothCrownMicroCT
+=================================
+
+This module provides a function to register sample Data in
+3D Slicer.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY.
+
+Example Usage
+-------------
+
+Author
+-------
+Lukas Konietzka, lukas.konietzka@tha.de
+"""
+
+
 import SampleData
 import os
 
