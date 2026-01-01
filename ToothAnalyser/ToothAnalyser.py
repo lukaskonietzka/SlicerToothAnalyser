@@ -585,7 +585,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             # create enamel medial surface segmentation
             segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
             slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceEnamelLabelMapNode, segEnamel)
-            print("Midname: " + currentImageName)
             segEnamel.SetName(currentImageName + self._midSurfaceName)
 
             if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
@@ -670,7 +669,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         tempPath = slicer.app.temporaryPath
-        print("temp pfad: ", tempPath)
         fileName = (param.currentImage.GetName() + ".nrrd")
         filePath = os.path.join(tempPath, fileName)
         storageNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
@@ -704,7 +702,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             self.createTemporaryStorageNode(param)
             sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
 
-        param.status = "Start der Verarbeitung..."
+        param.status = "processing..."
         slicer.app.processEvents()
 
         segmentationStep = calcSegmentationGen(
@@ -716,7 +714,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             result = next(segmentationStep)
 
             if isinstance(result, dict):
-                print("Fertig!")
                 toothDict = result
                 break
             else:
@@ -774,7 +771,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         self.loadResultsToScene(segmentationResults, param)
 
         duration = time.time() - start
-        print(f"Verarbeitung abgeschlossen in: {duration // 60:.0f} Minuten und {duration % 60:.0f} Sekunden")
+        logging.info("Verarbeitung abgeschlossen in: %.0f Minuten und %.0f Sekunden",duration // 60, duration % 60)
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """
@@ -827,7 +824,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 result = next(segmentationStep)
 
                 if isinstance(result, dict):
-                    print("Fertig!")
                     toothDict = result
                     break
                 else:

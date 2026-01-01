@@ -7,15 +7,39 @@ but WITHOUT ANY WARRANTY
 --------------------------------------------------------------------
 
 This package contains all the logic required to
-calculate an anatomical segmentation of one or more tooth µCTs
+calculate an anatomical segmentation starting from µCTs
 """
 
 import os
 import time
 import SimpleITK as sitk
 from SimpleITK import Image
+import functools
 
 from .isq_to_mhd import isq_to_mhd_as_string
+
+
+def measure_time(func):
+    """
+    This function is a decorator to measure the
+    runtime of a method
+    @param func:
+    @return:
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        stop = time.time()
+
+        elapsed = stop - start
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+
+        print(f"{func.__name__}: Done {minutes}:{seconds:02d} minutes")
+        return result
+
+    return wrapper
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -488,6 +512,7 @@ def medialSurface(segment: any) -> any:
 
 
 # ----- Pipeline methods ----- #
+@measure_time
 def loadImage(path: str) -> tuple[Image, str]:
     """
     This methode loads an image into the algorithm
@@ -497,7 +522,6 @@ def loadImage(path: str) -> tuple[Image, str]:
     @example:
         img, name = loadImage(path)
     """
-    start = time.time()
     name = parseName(path)
     fileType = parseTyp(path)
     try:
@@ -509,8 +533,6 @@ def loadImage(path: str) -> tuple[Image, str]:
             img = loadFile(path)
     except:
         img = loadFile(path)
-    stop = time.time()
-    print("img: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img, name
 
 def isSmoothed(image: Image) -> bool:
@@ -524,6 +546,7 @@ def isSmoothed(image: Image) -> bool:
     std_dev = np.std(array)
     return 3200.00 > std_dev > 3100.00
 
+@measure_time
 def smoothImage(img: Image) -> Image:
     """
     This methode apply a median filter on the given image if there
@@ -534,13 +557,11 @@ def smoothImage(img: Image) -> Image:
         img, name = loadImage(path)
         smoothImage = smoothImage(img)
     """
-    start = time.time()
     # apply a median filter on the loaded image
     img_smooth = medianFilter(img, 5)
-    stop = time.time()
-    print("img_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return img_smooth
 
+@measure_time
 def imageMask(img: Image, img_smooth: Image) -> tuple:
     """
     This methode apply a threshold Filter on the given image
@@ -555,14 +576,12 @@ def imageMask(img: Image, img_smooth: Image) -> tuple:
         tooth, tooth_masked = imageMask(img, img_smooth)
     """
     # first adaptive threshold value - corresponds to first cut in the histogram
-    start = time.time()
     tooth = thresholdFilter(img_smooth)
     # original image, tooth masked
     tooth_masked = sitk.Mask(img, tooth)
-    stop = time.time()
-    print("tooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return tooth, tooth_masked
 
+@measure_time
 def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
     """
     This methode is for smoothing the mask wiche was generated previously
@@ -573,12 +592,10 @@ def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
         tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
     """
     # smoothed image, tooth masked
-    start = time.time()
     tooth_smooth_masked = sitk.Mask(img_smooth, tooth)
-    stop = time.time()
-    print("tooth_smooth: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return tooth_smooth_masked
 
+@measure_time
 def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     """
     This methode extract the enamel area from the rest of the tooth by
@@ -590,7 +607,6 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
         enamel_select = enamelSelect(filter_selection_1, tooth_masked)
     """
     # second adaptive threshold value - corresponds to second cut in the histogram
-    start = time.time()
     enamel_select = thresholdFilter(
         img=tooth_masked,
         mask=tooth_masked,
@@ -600,10 +616,9 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     # largest coherent object
     enamel_select = ccMinSize(enamel_select, 50) == 1 # war mal 50
     # Enamel segment finished on masked original tooth
-    stop = time.time()
-    print("enamel_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_select
 
+@measure_time
 def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Image:
     """
     This methode apply a smoothing on the extracted enamel segment
@@ -615,7 +630,6 @@ def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Ima
     """
     # second adaptive threshold value - corresponds to second cut in the histogram
     # on masked original tooth
-    start = time.time()
     enamel_smooth_select = thresholdFilter(
         img=tooth_smooth_masked,
         mask=tooth_smooth_masked,
@@ -623,10 +637,9 @@ def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Ima
     # preparation
     enamel_smooth_select = bcbr(enamel_smooth_select)
     # Enamel segment finished on masked smoothed tooth
-    stop = time.time()
-    print("enamel_smooth_select: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_smooth_select
 
+@measure_time
 def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     """
     This methode takes the enamel selection and the smoothed enamel selection
@@ -637,13 +650,11 @@ def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
     @example:
         enamelLayers = enamelLayering(enamelSelect, enamelSmoothSelect)
     """
-    start = time.time()
     enamel_layers = enamel_select + enamel_smooth_select
     enamel_layers = enamel_layers > 0
-    stop = time.time()
-    print("enamel_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
 
+@measure_time
 def enamelPreparation(enamel_layers: Image) -> NotImplemented:
     """
     This methode performs an extended smoothing on the given enamel layer
@@ -652,17 +663,15 @@ def enamelPreparation(enamel_layers: Image) -> NotImplemented:
     @example:
         enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
     """
-    start = time.time()
     enamel_layers_extended = bcbr(enamel_layers)
     enamel_layers_extended_2 = bmc(enamel_layers_extended, 2)  # size = 2
     # comparable to binary opening result, only faster
     enamel_layers_extended_smooth = sitk.SmoothingRecursiveGaussian(enamel_layers_extended_2, 0.04) > 0.7
     enamel_layers_extended_smooth_2 = bmc(enamel_layers_extended_smooth) > 0
     enamel_layers_extended_smooth_2 = ccMinSize(enamel_layers_extended_smooth_2, 10) == 1  # size = 10
-    stop = time.time()
-    print("enamel_layers_smooth_extended: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers_extended_smooth_2
 
+@measure_time
 def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
     """
     This methode fills up the small structures inside the
@@ -674,7 +683,6 @@ def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
         contourExtended, enamelLayersExtendedSmooth3 = enamelFilling(enamelLayersExtendedSmooth2, tooth)
     """
     # extended tooth contour
-    start = time.time()
     contour_extended = sitk.BinaryDilate((sitk.BinaryContour(tooth) > 0), [2, 2, 2], sitk.sitkBall) > 0
     # image background
     background = (~tooth) == 255
@@ -689,8 +697,6 @@ def enamelFilling(enamel_layers_extended_smooth_2: any, tooth: Image) -> tuple:
     partial_decay = dentin_and_partial_decay - dentin_parts
     # adding the small structures to the enamel segment
     enamel_layers_extended_smooth_3 = enamel_layers_extended_smooth_2 + partial_decay
-    stop = time.time()
-    print("enamel_layers_extended_smooth_3: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return contour_extended, enamel_layers_extended_smooth_3
 
 def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
@@ -704,7 +710,6 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
        enamelLayers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
     """
     # Inversion enamel -> everything outside enamel
-    start = time.time()
     enamel_negative = ~enamel_layers_extended_smooth_3 == 255
     # all connected components -> one large component outside enamel and small components inside enamel
     # "> 1" -> not the biggest component in enamel -> its a small component
@@ -713,10 +718,9 @@ def additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3):
     enamel_layers_extended_smooth_4 = enamel_layers_extended_smooth_3 + holes_enamel
     enamel_layers = enamel_layers_extended_smooth_4
     # enamel segment is ready!
-    stop = time.time()
-    print("enamel_layers_extended_smooth_4: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_layers
 
+@measure_time
 def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> any:
     """
     This methode calculates the layer Image for the dentin segment
@@ -731,7 +735,6 @@ def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> a
     """
     # ~tooth -> not tooth -> everything outside tooth
     # Enamel + everything outside the tooth + thick contour -> everything except dentin
-    start = time.time()
     not_dentin = enamel_layers + (~tooth == 255) + contour_extended > 0
     # Inversion everything except dentin -> dentin
     dentin_layers = (~not_dentin) == 255
@@ -739,10 +742,9 @@ def dentinLayers(contour_extended: Image, enamel_layers: Image, tooth: any) -> a
     dentin_layers = dentin_layers - enamel_layers == 1
     # if individual voxels were still available
     dentin_layers = ccMinSize(dentin_layers, 50) == 1
-    stop = time.time()
-    print("dentin_layers: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return dentin_layers
 
+@measure_time
 def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
     """
     This methode calculates a label image based on the
@@ -754,12 +756,10 @@ def segmentationLabels(dentin_layers: any, enamel_layers: any) -> Image:
         segmentationLabels = segmentationLabels(dentinLayers, enamelLayers)
     """
     # Label file, dentin == 2, enamel == 3
-    start = time.time()
     segmentation_labels = enamel_layers * 3 + dentin_layers * 2
-    stop = time.time()
-    print("segmentation_labels: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return segmentation_labels
 
+@measure_time
 def enamelMedialSurface(enamel_layers: any) -> Image:
     """
     This method calculate the medial surfaces for the enamel
@@ -769,12 +769,10 @@ def enamelMedialSurface(enamel_layers: any) -> Image:
     @example:
         enamelMidSurface = enamelMidSurface(enamel_layers)
     """
-    start = time.time()
     enamel_midsurface = medialSurface(enamel_layers)
-    stop = time.time()
-    print("enamel_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return enamel_midsurface
 
+@measure_time
 def dentinMedialSurface(dentin_layers: any) -> Image:
     """
     This method calculate the medial surfaces for the dentin
@@ -784,17 +782,15 @@ def dentinMedialSurface(dentin_layers: any) -> Image:
     @example:
         dentinMidSurface = dentinMidSurface(dentin_layers)
     """
-    start = time.time()
     dentin_midsurface = medialSurface(dentin_layers)
-    stop = time.time()
-    print("dentin_midsurface: Done ", f" {(stop - start) // 60:.0f}:{(stop - start) % 60:.0f} minutes")
     return dentin_midsurface
 
 
 # ----- Calculate Segmentation Pipeline ----- #
 def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfaces: bool):
     """
-
+    This Method combines all segmentation steps and store dem in a dictionary.
+    This dictionary can be used in the ToothAnalyser Core application
     @param sourcePath:
     @param selectedAlgorithm:
     @param calcMedialSurfaces:
