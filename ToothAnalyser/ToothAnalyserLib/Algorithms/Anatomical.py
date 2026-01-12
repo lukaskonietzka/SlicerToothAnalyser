@@ -11,10 +11,8 @@ calculate an anatomical segmentation starting from µCTs
 """
 
 import os
-import time
 import SimpleITK as sitk
 from SimpleITK import Image
-import functools
 
 from .isq_to_mhd import isq_to_mhd_as_string
 
@@ -26,6 +24,8 @@ def measure_time(func):
     @param func:
     @return:
     """
+    import time
+    import functools
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start = time.time()
@@ -330,6 +330,9 @@ def ccMinSize(img: any, size: int=10) -> Image:
     cc_objects = relabel_filt.Execute(cc)
     return cc_objects
 
+
+def calcHistogramBins(img: Image) -> int:
+    return (2**(img.GetPixelID() * 8)) -1
 
 # ----- Adaptive threshold method ----- #
 def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu', debug: bool=False) -> Image:

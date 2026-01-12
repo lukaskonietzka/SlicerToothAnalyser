@@ -692,7 +692,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @param progressBar:
         @return:
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import calcSegmentationGen
+        from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
 
@@ -781,7 +781,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, writeToothDict, calcSegmentationGen
+        from ToothAnalyserLib.Algorithms.Anatomical import parseName, writeToothDict, calcSegmentationGen
 
         # create local variables for all parameters
         if not os.path.isdir(param.batch.sourcePath):
@@ -933,7 +933,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 4 passed")
 
     def testParsName(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
+        from ToothAnalyserLib.Algorithms.Anatomical import parseName
 
         path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
         expectation = "P01A-C0005278"
@@ -948,7 +948,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 5 passed")
 
     def testParseType(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseTyp
+        from ToothAnalyserLib.Algorithms.Anatomical import parseTyp
 
         path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
         expectation = "isq"
@@ -963,7 +963,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 6 passed")
 
     def testCast8UInt(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
+        from ToothAnalyserLib.Algorithms.Anatomical import cast8UInt
 
         sampleData = self.getSampleDataAsITK()
         beforeCast = sampleData.GetPixelID()
@@ -974,7 +974,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 7 passed")
 
     def testPixelType(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import pixelType
+        from ToothAnalyserLib.Algorithms.Anatomical import pixelType
 
         sampleDate = self.getSampleDataAsITK()
         expectation = sampleDate.GetPixelIDTypeAsString()
@@ -984,7 +984,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 8 passed")
 
     def testSmoothImage(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import smoothImage
+        from ToothAnalyserLib.Algorithms.Anatomical import smoothImage
         import numpy as np
         import SimpleITK as sitk
 
@@ -999,7 +999,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.delayDisplay("Test 9 passed")
 
     def testIsSmoothed(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import isSmoothed
+        from ToothAnalyserLib.Algorithms.Anatomical import isSmoothed
 
         sampleDate = self.getSampleDataAsITK()
         result = isSmoothed(sampleDate)
