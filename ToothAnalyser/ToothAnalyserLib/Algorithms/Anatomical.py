@@ -13,6 +13,7 @@ calculate an anatomical segmentation starting from µCTs
 import os
 import SimpleITK as sitk
 from SimpleITK import Image
+from numba.core.cgutils import false_bit
 
 from .isq_to_mhd import isq_to_mhd_as_string
 
@@ -331,11 +332,29 @@ def ccMinSize(img: any, size: int=10) -> Image:
     return cc_objects
 
 
+
 def calcHistogramBins(img: Image) -> int:
-    return (2**(img.GetPixelID() * 8)) -1
+    import numpy as np
+    stats = sitk.StatisticsImageFilter()
+    stats.Execute(img)
+
+    min_val = stats.GetMinimum()
+    max_val = stats.GetMaximum()
+    intensity_range = max_val - min_val
+
+    # constant image protection
+    if intensity_range <= 0 or np.isnan(intensity_range):
+        return 256
+
+    # heuristic rule
+    bins = int(np.sqrt(img.GetNumberOfPixels()))
+
+    return max(32, min(bins, 512))
+
+
 
 # ----- Adaptive threshold method ----- #
-def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu', debug: bool=False) -> Image:
+def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu', debug: bool=True) -> Image:
     """
     This methode apply a threshold filter on the given
     image. The possible threshold filters are listed in __THRESHOLD_FILTERS.
@@ -356,12 +375,20 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
                 print("SetNumberOfHistogramBins(5000) because of IntermodesThreshold")
             thresh_filter.SetNumberOfHistogramBins(500)
         else:
-            thresh_filter.SetNumberOfHistogramBins(20000)
-        if mask:
-            if debug:
-                print("mask specified")
-            thresh_img = thresh_filter.Execute(img, sitk.Cast(mask, sitk.sitkUInt8))
+            pass
+            #thresh_filter.SetNumberOfHistogramBins(int(calcHistogramBins(img)))
+        if mask is not None:
+            # binäre ROI-Maske 0/1
+            mask_bin = sitk.Cast(mask > 0, sitk.sitkUInt8)
+
+            # WICHTIG: weil mask_bin 1 in der ROI hat (nicht 255)
+            thresh_filter.SetMaskValue(1)  # <- das ist der entscheidende Fix
+            # optional (meist ok so zu lassen): thresh_filter.SetMaskOutput(True)
+
+            thresh_img = thresh_filter.Execute(img, mask_bin)
+
         else:
+            thresh_img = thresh_filter.Execute(img)
             if debug:
                 print("no mask specified")
             thresh_img = thresh_filter.Execute(img)
@@ -373,6 +400,7 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
 
     if debug:
         print("Threshold used: " + str(thresh_value))
+        print("Bins: " + str(calcHistogramBins(img)))
     return thresh_img
 
 
@@ -414,13 +442,13 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -
         elif key == 'name':
             pass
         elif key == "tooth":
-            pass
+            write(tooth[key], name + "_" + key, path, fileType)
         elif key == "enamel_otsu" or key == "enamel_renyi":
-            pass
+            write(tooth[key], name + "_" + key, path, fileType)
         elif "smooth" in key:
-            pass
+            write(tooth[key], name + "_" + key, path, fileType)
         elif "layers" in key:
-            pass
+            write(tooth[key], name + "_" + key, path, fileType)
         elif "midsurface" in key and not calcMidSurface:
             pass
         else:
@@ -580,7 +608,7 @@ def imageMask(img: Image, img_smooth: Image) -> tuple:
     """
     # first adaptive threshold value - corresponds to first cut in the histogram
     tooth = thresholdFilter(img_smooth)
-    # original image, tooth masked
+    # put the tooth over the original image for the next segmentation
     tooth_masked = sitk.Mask(img, tooth)
     return tooth, tooth_masked
 
@@ -599,7 +627,7 @@ def smoothImageMask(img_smooth: Image, tooth: Image) -> any:
     return tooth_smooth_masked
 
 @measure_time
-def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
+def enamelSelect(filter_selection_1: str, tooth_masked: any, tooth) -> NotImplemented:
     """
     This methode extract the enamel area from the rest of the tooth by
     choosing the largest coherent object in the image.
@@ -612,7 +640,7 @@ def enamelSelect(filter_selection_1: str, tooth_masked: any) -> NotImplemented:
     # second adaptive threshold value - corresponds to second cut in the histogram
     enamel_select = thresholdFilter(
         img=tooth_masked,
-        mask=tooth_masked,
+        mask=tooth,
         filter_selection=filter_selection_1)
     # preparation
     enamel_select = bcbr(enamel_select)
@@ -641,6 +669,7 @@ def enamelSmoothSelect(filter_selection_2: str, tooth_smooth_masked: any) -> Ima
     enamel_smooth_select = bcbr(enamel_smooth_select)
     # Enamel segment finished on masked smoothed tooth
     return enamel_smooth_select
+    #return tooth_smooth_masked
 
 @measure_time
 def enamelLayering(enamel_select: any, enamel_smooth_select: Image) -> Image:
@@ -818,7 +847,7 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
     yield 3
 
     # 4. select enamel area
-    enamel_select = enamelSelect(selectedAlgorithm, tooth_masked)
+    enamel_select = enamelSelect(selectedAlgorithm, tooth_masked, tooth)
     enamel_smooth_select = enamelSmoothSelect(selectedAlgorithm, tooth_smooth_masked)
     yield 4
 
@@ -883,4 +912,12 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
         enamelMidSurfaceKey: enamelMidSurface,
         dentinMidSurfaceKey: dentinMidSurface
     }
+
+    #neede for debug
+    # writeToothDict(
+    #    tooth=tooth_dict,
+    #    path='/Users/lukas/Documents/test/',
+    #    calcMidSurface=False,
+    #    fileType='.nii'
+    # )
     yield tooth_dict

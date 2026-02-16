@@ -755,6 +755,40 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 currentImageName=results["imageName"],
                 deleteLabelMapNodes=True)
 
+    def showHistogram(self, image: vtkMRMLScalarVolumeNode) -> None:
+        """
+        This Methode creates a histogram from the current selected Volume
+        @param image: the image for which a histogram is required
+        """
+        import numpy as np
+        from collections import namedtuple
+
+        AxisFitting = namedtuple('AxisFitting', ['x', 'y'])
+        axes = AxisFitting(x="Intensity", y="Frequency")
+
+        # create histogram data
+        imageData = slicer.util.arrayFromVolume(image)
+        histogram = np.histogram(imageData, bins= 80)
+
+        # create plot
+        chartNode = slicer.util.plot(
+            narray=histogram,
+            xColumnIndex=1,
+            columnNames=[axes.x, axes.y],
+            title=image.GetName() + "_Histogram")
+
+        # set properties for chartNode
+        chartNode.SetTitle("Histogram of Image: " + image.GetName())
+        chartNode.SetYAxisTitle(axes.y)
+        chartNode.SetXAxisTitle(axes.x)
+        chartNode.SetLegendVisibility(True)
+        chartNode.SetYAxisRange(0, 100)
+        chartNode.SetXAxisRange(0, 100)
+        # set properties for  plot series
+        plotSeries = getNode("*PlotSeries*")
+        plotSeries.SetName(axes.y)
+
+
     def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """
 
@@ -771,6 +805,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         self.loadResultsToScene(segmentationResults, param)
 
         duration = time.time() - start
+        self.showHistogram(image=param.currentImage)
         logging.info("Verarbeitung abgeschlossen in: %.0f Minuten und %.0f Sekunden",duration // 60, duration % 60)
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
