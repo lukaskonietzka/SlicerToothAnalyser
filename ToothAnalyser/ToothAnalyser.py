@@ -100,7 +100,7 @@ class AnatomicalParameters:
     The parameters needed by the section
     Anatomical Segmentation
     """
-    selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
+    selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu"])] = "Otsu"
     calcMidSurface: bool
 
 @parameterPack
