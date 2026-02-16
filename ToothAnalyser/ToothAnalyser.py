@@ -17,6 +17,7 @@ import time
 from typing import Annotated, Optional
 
 import sitkUtils
+import vtkSegmentationCorePython as vtkSegCore
 import vtk
 
 import slicer
@@ -515,17 +516,17 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             files = sorted([f for f in os.listdir(path) if f.endswith(suffix)])
         return files
 
+    def _safeRemoveNode(self, node):
+        """Remove node only if it still exists in the scene."""
+        if node and node.GetScene():
+            slicer.mrmlScene.RemoveNode(node)
+
     def createSegmentation(self, labelMapNode: vtkMRMLLabelMapVolumeNode,
                            deleteLabelMapNode: bool,
                            currentImageName: str) -> None:
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
-        @param labelMapNode: The labelNode to be segmented
-        @param deleteLabelMapNode: Decides whether the given labelNode should be deleted after segmentation
-        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
-        @example:
-            cls.createSegmentation(labelImageNode, True, currentImageName)
         """
         try:
             # create segmentation
@@ -537,25 +538,31 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             seg.SetName(currentImageName + self._anatomicalSegmentationName)
             default_names = self._segmentNames
 
-            # set properties for segmentation
-            num_segments = seg.GetSegmentation().GetNumberOfSegments()
+            segmentation = seg.GetSegmentation()
+            num_segments = segmentation.GetNumberOfSegments()
+
             for i in range(num_segments):
+                segment = segmentation.GetNthSegment(i)
+
                 if i < len(default_names):
                     segment_name = default_names[i]
+
                     if segment_name == "Enamel":
-                        seg.GetSegmentation().GetNthSegment(i).SetColor(0.435, 0.722, 0.824)
+                        segment.SetColor(0.435, 0.722, 0.824)
+
                     if segment_name == "Dentin":
-                        seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.8)
+                        segment.SetColor(1.0, 1.0, 0.8)
                 else:
                     segment_name = f"Segment {i + 1}"
-                seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
+
+                segment.SetName(segment_name)
 
             # delete the given labelNode
             if deleteLabelMapNode:
-                slicer.mrmlScene.RemoveNode(labelMapNode)
+                self._safeRemoveNode(labelMapNode)
+
         except Exception as e:
             self.error(f"Error while creating the segmentation! {e}")
-
 
     def createMedialSurface(self, midSurfaceDentinLabelMapNode: vtkMRMLLabelMapVolumeNode,
                             midSurfaceEnamelLabelMapNode: vtkMRMLLabelMapVolumeNode,
@@ -563,64 +570,76 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                             deleteLabelMapNodes: bool) -> None:
         """
         This method creates a segmentation for the given medial surface
-        @param midSurfaceDentinLabelMapNode: the dentin label map image to be segmented
-        @param midSurfaceEnamelLabelMapNode: the enamel label map image to be segmented
-        @param deleteLabelMapNodes: True if labeImage should be deleted after segmentation
-        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
-        @example:
-            currentImageName = 'P01A-C0005278'
-            cls.createMedialSurface(dentinMidSurfaceNode, enamelMidSurfaceNode, True, currentImageName)
         """
         try:
             # create dentin medial surface segmentation
             segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceDentinLabelMapNode, segDentin)
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(
+                midSurfaceDentinLabelMapNode, segDentin)
             segDentin.SetName("MedialSurface_source")
 
-            if segDentin.GetSegmentation().GetNumberOfSegments() > 0:
-                segDentin.GetSegmentation().GetNthSegment(0).SetName(self._segmentNames[0])
-                segDentin.GetSegmentation().GetNthSegment(0).SetColor(1.0, 0.0, 0.0)
-                slicer.mrmlScene.RemoveNode(midSurfaceDentinLabelMapNode)
+            dentinSegmentation = segDentin.GetSegmentation()
+
+            if dentinSegmentation.GetNumberOfSegments() > 0:
+                segment = dentinSegmentation.GetNthSegment(0)
+                segment.SetName(self._segmentNames[0])
+                segment.SetColor(1.0, 0.0, 0.0)
+                self._safeRemoveNode(midSurfaceDentinLabelMapNode)
 
             # create enamel medial surface segmentation
             segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceEnamelLabelMapNode, segEnamel)
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(
+                midSurfaceEnamelLabelMapNode, segEnamel)
             segEnamel.SetName(currentImageName + self._midSurfaceName)
 
-            if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
-                segEnamel.GetSegmentation().GetNthSegment(0).SetName(self._segmentNames[1])
-                segEnamel.GetSegmentation().GetNthSegment(0).SetColor(0.0, 1.0, 0.0)
-                slicer.mrmlScene.RemoveNode(midSurfaceEnamelLabelMapNode)
+            enamelSegmentation = segEnamel.GetSegmentation()
 
-            # copy all segments from dentin to enamel and delete dentin
-            for i in range(segDentin.GetSegmentation().GetNumberOfSegments()):
-                source_segment = segDentin.GetSegmentation().GetNthSegment(i)
-                segment_id = segDentin.GetSegmentation().GetSegmentIdBySegment(source_segment)
-                segEnamel.GetSegmentation().CopySegmentFromSegmentation(segDentin.GetSegmentation(), segment_id, True)
-            slicer.mrmlScene.RemoveNode(getNode("MedialSurface_source"))
+            if enamelSegmentation.GetNumberOfSegments() > 0:
+                segment = enamelSegmentation.GetNthSegment(0)
+                segment.SetName(self._segmentNames[1])
+                segment.SetColor(0.0, 1.0, 0.0)
+                self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
+
+            # copy all segments from dentin to enamel (FIX: clone segments -> no ID conflicts)
+            for i in range(dentinSegmentation.GetNumberOfSegments()):
+                sourceSegment = dentinSegmentation.GetNthSegment(i)
+
+                # clone segment
+                newSegment = vtkSegCore.vtkSegment()
+                newSegment.DeepCopy(sourceSegment)
+
+                # generate guaranteed unique ID in target
+                newSegmentId = enamelSegmentation.GenerateUniqueSegmentID(
+                    sourceSegment.GetName()
+                )
+
+                enamelSegmentation.AddSegment(newSegment, newSegmentId)
+
+            # remove dentin helper segmentation
+            try:
+                node = slicer.util.getFirstNodeByName("MedialSurface_source")
+                self._safeRemoveNode(node)
+            except:
+                pass
 
             if deleteLabelMapNodes:
-                slicer.mrmlScene.RemoveNode(midSurfaceEnamelLabelMapNode)
-                slicer.mrmlScene.RemoveNode(midSurfaceDentinLabelMapNode)
+                self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
+                self._safeRemoveNode(midSurfaceDentinLabelMapNode)
+
         except Exception as e:
             self.error(f"Error while creating the medial surfaces! {e}")
 
     def clearScene(self) -> None:
         """
-        Deletes all nodes from the scene, that where generated
-        by the algorithm.
-        @param currentImageName: the image to be segmented
-        @return: None
-        @example:
-            imgNode = 'P01A-C0005278.ISQ'
-            cls.clearScene(imgNode)
+        Deletes all nodes from the scene that were generated by the algorithm.
         """
         try:
             anatomicalSegmentation = getNode("*" + self._anatomicalSegmentationName)
-            slicer.mrmlScene.RemoveNode(anatomicalSegmentation)
+            self._safeRemoveNode(anatomicalSegmentation)
 
             midSurface = getNode("*" + self._midSurfaceName)
-            slicer.mrmlScene.RemoveNode(midSurface)
+            self._safeRemoveNode(midSurface)
+
         except:
             pass
 

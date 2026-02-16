@@ -108,7 +108,6 @@ __THRESHOLD_FILTERS = {'Otsu': sitk.OtsuThresholdImageFilter(),
                      'Shanbhag' : sitk.ShanbhagThresholdImageFilter(),
                      'Yen' : sitk.YenThresholdImageFilter()}
 
-
 # ----- Name parser -----#
 def parseName(path: str) -> str:
     """
@@ -332,27 +331,6 @@ def ccMinSize(img: any, size: int=10) -> Image:
     return cc_objects
 
 
-
-def calcHistogramBins(img: Image) -> int:
-    import numpy as np
-    stats = sitk.StatisticsImageFilter()
-    stats.Execute(img)
-
-    min_val = stats.GetMinimum()
-    max_val = stats.GetMaximum()
-    intensity_range = max_val - min_val
-
-    # constant image protection
-    if intensity_range <= 0 or np.isnan(intensity_range):
-        return 256
-
-    # heuristic rule
-    bins = int(np.sqrt(img.GetNumberOfPixels()))
-
-    return max(32, min(bins, 512))
-
-
-
 # ----- Adaptive threshold method ----- #
 def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu', debug: bool=True) -> Image:
     """
@@ -378,15 +356,10 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
             pass
             #thresh_filter.SetNumberOfHistogramBins(int(calcHistogramBins(img)))
         if mask is not None:
-            # binäre ROI-Maske 0/1
+            # binary roi mask
             mask_bin = sitk.Cast(mask > 0, sitk.sitkUInt8)
-
-            # WICHTIG: weil mask_bin 1 in der ROI hat (nicht 255)
-            thresh_filter.SetMaskValue(1)  # <- das ist der entscheidende Fix
-            # optional (meist ok so zu lassen): thresh_filter.SetMaskOutput(True)
-
+            thresh_filter.SetMaskValue(1)
             thresh_img = thresh_filter.Execute(img, mask_bin)
-
         else:
             thresh_img = thresh_filter.Execute(img)
             if debug:
@@ -400,7 +373,6 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
 
     if debug:
         print("Threshold used: " + str(thresh_value))
-        print("Bins: " + str(calcHistogramBins(img)))
     return thresh_img
 
 
@@ -442,11 +414,11 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -
         elif key == 'name':
             pass
         elif key == "tooth":
-            write(tooth[key], name + "_" + key, path, fileType)
+            pass
         elif key == "enamel_otsu" or key == "enamel_renyi":
-            write(tooth[key], name + "_" + key, path, fileType)
+            pass
         elif "smooth" in key:
-            write(tooth[key], name + "_" + key, path, fileType)
+            pass
         elif "layers" in key:
             write(tooth[key], name + "_" + key, path, fileType)
         elif "midsurface" in key and not calcMidSurface:
@@ -588,7 +560,7 @@ def smoothImage(img: Image) -> Image:
         img, name = loadImage(path)
         smoothImage = smoothImage(img)
     """
-    # apply a median filter on the loaded image
+    # apply a median filter on the loaded image with the given size
     img_smooth = medianFilter(img, 5)
     return img_smooth
 
@@ -912,12 +884,4 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
         enamelMidSurfaceKey: enamelMidSurface,
         dentinMidSurfaceKey: dentinMidSurface
     }
-
-    #neede for debug
-    # writeToothDict(
-    #    tooth=tooth_dict,
-    #    path='/Users/lukas/Documents/test/',
-    #    calcMidSurface=False,
-    #    fileType='.nii'
-    # )
     yield tooth_dict
