@@ -33,6 +33,7 @@ from slicer.parameterNodeWrapper import (
 
 from slicer import vtkMRMLScalarVolumeNode
 from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT
+from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
 # load images for Help and Acknowledgement section
 scriptDir = os.path.dirname(__file__)
@@ -90,7 +91,7 @@ class ToothAnalyser(ScriptedLoadableModule):
             <img src="{relativePathLMU}" width="100">
         """)
         # Additional initialization step after application startup is complete
-        slicer.app.connect("startupCompleted()", registerToothCrownMicroCT)
+        slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
 # ----- Tooth Analyser Parameter Node ----- #
@@ -943,7 +944,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testValidateBatchSettingsOneDisabled()
         self.testParsName()
         self.testParseType()
-        self.testCast8UInt()
         self.testPixelType()
         #self.testSmoothImage() # takes a lot of time
         self.testIsSmoothed()
@@ -1015,17 +1015,6 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.assertNotEqual(expectation, result)
 
         self.delayDisplay("Test 6 passed")
-
-    def testCast8UInt(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import cast8UInt
-
-        sampleData = self.getSampleDataAsITK()
-        beforeCast = sampleData.GetPixelID()
-        imageCast = cast8UInt(sampleData)
-        afterCast = imageCast.GetPixelID()
-
-        self.assertNotEqual(beforeCast, afterCast)
-        self.delayDisplay("Test 7 passed")
 
     def testPixelType(self):
         from ToothAnalyserLib.Algorithms.Anatomical import pixelType

@@ -33,6 +33,8 @@ import SimpleITK as sitk
 import slicer
 from typing import Union
 
+from SimpleITK import Image
+
 try:
     import numba
 except ModuleNotFoundError:
@@ -156,6 +158,51 @@ def downsample_2_numba(
 
 
 def downsample_2(
+    input_image: Image,
+    use_median: bool = False,
+    adapt_origin: bool = True,
+    convert_to_uint8: bool = False,
+) -> Image:
+    """
+    Downsample an image by a factor of 2 by applying either averaging or
+    median filtering to the voxels of the input image.
+
+    Args:
+        in_file_name (str): Name of the input image to read.
+        out_file_name (str): Name of the output image to write.
+        use_median (bool): Apply median filtering. Default is False
+            (apply  grey value averaging).
+        adapt_origin (bool): Adapt origin of output image to new resolution.
+            Default ist True (perform origin adaption).
+        convert_to_uint8: Rescale grey values to 0..255 and cast to uint8.
+    """
+    #in_im = sitk.ReadImage(in_file_name)
+    in_im = input_image
+    in_im_array = sitk.GetArrayFromImage(in_im)
+    out_im_array = downsample_2_numba(in_im_array, use_median)
+    out_im = sitk.GetImageFromArray(out_im_array)
+    out_im.SetDirection(in_im.GetDirection())
+    in_spacing = in_im.GetSpacing()
+    out_spacing = tuple([s * 2 for s in in_spacing])
+    out_im.SetSpacing(out_spacing)
+    if adapt_origin:
+        out_origin = in_im.TransformContinuousIndexToPhysicalPoint(
+            (0.5, 0.5, 0.5)
+        )
+    else:
+        out_origin = in_im.GetOrigin()
+    out_im.SetOrigin(out_origin)
+    if out_im.GetPixelID() != sitk.sitkUInt8 and convert_to_uint8:
+        if not use_median:
+            out_im = sitk.RescaleIntensity(out_im, 0, 255)
+        out_im = sitk.Cast(out_im, sitk.sitkUInt8)
+    #sitk.WriteImage(out_im, out_file_name)
+    return out_im
+
+
+
+
+def downsample_2_file_system(
     in_file_name: str,
     out_file_name: str,
     use_median: bool = False,

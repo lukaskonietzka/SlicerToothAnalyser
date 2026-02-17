@@ -16,31 +16,8 @@ from SimpleITK import Image
 from numba.core.cgutils import false_bit
 
 from .isq_to_mhd import isq_to_mhd_as_string
-
-
-def measure_time(func):
-    """
-    This function is a decorator to measure the
-    runtime of a method
-    @param func:
-    @return:
-    """
-    import time
-    import functools
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        stop = time.time()
-
-        elapsed = stop - start
-        minutes = int(elapsed // 60)
-        seconds = int(elapsed % 60)
-
-        print(f"{func.__name__}: Done {minutes}:{seconds:02d} minutes")
-        return result
-
-    return wrapper
+from .utils import measure_time
+from ..tha.filtering import downsample_2
 
 
 def generateToothSetKeys(filter_selection_1: str, filter_selection_2: str) -> set:
@@ -804,6 +781,14 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
     # 1. load and filter image
     img, name = loadImage(sourcePath)
     print("type: ", img.GetPixelIDTypeAsString())
+    print("down sampling...")
+
+    img = downsample_2(
+        input_image=img,
+        use_median=False,
+        adapt_origin=True,
+        convert_to_uint8=True
+    )
     yield 1
 
     # 2. smoothing image if necessary
