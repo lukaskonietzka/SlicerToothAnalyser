@@ -99,7 +99,6 @@ def downsample_2_numba(
     in_array (ndarray): The input 3D array to be downsampled.
     use_median (bool): Use median value if true. otherwise use mean.
 
-
     Returns:
         out_array (ndarray): The output 3D array where the downsampled
             values are stored.
@@ -168,15 +167,16 @@ def downsample_2(
     median filtering to the voxels of the input image.
 
     Args:
-        in_file_name (str): Name of the input image to read.
-        out_file_name (str): Name of the output image to write.
+        input_image (Image): The image to be down sampled.
         use_median (bool): Apply median filtering. Default is False
             (apply  grey value averaging).
         adapt_origin (bool): Adapt origin of output image to new resolution.
             Default ist True (perform origin adaption).
         convert_to_uint8: Rescale grey values to 0..255 and cast to uint8.
+
+    @return
+        out_image (Image): The image that has been down sampled
     """
-    #in_im = sitk.ReadImage(in_file_name)
     in_im = input_image
     in_im_array = sitk.GetArrayFromImage(in_im)
     out_im_array = downsample_2_numba(in_im_array, use_median)
@@ -196,7 +196,6 @@ def downsample_2(
         if not use_median:
             out_im = sitk.RescaleIntensity(out_im, 0, 255)
         out_im = sitk.Cast(out_im, sitk.sitkUInt8)
-    #sitk.WriteImage(out_im, out_file_name)
     return out_im
 
 
