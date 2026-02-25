@@ -94,6 +94,15 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
+
+@parameterPack
+class PreProcessing:
+    """
+    The Parameter needed by the section
+    Pre Processing
+    """
+    compress: bool
+
 # ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
 class AnatomicalParameters:
@@ -120,6 +129,7 @@ class ToothAnalyserParameterNode:
     All parameters needed by module
     separated in: analytical, anatomical, batch
     """
+    pre: PreProcessing
     anatomical: AnatomicalParameters
     currentImage: vtkMRMLScalarVolumeNode
     segmentation: Annotated[str, Choice(["Anatomical Segmentation", "Caries Segmentation"])] = "Anatomical Segmentation"
@@ -357,7 +367,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.apply.enabled = not isVisible
         self.ui.applyBatch.enabled = not isVisible
 
-        self.ui.status.setVisible(isVisible)
+        #self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
@@ -391,7 +401,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         This methode is called when the apply button is pressed
         """
-        self._param.status = "start anatomical segmentation..."
         self.handleProgressBarRange()
         self.activateComputingMode(True)
         with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
@@ -731,13 +740,13 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             self.createTemporaryStorageNode(param)
             sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
 
-        param.status = "processing..."
         slicer.app.processEvents()
 
         segmentationStep = calcSegmentationGen(
             sourcePath=sourcePath,
             selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
-            calcMedialSurfaces=param.anatomical.calcMidSurface)
+            calcMedialSurfaces=param.anatomical.calcMidSurface,
+            compress=param.pre.compress)
 
         while True:
             result = next(segmentationStep)
@@ -865,7 +874,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         fileType = param.batch.fileType
         files = self.collectFiles(sourcePath, self._fileTypes)
         numOfFiles = len(files)
-        param.status = "detecting " + str(numOfFiles) + "files"
 
         # Create result directory
         targetDirectory = self.createDirectory(

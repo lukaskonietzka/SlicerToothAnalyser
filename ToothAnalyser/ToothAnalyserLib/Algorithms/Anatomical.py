@@ -776,23 +776,24 @@ def dentinMedialSurface(dentin_layers: any) -> Image:
 
 
 # ----- Calculate Segmentation Pipeline ----- #
-def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfaces: bool):
+def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfaces: bool = False, compress: bool = False):
     """
     This Method combines all segmentation steps and store dem in a dictionary.
     This dictionary can be used in the ToothAnalyser Core application
     @param sourcePath:
     @param selectedAlgorithm:
     @param calcMedialSurfaces:
+    @param compress:
     @return:
     """
 
     # 1. load and filter image
     img, name = loadImage(sourcePath)
     print("type: ", img.GetPixelIDTypeAsString())
-
     yield 1
 
-    if pixelTypeID(img) != 1:
+    # 2. compress if needed
+    if compress:
         print("down sampling...")
         img = downsample_2(
             input_image=img,
@@ -802,46 +803,46 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
         )
     yield 2
 
-    # 2. smoothing image if necessary
+    # 3. smoothing image if necessary
     if isSmoothed(img):
         img_smooth = img
     else:
         img_smooth = smoothImage(img)
     yield 3
-    # 3. extract the tooth from the background
+    # 4. extract the tooth from the background
     tooth, tooth_masked = imageMask(img, img_smooth)
     tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
     yield 4
 
-    # 4. select enamel area
+    # 5. select enamel area
     enamel_select = enamelSelect(selectedAlgorithm, tooth_masked, tooth)
     enamel_smooth_select = enamelSmoothSelect(selectedAlgorithm, tooth_smooth_masked)
     yield 5
 
-    # 5. stack the enamels
+    # 6. stack the enamels
     enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
     yield 6
 
-    # 6. Prepare the enamel
+    # 7. Prepare the enamel
     enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
     yield 7
 
-    # 7. Filling of small structures within the tooth
+    # 8. Filling of small structures within the tooth
     contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
     yield 8
 
-    # 8. Filling of small structures within the tooth, important with many datasets
+    # 9. Filling of small structures within the tooth, important with many datasets
     enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
     yield 9
 
-    # 9. generate dentin segment
+    # 10. generate dentin segment
     dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
     yield 10
 
-    # 10. generate label file for segmentation
+    # 11. generate label file for segmentation
     segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
-    # 11. generating medial surface for enamel and dentin if needed
+    # 12. generating medial surface for enamel and dentin if needed
     if calcMedialSurfaces:
         yield 11
 
@@ -853,7 +854,7 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
         enamelMidSurface = None
         dentinMidSurface = None
 
-    # 11. generate tooth dictionary to store all generated data sets local
+    # 13. generate tooth dictionary to store all generated data sets local
     filter1 = selectedAlgorithm.lower()
     filter2 = selectedAlgorithm.lower()
 
@@ -882,7 +883,7 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
 
     #writeToothDict(
     #    tooth=tooth_dict,
-    #    path= '/Users/lukas/Documents/test',
+    #    path= '/Users/lukas/Documents/test',‚
     #    calcMidSurface=False,
     #    fileType='.nrrd'
     #)

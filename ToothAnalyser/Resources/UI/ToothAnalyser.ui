@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>396</width>
-    <height>510</height>
+    <height>540</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -93,6 +93,18 @@
      <property name="text">
       <string>Pre Processing</string>
      </property>
+     <layout class="QFormLayout" name="formLayout_4">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="cbxCompress">
+        <property name="text">
+         <string>Compress</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>pre.compress</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
