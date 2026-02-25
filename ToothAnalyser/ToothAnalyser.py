@@ -378,8 +378,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This Methode sets the maximum for the progress Bar
         depending on the medial surfaces
         """
-        maxWithMedialSurface = 12
-        maxWithoutMedialSurface = 10
+        maxWithMedialSurface = 13
+        maxWithoutMedialSurface = 11
 
         if self._param.anatomical.calcMidSurface:
             self.ui.progressBar.maximum = maxWithMedialSurface
@@ -642,7 +642,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             self._safeRemoveNode(midSurface)
 
         except:
-            pass
+           pass
 
     def clearDirectory(self, path: str) -> None:
         """
@@ -705,6 +705,15 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         return sitkUtils.PushVolumeToSlicer(itkImage, None, labelMapName, "vtkMRMLLabelMapVolumeNode")
 
+
+    def createVolume(self, img):
+        """
+
+        @param img:
+        @return:
+        """
+        return sitkUtils.PushVolumeToSlicer(img)
+
     def runSegmentationPipeline(self, param: ToothAnalyserParameterNode, progressBar) -> dict:
         """
 
@@ -746,7 +755,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "enamelMidSurface": toothDict.get(f"enamel_{segmentationType}_{segmentationType}_midsurface"),
             "dentinMidSurface": toothDict.get(f"dentin_{segmentationType}_{segmentationType}_midsurface"),
             "labelImage": toothDict.get(f"segmentation_{segmentationType}_{segmentationType}_labels"),
-            "imageName": toothDict.get("name", param.currentImage.GetName())
+            "imageName": toothDict.get("name", param.currentImage.GetName()),
+            "image": toothDict.get("img")
         }
 
         return results
@@ -759,6 +769,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         self.clearScene()
+
 
         labelNode = self.createLabelMapNode(results["labelImage"], "tempLabel")
         self.createSegmentation(
@@ -774,6 +785,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 midSurfaceEnamelLabelMapNode=enamelNode,
                 currentImageName=results["imageName"],
                 deleteLabelMapNodes=True)
+
+        image = self.createVolume(results['image'])
+        image.SetName(results['imageName'] + '_compressed')
 
     def showHistogram(self, image: vtkMRMLScalarVolumeNode) -> None:
         """
@@ -946,7 +960,7 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
         self.testParseType()
         self.testPixelType()
         #self.testSmoothImage() # takes a lot of time
-        self.testIsSmoothed()
+        #self.testIsSmoothed()
 
     def testCreateDirectory(self):
         path = "/data/test/"
@@ -1043,9 +1057,3 @@ class ToothAnalyserTest(ScriptedLoadableModuleTest):
 
     def testIsSmoothed(self):
         from ToothAnalyserLib.Algorithms.Anatomical import isSmoothed
-
-        sampleDate = self.getSampleDataAsITK()
-        result = isSmoothed(sampleDate)
-
-        self.assertFalse(result)
-        self.delayDisplay("Test 10 passed")

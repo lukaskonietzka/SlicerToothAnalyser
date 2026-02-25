@@ -279,6 +279,14 @@ def pixelType(img: Image) -> str:
     """
     return img.GetPixelIDTypeAsString()
 
+def pixelTypeID(img: Image) -> int:
+    """
+    Retrieves the pixel type of the given image as an ID
+    @param img: The input image whose pixel type is to be retrieved
+    @return: An integer representing the pixel type of the image (e.g., 1, 2)
+    """
+    return img.GetPixelID()
+
 
 # ----- Context component ----- #
 def ccMinSize(img: any, size: int=10) -> Image:
@@ -395,7 +403,7 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -
         elif key == "enamel_otsu" or key == "enamel_renyi":
             pass
         elif "smooth" in key:
-            pass
+            write(tooth[key], name + "_" + key, path, fileType)
         elif "layers" in key:
             write(tooth[key], name + "_" + key, path, fileType)
         elif "midsurface" in key and not calcMidSurface:
@@ -781,62 +789,64 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
     # 1. load and filter image
     img, name = loadImage(sourcePath)
     print("type: ", img.GetPixelIDTypeAsString())
-    print("down sampling...")
 
-    img = downsample_2(
-        input_image=img,
-        use_median=False,
-        adapt_origin=True,
-        convert_to_uint8=True
-    )
     yield 1
+
+    if pixelTypeID(img) != 1:
+        print("down sampling...")
+        img = downsample_2(
+            input_image=img,
+            use_median=False,
+            adapt_origin=True,
+            convert_to_uint8=True
+        )
+    yield 2
 
     # 2. smoothing image if necessary
     if isSmoothed(img):
         img_smooth = img
     else:
         img_smooth = smoothImage(img)
-    yield 2
-
+    yield 3
     # 3. extract the tooth from the background
     tooth, tooth_masked = imageMask(img, img_smooth)
     tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
-    yield 3
+    yield 4
 
     # 4. select enamel area
     enamel_select = enamelSelect(selectedAlgorithm, tooth_masked, tooth)
     enamel_smooth_select = enamelSmoothSelect(selectedAlgorithm, tooth_smooth_masked)
-    yield 4
+    yield 5
 
     # 5. stack the enamels
     enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
-    yield 5
+    yield 6
 
     # 6. Prepare the enamel
     enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
-    yield 6
+    yield 7
 
     # 7. Filling of small structures within the tooth
     contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
-    yield 7
+    yield 8
 
     # 8. Filling of small structures within the tooth, important with many datasets
     enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
-    yield 8
+    yield 9
 
     # 9. generate dentin segment
     dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
-    yield 9
+    yield 10
 
     # 10. generate label file for segmentation
     segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
 
     # 11. generating medial surface for enamel and dentin if needed
     if calcMedialSurfaces:
-        yield 10
+        yield 11
 
         enamelMidSurface = enamelMedialSurface(enamel_layers)
-        yield 11
+        yield 12
 
         dentinMidSurface = dentinMedialSurface(dentin_layers)
     else:
@@ -869,4 +879,12 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
         enamelMidSurfaceKey: enamelMidSurface,
         dentinMidSurfaceKey: dentinMidSurface
     }
+
+    #writeToothDict(
+    #    tooth=tooth_dict,
+    #    path= '/Users/lukas/Documents/test',
+    #    calcMidSurface=False,
+    #    fileType='.nrrd'
+    #)
+
     yield tooth_dict
