@@ -29,7 +29,6 @@ class ToothAnalyserTestMixin:
             "testHandleApplyButton",
             "testHandleSegmentation",
             "testHandleProgressBarRange",
-            "testActivateComputingMode",
             "testSafeRemoveNode",
             "testClearSceneRemovesMatchingNodes",
             "testCollectFilesFiltersSupportedExtensions",
@@ -67,7 +66,6 @@ class ToothAnalyserTestMixin:
 
         ui = SimpleNamespace(
             apply=self._UiFlag(visible=True, enabled=True),
-            applyBatch=self._UiFlag(visible=True, enabled=True),
             status=self._UiFlag(visible=False, enabled=False),
             preProcessingCollapsible=self._UiFlag(visible=False),
             batchCollapsible=self._UiFlag(visible=False),
@@ -85,6 +83,7 @@ class ToothAnalyserTestMixin:
         )
 
         widget = SimpleNamespace(ui=ui, _param=param)
+        widget.handleApplyButton = lambda: None
         return widget
 
     def testAlgorithmSelection(self):
@@ -171,6 +170,10 @@ class ToothAnalyserTestMixin:
         self.ToothAnalyserWidget.handleApplyButton(widget)
         self.assertFalse(widget.ui.apply.enabled)
 
+        widget._param.isBatch = True
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertTrue(widget.ui.apply.enabled)
+
         widget._param.currentImage = object()
         widget.ui.status.setVisible(True)
         self.ToothAnalyserWidget.handleApplyButton(widget)
@@ -203,22 +206,6 @@ class ToothAnalyserTestMixin:
         widget._param.anatomical.calcMidSurface = False
         self.ToothAnalyserWidget.handleProgressBarRange(widget)
         self.assertEqual(widget.ui.progressBar.maximum, 11)
-
-    def testActivateComputingMode(self):
-        """Test UI state toggles when computing mode is activated/deactivated."""
-        widget = self._createWidgetStub()
-        widget.handleApplyButton = lambda: None
-        self.ToothAnalyserWidget.activateComputingMode(widget, True)
-        self.assertTrue(widget.ui.progressBar.enabled)
-        self.assertTrue(widget.ui.progressBar.isVisible())
-        self.assertFalse(widget.ui.apply.enabled)
-        self.assertFalse(widget.ui.applyBatch.enabled)
-
-        self.ToothAnalyserWidget.activateComputingMode(widget, False)
-        self.assertFalse(widget.ui.progressBar.enabled)
-        self.assertFalse(widget.ui.progressBar.isVisible())
-        self.assertTrue(widget.ui.apply.enabled)
-        self.assertTrue(widget.ui.applyBatch.enabled)
 
     def testSafeRemoveNode(self):
         """Test _safeRemoveNode removes nodes only when they are in a scene."""

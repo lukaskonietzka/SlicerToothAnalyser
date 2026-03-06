@@ -339,15 +339,15 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def handleApplyButton(self):
         """
-        Enable the "Apply Anatomical" Button, if an image is
-        loaded to the scene.
+        Enable the apply button when either batch mode is enabled
+        or an image is loaded, unless processing is currently active.
         """
-        if not self._param.currentImage:
+        if self.ui.status.isVisible():
             self.ui.apply.enabled = False
-        elif self.ui.status.isVisible():
-            self.ui.apply.enabled = False
-        else:
+        elif self._param.isBatch or self._param.currentImage:
             self.ui.apply.enabled = True
+        else:
+            self.ui.apply.enabled = False
 
     def validateBatchSettings(self, paramsToCheck: dict) -> bool:
         """
@@ -368,7 +368,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.enabled = isVisible
 
         self.ui.apply.enabled = not isVisible
-        self.ui.applyBatch.enabled = not isVisible
 
         #self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
