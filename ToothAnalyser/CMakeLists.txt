@@ -4,6 +4,7 @@ set(MODULE_NAME ToothAnalyser)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
+  Testing/Python/${MODULE_NAME}Tests.py
   )
 
 set(MODULE_PYTHON_RESOURCES

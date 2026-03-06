@@ -47,10 +47,13 @@ module_dir = os.path.dirname(__file__)
 
 # Pfad zum Library-Ordner (ToothAnalyserLib)
 lib_path = os.path.join(module_dir, 'ToothAnalyserLib')
+test_path = os.path.join(module_dir, 'Testing', 'Python')
 
 # Falls noch nicht im sys.path, hinzufügen
 if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
+if test_path not in sys.path:
+    sys.path.insert(0, test_path)
 
 
 # ----- Tooth Analyser meta information ----- #
@@ -945,131 +948,13 @@ class CariesSegmentation(ToothAnalyserLogic):
 
 
 # ----- Tooth Analyser Tests ----- #
-class ToothAnalyserTest(ScriptedLoadableModuleTest):
-    """
-    This is the test case for your scripted module.
-    Uses ScriptedLoadableModuleTest base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
+from Testing.Python.ToothAnalyserTests import ToothAnalyserTestMixin
 
-    def setUp(self):
-        """Do whatever is needed to reset the state - typically a scene clear will be enough."""
-        slicer.mrmlScene.Clear()
-        self.loadSampleData()
 
-    def loadSampleData(self):
-        import SampleData
-        self.delayDisplay("loading sample data. This will take some minutes...")
-        return SampleData.downloadSample('ToothCrownMicroCT')
+class ToothAnalyserTest(ToothAnalyserTestMixin, ScriptedLoadableModuleTest):
+    """Wrapper class so Slicer's Reload-and-Test discovers module tests."""
 
-    def getSampleDataAsITK(self):
-        node = slicer.util.getFirstNodeByName("ToothCrownMicroCT")
-        self.delayDisplay("Setting up test suit...")
-        return sitkUtils.PullVolumeFromSlicer(node)
-
-    def runTest(self):
-        """Run as few or as many tests as needed here."""
-        self.setUp()
-        self.testValidateBatchSettingsOneEnabled()
-        self.testValidateBatchSettingsOneDisabled()
-        self.testParsName()
-        self.testParseType()
-        self.testPixelType()
-        #self.testSmoothImage() # takes a lot of time
-        #self.testIsSmoothed()
-
-    def testCreateDirectory(self):
-        path = "/data/test/"
-        directoryName = "new_folder"
-        expectedDirectory = "/data/test/new_folder/"
-        anatomicalSeg = AnatomicalSegmentationLogic()
-        result = anatomicalSeg.createDirectory(path, directoryName)
-
-        self.assertEqual(result, expectedDirectory)
-        self.delayDisplay("Test 2 passed")
-
-    def testValidateBatchSettingsOneEnabled(self):
-        from unittest.mock import MagicMock
-
-        self.mockedClass = MagicMock()
-        params = {
-            "option1": False,
-            "option2": True,
-            "option3": False
-        }
-        result = self.mockedClass.validateBatchSettings(params)
-
-        self.assertTrue(result)
-        self.delayDisplay("Test 3 passed")
-
-    def testValidateBatchSettingsOneDisabled(self):
-        from unittest.mock import MagicMock
-
-        self.mockedClass = MagicMock()
-        params = {
-            "option1": False,
-            "option2": False,
-            "option3": False
-        }
-        result = self.mockedClass.validateBatchSettings(params)
-
-        self.assertTrue(result)
-        self.delayDisplay("Test 4 passed")
-
-    def testParsName(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import parseName
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "P01A-C0005278"
-        result = parseName(path)
-        self.assertEqual(result, expectation)
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "P01A-C0005278.ISQ"
-        result = parseName(path)
-        self.assertNotEqual(result, expectation)
-
-        self.delayDisplay("Test 5 passed")
-
-    def testParseType(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import parseTyp
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "isq"
-        result = parseTyp(path)
-        self.assertEqual(expectation, result)
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "ISQ"
-        result = parseTyp(path)
-        self.assertNotEqual(expectation, result)
-
-        self.delayDisplay("Test 6 passed")
-
-    def testPixelType(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import pixelType
-
-        sampleDate = self.getSampleDataAsITK()
-        expectation = sampleDate.GetPixelIDTypeAsString()
-        result = pixelType(sampleDate)
-
-        self.assertEqual(expectation, result)
-        self.delayDisplay("Test 8 passed")
-
-    def testSmoothImage(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import smoothImage
-        import numpy as np
-        import SimpleITK as sitk
-
-        sampleData = self.getSampleDataAsITK()
-        self.delayDisplay("filtering image...")
-        sampleDataFiltered = smoothImage(sampleData)
-
-        sampleData_std_dev = np.std(sitk.GetArrayFromImage(sampleData))
-        sampleDataFiltered_std_dev = np.std(sitk.GetArrayFromImage(sampleDataFiltered))
-
-        self.assertTrue(sampleDataFiltered_std_dev < sampleData_std_dev)
-        self.delayDisplay("Test 9 passed")
-
-    def testIsSmoothed(self):
-        from ToothAnalyserLib.Algorithms.Anatomical import isSmoothed
+    ToothAnalyserLogic = ToothAnalyserLogic
+    ToothAnalyserWidget = ToothAnalyserWidget
+    AnatomicalSegmentationLogic = AnatomicalSegmentationLogic
+    CariesSegmentation = CariesSegmentation
