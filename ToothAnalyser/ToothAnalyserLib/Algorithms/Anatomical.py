@@ -137,8 +137,8 @@ def parseTyp(path: str) -> str:
         fileType = parseType(path)
         fileType -> 'ISQ'
     """
-    fileType = os.path.basename(path).rsplit('.', 1)[1]
-    return fileType.lower()
+    _, extension = os.path.splitext(os.path.basename(path))
+    return extension.lstrip(".").lower()
 
 
 # ----- Morphological filters ----- #

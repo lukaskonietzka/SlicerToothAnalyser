@@ -893,7 +893,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 directoryName=fileName)
 
             segmentationStep = calcSegmentationGen(
-                sourcePath=sourcePath,
+                sourcePath=fullFilePath,
                 selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
                 calcMedialSurfaces=param.anatomical.calcMidSurface)
 
