@@ -497,7 +497,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     _anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
     _midSurfaceName: str = "_MedialSurface_"
     _segmentNames: list[str] = ["Dentin", "Enamel"]
-    _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", "nii")
+    _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", ".nii")
 
     def __str__(self):
         return "Anatomical Segmentation"
@@ -509,7 +509,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     def warning(self, msg: str) -> None:
         slicer.util.warningDisplay(msg)
 
-    def collectFiles(self, path: str, suffix: tuple) -> list:
+    def collectFiles(self, path: str, suffix: tuple[str, ...]) -> list[str]:
         """
         Loads all data with the given suffix from the given path
         @param path: the path to the directory where the files are located
@@ -523,7 +523,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         files = []
         if os.path.exists(path):
-            files = sorted([f for f in os.listdir(path) if f.endswith(suffix)])
+            normalizedSuffix = tuple(
+                s.lower() if s.startswith(".") else f".{s.lower()}" for s in suffix
+            )
+            files = sorted([
+                f for f in os.listdir(path)
+                if os.path.isfile(os.path.join(path, f))
+                and os.path.splitext(f)[1].lower() in normalizedSuffix
+            ])
         return files
 
     def _safeRemoveNode(self, node):
@@ -684,7 +691,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         :param directoryName: The name of the new directory
         :return targetDirectory: The absolut path to the created directory
         """
-        targetDirectory = path + directoryName + "/"
+        targetDirectory = os.path.join(path, directoryName) + os.sep
         try:
             os.makedirs(targetDirectory, exist_ok=True)
         except Exception as e:
@@ -871,9 +878,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
         segmentationType = param.anatomical.selectedAnatomicalAlgo
-        fileType = param.batch.fileType
         files = self.collectFiles(sourcePath, self._fileTypes)
-        numOfFiles = len(files)
+        if not files:
+            self.warning("No supported input files found in source directory.")
+            return
 
         # Create result directory
         targetDirectory = self.createDirectory(
@@ -885,34 +893,41 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         for file in files:
             fileName = parseName(file)
-            fullFilePath = sourcePath + "/" + file
+            fullFilePath = os.path.join(sourcePath, file)
 
             # create directory for each File to be calculated
             targetFileDirectory = self.createDirectory(
                 path=targetDirectory,
                 directoryName=fileName)
 
-            segmentationStep = calcSegmentationGen(
-                sourcePath=fullFilePath,
-                selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
-                calcMedialSurfaces=param.anatomical.calcMidSurface)
+            try:
+                segmentationStep = calcSegmentationGen(
+                    sourcePath=fullFilePath,
+                    selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
+                    calcMedialSurfaces=param.anatomical.calcMidSurface)
 
-            while True:
-                result = next(segmentationStep)
+                while True:
+                    result = next(segmentationStep)
 
-                if isinstance(result, dict):
-                    toothDict = result
-                    break
-                else:
+                    if isinstance(result, dict):
+                        toothDict = result
+                        break
+
                     progressBar.value = result
                     slicer.app.processEvents()
 
-            writeToothDict(
-                tooth=toothDict,
-                path=targetFileDirectory,
-                calcMidSurface=param.anatomical.calcMidSurface,
-                fileType=param.batch.fileType)
-            toothDictName = toothDict['name']
+                writeToothDict(
+                    tooth=toothDict,
+                    path=targetFileDirectory,
+                    calcMidSurface=param.anatomical.calcMidSurface,
+                    fileType=param.batch.fileType)
+            except StopIteration:
+                self.warning(f"Skipping '{file}': segmentation finished without result.")
+                continue
+            except Exception as e:
+                logging.exception("Batch processing failed for '%s'", fullFilePath)
+                self.warning(f"Skipping '{file}': {e}")
+                continue
 
 
 class CariesSegmentation(ToothAnalyserLogic):
