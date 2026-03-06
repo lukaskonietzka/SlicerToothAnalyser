@@ -63,6 +63,7 @@ def _label_stats_numba(
     arr2: np.ndarray,
     label_array: np.ndarray,
 ):
+    """Compute global and per-label IoU/Dice values for two label arrays."""
     intersection_array = np.zeros(
         shape=(label_array.shape[0]), dtype=np.uint64
     )
@@ -152,6 +153,7 @@ def store_segmentation_metrics(
 def _process_image_pair(
     im1_name: str, im2_name: str, pattern: str, out_file: TextIO
 ):
+    """Load, validate, optionally downsample, and score one image pair."""
     im1 = sitk.ReadImage(im1_name)
     im2 = sitk.ReadImage(im2_name)
     im1_basename = os.path.basename(im1_name)

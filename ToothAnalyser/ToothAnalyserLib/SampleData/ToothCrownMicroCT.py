@@ -21,10 +21,10 @@ import os
 
 def registerToothCrownMicroCT():
     """
-    This Methode provides sample Data for the module tests
-    To ensure that the source code repository remains small
-    (can be downloaded and installed quickly) it is recommended to
-    store data sets that are larger than a few MB in a GitHub release.
+    Register the raw Tooth Crown MicroCT sample dataset in 3D Slicer.
+
+    The sample is hosted in a GitHub release to keep the extension
+    repository lightweight and fast to clone.
     """
 
     iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
@@ -43,10 +43,10 @@ def registerToothCrownMicroCT():
 
 def registerToothCrownMicroCT8Bit():
     """
-    This Methode provides sample Data for the module tests
-    To ensure that the source code repository remains small
-    (can be downloaded and installed quickly) it is recommended to
-    store data sets that are larger than a few MB in a GitHub release.
+    Register the 8-bit Tooth Crown MicroCT sample dataset in 3D Slicer.
+
+    The sample is hosted in a GitHub release to keep the extension
+    repository lightweight and fast to clone.
     """
 
     iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")

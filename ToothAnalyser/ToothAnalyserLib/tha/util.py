@@ -161,6 +161,7 @@ def corresponding_files_main():
 def _array_profiles(
     image: sitk.Image, centre_pos: Sequence[int]
 ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+    """Extract one intensity profile per axis through a shared center voxel."""
     image_spacing = image.GetSpacing()[::-1]
     image_size = image.GetSize()[::-1]
     grey_array = sitk.GetArrayFromImage(image)
@@ -187,6 +188,7 @@ def _plot_profiles(
     title: str,
     axes_names: Sequence[str],
 ) -> None:
+    """Plot axis-wise profile sets using one matplotlib figure per axis."""
     plots = []
     figures = []
     for _ in range(len(axes_names)):

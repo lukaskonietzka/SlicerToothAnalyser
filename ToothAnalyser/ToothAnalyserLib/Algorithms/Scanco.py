@@ -148,6 +148,7 @@ def isq_to_mhd_as_string(isq_file_name) -> str:
 
 
 def main():
+    """Run CLI conversion from ISQ to MHD using command-line arguments."""
     if len(sys.argv) != 3:
         print('usage: isq_to_mhd isq_file_name mhd_file_name')
         sys.exit(0)
