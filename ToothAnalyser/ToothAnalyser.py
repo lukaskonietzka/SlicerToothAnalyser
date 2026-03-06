@@ -730,7 +730,11 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         return sitkUtils.PushVolumeToSlicer(img)
 
-    def runSegmentationPipeline(self, param: ToothAnalyserParameterNode, progressBar) -> dict:
+    def runSegmentationPipeline(
+            self,
+            param: ToothAnalyserParameterNode,
+            progressBar,
+            sourcePath: Optional[str] = None) -> dict:
         """
 
         @param param:
@@ -741,11 +745,12 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
 
-        try:
-            sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
-        except Exception:
-            self.createTemporaryStorageNode(param)
-            sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
+        if sourcePath is None:
+            try:
+                sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
+            except Exception:
+                self.createTemporaryStorageNode(param)
+                sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
 
         slicer.app.processEvents()
 
@@ -771,8 +776,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "enamelMidSurface": toothDict.get(f"enamel_{segmentationType}_{segmentationType}_midsurface"),
             "dentinMidSurface": toothDict.get(f"dentin_{segmentationType}_{segmentationType}_midsurface"),
             "labelImage": toothDict.get(f"segmentation_{segmentationType}_{segmentationType}_labels"),
-            "imageName": toothDict.get("name", param.currentImage.GetName()),
-            "image": toothDict.get("img")
+            "imageName": toothDict.get("name", os.path.basename(sourcePath)),
+            "image": toothDict.get("img"),
+            "toothDict": toothDict
         }
 
         return results
@@ -866,7 +872,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.Algorithms.Anatomical import parseName, writeToothDict, calcSegmentationGen
+        from ToothAnalyserLib.Algorithms.Anatomical import writeToothDict
 
         # create local variables for all parameters
         if not os.path.isdir(param.batch.sourcePath):
@@ -892,38 +898,25 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         self.clearDirectory(targetDirectory)
 
         for file in files:
-            fileName = parseName(file)
             fullFilePath = os.path.join(sourcePath, file)
 
-            # create directory for each File to be calculated
-            targetFileDirectory = self.createDirectory(
-                path=targetDirectory,
-                directoryName=fileName)
-
             try:
-                segmentationStep = calcSegmentationGen(
-                    sourcePath=fullFilePath,
-                    selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
-                    calcMedialSurfaces=param.anatomical.calcMidSurface)
+                segmentationResults = self.runSegmentationPipeline(
+                    param=param,
+                    progressBar=progressBar,
+                    sourcePath=fullFilePath)
+                toothDict = segmentationResults["toothDict"]
 
-                while True:
-                    result = next(segmentationStep)
-
-                    if isinstance(result, dict):
-                        toothDict = result
-                        break
-
-                    progressBar.value = result
-                    slicer.app.processEvents()
+                # create directory for each File to be calculated
+                targetFileDirectory = self.createDirectory(
+                    path=targetDirectory,
+                    directoryName=segmentationResults["imageName"])
 
                 writeToothDict(
                     tooth=toothDict,
                     path=targetFileDirectory,
                     calcMidSurface=param.anatomical.calcMidSurface,
                     fileType=param.batch.fileType)
-            except StopIteration:
-                self.warning(f"Skipping '{file}': segmentation finished without result.")
-                continue
             except Exception as e:
                 logging.exception("Batch processing failed for '%s'", fullFilePath)
                 self.warning(f"Skipping '{file}': {e}")
