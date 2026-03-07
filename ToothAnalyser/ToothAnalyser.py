@@ -790,7 +790,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             results["stlPath"] = createSTL(
                 labelImage=results["labelImage"],
                 outputDirectory=stlDirectory,
-                fileName=stlFileName
+                fileName=stlFileName,
+                printMode=True
             )
             stlWarnings = validateSTL(results["stlPath"])
             results["stlWarnings"] = stlWarnings

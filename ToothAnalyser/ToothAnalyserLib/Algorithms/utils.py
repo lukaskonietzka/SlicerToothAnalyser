@@ -40,7 +40,12 @@ def measure_time(func):
     return wrapper
 
 
-def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") -> str:
+def createSTL(
+    labelImage,
+    outputDirectory: str,
+    fileName: str = "segmentation",
+    printMode: bool = True
+) -> str:
     """
     Create an STL mesh from a SimpleITK label image.
 
@@ -51,7 +56,10 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
     import numpy as np
     import SimpleITK as sitk
     import vtk
-    from vtkmodules.util import numpy_support
+    try:
+        from vtkmodules.util import numpy_support
+    except ImportError:
+        from vtk.util import numpy_support
 
 
     if labelImage is None:
@@ -89,7 +97,7 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
     if polyData is None or polyData.GetNumberOfPoints() == 0 or polyData.GetNumberOfCells() == 0:
         raise ValueError("Surface extraction failed (empty mesh).")
 
-    def repairPolyData(inputPolyData, holeSize: float):
+    def repairPolyData(inputPolyData, holeSize: float, enablePrintMode: bool):
         triangle = vtk.vtkTriangleFilter()
         triangle.SetInputData(inputPolyData)
         triangle.PassVertsOff()
@@ -110,8 +118,33 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
         fillHoles.SetHoleSize(holeSize)
         fillHoles.Update()
 
+        processingOutputPort = fillHoles.GetOutputPort()
+
+        if enablePrintMode:
+            # Print mode: smooth staircase artifacts from voxels.
+            smooth = vtk.vtkWindowedSincPolyDataFilter()
+            smooth.SetInputConnection(processingOutputPort)
+            smooth.SetNumberOfIterations(20)
+            smooth.SetPassBand(0.08)
+            smooth.BoundarySmoothingOff()
+            smooth.FeatureEdgeSmoothingOff()
+            smooth.NonManifoldSmoothingOn()
+            smooth.NormalizeCoordinatesOn()
+            smooth.Update()
+            processingOutputPort = smooth.GetOutputPort()
+
+            # Print mode: reduce triangle count while preserving topology.
+            decimate = vtk.vtkDecimatePro()
+            decimate.SetInputConnection(processingOutputPort)
+            decimate.SetTargetReduction(0.15)
+            decimate.PreserveTopologyOn()
+            decimate.SplittingOff()
+            decimate.BoundaryVertexDeletionOff()
+            decimate.Update()
+            processingOutputPort = decimate.GetOutputPort()
+
         normals = vtk.vtkPolyDataNormals()
-        normals.SetInputConnection(fillHoles.GetOutputPort())
+        normals.SetInputConnection(processingOutputPort)
         normals.ConsistencyOn()
         normals.AutoOrientNormalsOn()
         normals.SplittingOff()
@@ -157,10 +190,10 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
 
         return warnings
 
-    repaired = repairPolyData(polyData, holeSize=100.0)
+    repaired = repairPolyData(polyData, holeSize=100.0, enablePrintMode=printMode)
     issues = validatePolyData(repaired)
     if issues:
-        repaired = repairPolyData(repaired, holeSize=10000.0)
+        repaired = repairPolyData(repaired, holeSize=10000.0, enablePrintMode=printMode)
         issues = validatePolyData(repaired)
     if issues:
         raise ValueError(
