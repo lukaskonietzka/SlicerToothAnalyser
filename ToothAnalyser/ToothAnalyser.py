@@ -348,8 +348,10 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.apply.enabled = False
         elif self._param.isBatch or self._param.currentImage:
             self.ui.apply.enabled = True
+            self.ui.apply.text = "Apply Batch"
         else:
             self.ui.apply.enabled = False
+            self.ui.apply.text = "Apply"
 
     def validateBatchSettings(self, paramsToCheck: dict) -> bool:
         """
@@ -740,6 +742,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def createTemporaryStorageNode(self, param):
         """
+        This methode creates a storage node, to cache the sample data
 
         @param param:
         @return:
@@ -754,6 +757,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def createLabelMapNode(self, itkImage, labelMapName: str) -> any:
         """
+        This methode creates a Slicer labelMapNode starting from itk
 
         @param itkImage:
         @param labelMapName:
@@ -764,6 +768,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def createVolume(self, img):
         """
+        This method creates a Slicer volume starting form an itk
 
         @param img:
         @return:
@@ -776,6 +781,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             progressBar,
             sourcePath: Optional[str] = None) -> dict:
         """
+        This methode executes the segmentation pipeline and provide the
+        results in a dictionary
 
         @param param:
         @param progressBar:
@@ -810,7 +817,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 progressBar.value = result
                 slicer.app.processEvents()
 
-        # Ergebnisse extrahieren
+        # provide results in dict
         results = {
             "segmentationType": segmentationType,
             "enamelMidSurface": toothDict.get(f"enamel_{segmentationType}_{segmentationType}_midsurface"),
@@ -825,6 +832,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def loadResultsToScene(self, results: dict, param: ToothAnalyserParameterNode) -> None:
         """
+        This methode takes the results from the segmentation pipeline and
+        load it to the Slicer scene.
 
         @param results:
         @param param:
@@ -867,43 +876,9 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             param.currentImage = compressedNode
             self._safeRemoveNode(oldNode)
 
-    def showHistogram(self, image: vtkMRMLScalarVolumeNode) -> None:
-        """
-        This Methode creates a histogram from the current selected Volume
-        @param image: the image for which a histogram is required
-        """
-        import numpy as np
-        from collections import namedtuple
-
-        AxisFitting = namedtuple('AxisFitting', ['x', 'y'])
-        axes = AxisFitting(x="Intensity", y="Frequency")
-
-        # create histogram data
-        imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins= 80)
-
-        # create plot
-        chartNode = slicer.util.plot(
-            narray=histogram,
-            xColumnIndex=1,
-            columnNames=[axes.x, axes.y],
-            title=image.GetName() + "_Histogram")
-
-        # set properties for chartNode
-        chartNode.SetTitle("Histogram of Image: " + image.GetName())
-        chartNode.SetYAxisTitle(axes.y)
-        chartNode.SetXAxisTitle(axes.x)
-        chartNode.SetLegendVisibility(True)
-        chartNode.SetYAxisRange(0, 100)
-        chartNode.SetXAxisRange(0, 100)
-        # set properties for  plot series
-        plotSeries = getNode("*PlotSeries*")
-        plotSeries.SetName(axes.y)
-
-
     def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """
-
+        Execute the algorithm by clicking the "apply" Button.
         @param param:
         @param progressBar:
         @return:
@@ -923,6 +898,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         This method starts the pipeline to compute all files in batch process
         @param param: all parameters from the user interface (UI)
+        @param progressBar
         @return: None
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
