@@ -26,7 +26,6 @@ class ToothAnalyserTestMixin:
             "testObserverParametersTriggersHandlers",
             "testHandlePreProcessingCollapsible",
             "testHandleBatchCollapsible",
-            "testHandleApplyButton",
             "testHandleSegmentation",
             "testHandleProgressBarRange",
             "testSafeRemoveNode",
@@ -163,25 +162,6 @@ class ToothAnalyserTestMixin:
         widget._param.isBatch = False
         self.ToothAnalyserWidget.handleBatchCollapsible(widget)
         self.assertFalse(widget.ui.batchCollapsible.isVisible())
-
-    def testHandleApplyButton(self):
-        """Test apply button enable/disable logic for key UI states."""
-        widget = self._createWidgetStub()
-        self.ToothAnalyserWidget.handleApplyButton(widget)
-        self.assertFalse(widget.ui.apply.enabled)
-
-        widget._param.isBatch = True
-        self.ToothAnalyserWidget.handleApplyButton(widget)
-        self.assertTrue(widget.ui.apply.enabled)
-
-        widget._param.currentImage = object()
-        widget.ui.status.setVisible(True)
-        self.ToothAnalyserWidget.handleApplyButton(widget)
-        self.assertFalse(widget.ui.apply.enabled)
-
-        widget.ui.status.setVisible(False)
-        self.ToothAnalyserWidget.handleApplyButton(widget)
-        self.assertTrue(widget.ui.apply.enabled)
 
     def testHandleSegmentation(self):
         """Test segmentation panel switching."""

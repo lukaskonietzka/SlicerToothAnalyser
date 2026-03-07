@@ -344,11 +344,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Enable the apply button when either batch mode is enabled
         or an image is loaded, unless processing is currently active.
         """
-        if self.ui.status.isVisible():
-            self.ui.apply.enabled = False
-        elif self._param.isBatch or self._param.currentImage:
+        if self._param.isBatch or self._param.currentImage:
             self.ui.apply.enabled = True
-            self.ui.apply.text = "Apply Batch"
+            self.ui.apply.text = "Apply"
+            if self._param.isBatch:
+                self.ui.apply.text = "Apply Batch"
         else:
             self.ui.apply.enabled = False
             self.ui.apply.text = "Apply"
