@@ -221,7 +221,7 @@ class ToothAnalyserTestMixin:
         logic._safeRemoveNode(None)
 
     def testClearSceneRemovesMatchingNodes(self):
-        """Test clearScene queries both node groups and removes returned nodes."""
+        """Test clearScene queries all generated node groups and removes returned nodes."""
         from types import SimpleNamespace
         from unittest.mock import patch
 
@@ -230,9 +230,9 @@ class ToothAnalyserTestMixin:
         midsurfaceNode = SimpleNamespace(GetScene=lambda: True)
 
         with patch("slicer.util.getNodes") as getNodes, patch.object(logic, "_safeRemoveNode") as safeRemove:
-            getNodes.side_effect = [{"a": anatomicalNode}, {"m": midsurfaceNode}]
+            getNodes.side_effect = [{"a": anatomicalNode}, {"m": midsurfaceNode}, {}]
             logic.clearScene()
-            self.assertEqual(getNodes.call_count, 2)
+            self.assertEqual(getNodes.call_count, 3)
             self.assertEqual(safeRemove.call_count, 2)
 
     def testCollectFilesFiltersSupportedExtensions(self):

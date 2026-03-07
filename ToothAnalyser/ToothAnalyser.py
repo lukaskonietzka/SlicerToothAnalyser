@@ -499,6 +499,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     """
     _anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
     _midSurfaceName: str = "_MedialSurface_"
+    _stlModelName: str = "_Mesh"
     _segmentNames: list[str] = ["Dentin", "Enamel"]
     _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", ".nii")
 
@@ -543,7 +544,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def createSegmentation(self, labelMapNode: vtkMRMLLabelMapVolumeNode,
                            deleteLabelMapNode: bool,
-                           currentImageName: str) -> None:
+                           currentImageName: str):
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
@@ -581,8 +582,41 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             if deleteLabelMapNode:
                 self._safeRemoveNode(labelMapNode)
 
+            return seg
+
         except Exception as e:
             self.error(f"Error while creating the segmentation! {e}")
+            return None
+
+    def createSTLModelsInScene(self, segmentationNode, currentImageName: str) -> None:
+        """
+        Create STL-ready model nodes from the segmentation and store them in the Slicer scene.
+        """
+        try:
+            if not segmentationNode:
+                return
+
+            modelNodesBefore = {
+                slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode").GetID()
+                for i in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode"))
+            }
+
+            segmentationNode.CreateClosedSurfaceRepresentation()
+            shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+            folderItemId = shNode.CreateFolderItem(
+                shNode.GetSceneItemID(),
+                currentImageName + self._stlModelName
+            )
+            slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, folderItemId)
+
+            modelCount = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
+            for i in range(modelCount):
+                modelNode = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+                if modelNode.GetID() not in modelNodesBefore:
+                    modelNode.SetName(f"{currentImageName}_{modelNode.GetName()}{self._stlModelName}")
+        except Exception as e:
+            logging.exception("Failed to create STL model nodes for '%s'", currentImageName)
+            self.warning(f"Could not create STL models in scene for '{currentImageName}': {e}")
 
     def createMedialSurface(self, midSurfaceDentinLabelMapNode: vtkMRMLLabelMapVolumeNode,
                             midSurfaceEnamelLabelMapNode: vtkMRMLLabelMapVolumeNode,
@@ -658,6 +692,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             for node in slicer.util.getNodes("*" + self._anatomicalSegmentationName).values():
                 self._safeRemoveNode(node)
             for node in slicer.util.getNodes("*" + self._midSurfaceName).values():
+                self._safeRemoveNode(node)
+            for node in slicer.util.getNodes("*" + self._stlModelName).values():
                 self._safeRemoveNode(node)
         except Exception as e:
             logging.exception("Failed to clear generated scene nodes")
@@ -746,7 +782,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
-        from ToothAnalyserLib.Algorithms.utils import createSTL, validateSTL
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
 
@@ -786,29 +821,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "toothDict": toothDict
         }
 
-        if param.anatomical.createMesh:
-            try:
-                stlDirectory = "/Users/lukas/Documents/test"
-                stlFileName = f"{results['imageName']}_{segmentationType}_segmentation"
-                results["stlPath"] = createSTL(
-                    labelImage=results["labelImage"],
-                    outputDirectory=stlDirectory,
-                    fileName=stlFileName,
-                    printMode=True
-                )
-                stlWarnings = validateSTL(results["stlPath"])
-                results["stlWarnings"] = stlWarnings
-                if stlWarnings:
-                    self.warning(
-                        "STL export completed with printability warnings:\n- "
-                        + "\n- ".join(stlWarnings)
-                    )
-            except Exception as e:
-                logging.exception("Failed to export STL for '%s'", results["imageName"])
-                self.warning(f"STL export failed for '{results['imageName']}': {e}")
-                results["stlPath"] = None
-                results["stlWarnings"] = [str(e)]
-
         return results
 
     def loadResultsToScene(self, results: dict, param: ToothAnalyserParameterNode) -> None:
@@ -822,10 +834,12 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
 
         labelNode = self.createLabelMapNode(results["labelImage"], "tempLabel")
-        self.createSegmentation(
+        segmentationNode = self.createSegmentation(
             labelMapNode=labelNode,
             deleteLabelMapNode=True,
             currentImageName=results["imageName"])
+        if param.anatomical.createMesh:
+            self.createSTLModelsInScene(segmentationNode, results["imageName"])
 
         if results["enamelMidSurface"] or results["dentinMidSurface"]:
             dentinNode = self.createLabelMapNode(results["dentinMidSurface"], "tempDentin")
@@ -836,8 +850,22 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 currentImageName=results["imageName"],
                 deleteLabelMapNodes=True)
 
-        image = self.createVolume(results['image'])
-        image.SetName(results['imageName'] + '_compressed')
+        if param.pre.compress and param.currentImage:
+            import SimpleITK as sitk
+
+            oldNode = param.currentImage
+            compressedImage = results["image"]
+            if compressedImage.GetPixelID() != sitk.sitkUInt8:
+                compressedImage = sitk.Cast(compressedImage, sitk.sitkUInt8)
+
+            compressedNode = sitkUtils.PushVolumeToSlicer(
+                compressedImage,
+                None,
+                f"{results['imageName']}_Comp",
+                "vtkMRMLScalarVolumeNode"
+            )
+            param.currentImage = compressedNode
+            self._safeRemoveNode(oldNode)
 
     def showHistogram(self, image: vtkMRMLScalarVolumeNode) -> None:
         """
@@ -889,7 +917,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         self.loadResultsToScene(segmentationResults, param)
 
         duration = time.time() - start
-        self.showHistogram(image=param.currentImage)
         logging.info("Verarbeitung abgeschlossen in: %.0f Minuten und %.0f Sekunden",duration // 60, duration % 60)
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
@@ -901,6 +928,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
         from ToothAnalyserLib.Algorithms.Anatomical import writeToothDict
+        from ToothAnalyserLib.Algorithms.utils import createSTL
 
         # create local variables for all parameters
         if not os.path.isdir(param.batch.sourcePath):
@@ -945,6 +973,18 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                     path=targetFileDirectory,
                     calcMidSurface=param.anatomical.calcMidSurface,
                     fileType=param.batch.fileType)
+
+                if param.anatomical.createMesh:
+                    stlFileName = (
+                        f"{segmentationResults['imageName']}_"
+                        f"{segmentationResults['segmentationType']}_segmentation"
+                    )
+                    createSTL(
+                        labelImage=segmentationResults["labelImage"],
+                        outputDirectory=targetFileDirectory,
+                        fileName=stlFileName,
+                        printMode=True
+                    )
             except Exception as e:
                 logging.exception("Batch processing failed for '%s'", fullFilePath)
                 self.warning(f"Skipping '{file}': {e}")

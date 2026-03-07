@@ -374,6 +374,8 @@ def write(img: any, name: str, path: str, fileType: str) -> None:
     @example:
         write(sitk_img, 'P01A-C0005278') store P01A-C0005278.mhd and P01A-C0005278.raw
     """
+    if img is None:
+        return
     sitk.WriteImage(img, path + name + fileType)
 
 def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -> None:
@@ -403,11 +405,11 @@ def writeToothDict(tooth: dict, path:str, calcMidSurface: bool, fileType: str) -
         elif key == "enamel_otsu" or key == "enamel_renyi":
             pass
         elif "smooth" in key:
-            write(tooth[key], name + "_" + key, path, fileType)
-        elif "layers" in key:
-            write(tooth[key], name + "_" + key, path, fileType)
-        elif "midsurface" in key and not calcMidSurface:
             pass
+        elif "layers" in key:
+            pass
+        elif "midsurface" in key and not calcMidSurface:
+            write(tooth[key], name + "_" + key, path, fileType)
         else:
             write(tooth[key], name + "_" + key, path, fileType)
 
