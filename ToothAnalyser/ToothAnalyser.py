@@ -115,6 +115,7 @@ class AnatomicalParameters:
     """
     selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu"])] = "Otsu"
     calcMidSurface: bool
+    createMesh: bool
 
 @parameterPack
 class Batch:
@@ -280,6 +281,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # default settings for the parameters
         self.ui.calcMidSurface.checked = True
+        self.ui.createMesh.checked = True
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
         self.ui.status.enabled = False
@@ -784,27 +786,28 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "toothDict": toothDict
         }
 
-        try:
-            stlDirectory = "/Users/lukas/Documents/test"
-            stlFileName = f"{results['imageName']}_{segmentationType}_segmentation"
-            results["stlPath"] = createSTL(
-                labelImage=results["labelImage"],
-                outputDirectory=stlDirectory,
-                fileName=stlFileName,
-                printMode=True
-            )
-            stlWarnings = validateSTL(results["stlPath"])
-            results["stlWarnings"] = stlWarnings
-            if stlWarnings:
-                self.warning(
-                    "STL export completed with printability warnings:\n- "
-                    + "\n- ".join(stlWarnings)
+        if param.anatomical.createMesh:
+            try:
+                stlDirectory = "/Users/lukas/Documents/test"
+                stlFileName = f"{results['imageName']}_{segmentationType}_segmentation"
+                results["stlPath"] = createSTL(
+                    labelImage=results["labelImage"],
+                    outputDirectory=stlDirectory,
+                    fileName=stlFileName,
+                    printMode=True
                 )
-        except Exception as e:
-            logging.exception("Failed to export STL for '%s'", results["imageName"])
-            self.warning(f"STL export failed for '{results['imageName']}': {e}")
-            results["stlPath"] = None
-            results["stlWarnings"] = [str(e)]
+                stlWarnings = validateSTL(results["stlPath"])
+                results["stlWarnings"] = stlWarnings
+                if stlWarnings:
+                    self.warning(
+                        "STL export completed with printability warnings:\n- "
+                        + "\n- ".join(stlWarnings)
+                    )
+            except Exception as e:
+                logging.exception("Failed to export STL for '%s'", results["imageName"])
+                self.warning(f"STL export failed for '{results['imageName']}': {e}")
+                results["stlPath"] = None
+                results["stlWarnings"] = [str(e)]
 
         return results
 

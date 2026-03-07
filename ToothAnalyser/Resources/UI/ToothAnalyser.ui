@@ -155,6 +155,19 @@
         </property>
        </widget>
       </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="createMesh">
+        <property name="text">
+         <string>create Mesh</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.createMesh</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
