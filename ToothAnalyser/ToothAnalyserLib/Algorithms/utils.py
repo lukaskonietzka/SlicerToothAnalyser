@@ -56,10 +56,7 @@ def createSTL(
     import numpy as np
     import SimpleITK as sitk
     import vtk
-    try:
-        from vtkmodules.util import numpy_support
-    except ImportError:
-        from vtk.util import numpy_support
+    from vtkmodules.util import numpy_support
 
 
     if labelImage is None:
