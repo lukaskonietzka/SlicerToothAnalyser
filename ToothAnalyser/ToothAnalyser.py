@@ -744,6 +744,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
+        from ToothAnalyserLib.Algorithms.utils import createSTL
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
 
@@ -782,6 +783,19 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "image": toothDict.get("img"),
             "toothDict": toothDict
         }
+
+        try:
+            stlDirectory = "/Users/lukas/Documents/test"
+            stlFileName = f"{results['imageName']}_{segmentationType}_segmentation"
+            results["stlPath"] = createSTL(
+                labelImage=results["labelImage"],
+                outputDirectory=stlDirectory,
+                fileName=stlFileName
+            )
+        except Exception as e:
+            logging.exception("Failed to export STL for '%s'", results["imageName"])
+            self.warning(f"STL export failed for '{results['imageName']}': {e}")
+            results["stlPath"] = None
 
         return results
 
