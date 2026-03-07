@@ -744,7 +744,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
-        from ToothAnalyserLib.Algorithms.utils import createSTL
+        from ToothAnalyserLib.Algorithms.utils import createSTL, validateSTL
 
         segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
 
@@ -792,10 +792,18 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 outputDirectory=stlDirectory,
                 fileName=stlFileName
             )
+            stlWarnings = validateSTL(results["stlPath"])
+            results["stlWarnings"] = stlWarnings
+            if stlWarnings:
+                self.warning(
+                    "STL export completed with printability warnings:\n- "
+                    + "\n- ".join(stlWarnings)
+                )
         except Exception as e:
             logging.exception("Failed to export STL for '%s'", results["imageName"])
             self.warning(f"STL export failed for '{results['imageName']}': {e}")
             results["stlPath"] = None
+            results["stlWarnings"] = [str(e)]
 
         return results
 

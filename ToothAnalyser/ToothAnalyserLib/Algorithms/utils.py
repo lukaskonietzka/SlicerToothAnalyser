@@ -61,6 +61,8 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
     stlPath = os.path.abspath(os.path.join(outputDirectory, f"{fileName}.stl"))
 
     binaryImage = sitk.Cast(labelImage > 0, sitk.sitkUInt8)
+    # Add a zero border to avoid clipped/open surfaces at volume boundaries.
+    binaryImage = sitk.ConstantPad(binaryImage, [1, 1, 1], [1, 1, 1], 0)
     array = sitk.GetArrayFromImage(binaryImage)
     if int(array.max()) == 0:
         raise ValueError("Label image contains no foreground voxels (> 0).")
@@ -83,14 +85,144 @@ def createSTL(labelImage, outputDirectory: str, fileName: str = "segmentation") 
     surface.SetValue(0, 1)
     surface.Update()
 
-    clean = vtk.vtkCleanPolyData()
-    clean.SetInputConnection(surface.GetOutputPort())
-    clean.Update()
+    polyData = surface.GetOutput()
+    if polyData is None or polyData.GetNumberOfPoints() == 0 or polyData.GetNumberOfCells() == 0:
+        raise ValueError("Surface extraction failed (empty mesh).")
+
+    def repairPolyData(inputPolyData, holeSize: float):
+        triangle = vtk.vtkTriangleFilter()
+        triangle.SetInputData(inputPolyData)
+        triangle.PassVertsOff()
+        triangle.PassLinesOff()
+        triangle.Update()
+
+        clean = vtk.vtkCleanPolyData()
+        clean.SetInputConnection(triangle.GetOutputPort())
+        clean.Update()
+
+        connectivity = vtk.vtkPolyDataConnectivityFilter()
+        connectivity.SetInputConnection(clean.GetOutputPort())
+        connectivity.SetExtractionModeToLargestRegion()
+        connectivity.Update()
+
+        fillHoles = vtk.vtkFillHolesFilter()
+        fillHoles.SetInputConnection(connectivity.GetOutputPort())
+        fillHoles.SetHoleSize(holeSize)
+        fillHoles.Update()
+
+        normals = vtk.vtkPolyDataNormals()
+        normals.SetInputConnection(fillHoles.GetOutputPort())
+        normals.ConsistencyOn()
+        normals.AutoOrientNormalsOn()
+        normals.SplittingOff()
+        normals.ComputeCellNormalsOn()
+        normals.ComputePointNormalsOn()
+        normals.Update()
+
+        finalClean = vtk.vtkCleanPolyData()
+        finalClean.SetInputConnection(normals.GetOutputPort())
+        finalClean.Update()
+        return finalClean.GetOutput()
+
+    def validatePolyData(inputPolyData) -> list[str]:
+        warnings = []
+        if inputPolyData is None or inputPolyData.GetNumberOfCells() == 0:
+            return ["Mesh has no polygons after repair."]
+
+        featureEdges = vtk.vtkFeatureEdges()
+        featureEdges.SetInputData(inputPolyData)
+        featureEdges.BoundaryEdgesOn()
+        featureEdges.NonManifoldEdgesOn()
+        featureEdges.ManifoldEdgesOff()
+        featureEdges.FeatureEdgesOff()
+        featureEdges.Update()
+        problematicEdgeCount = featureEdges.GetOutput().GetNumberOfCells()
+        if problematicEdgeCount > 0:
+            warnings.append(
+                f"Mesh is not watertight or contains non-manifold edges ({problematicEdgeCount} problematic edges)."
+            )
+
+        connectivity = vtk.vtkPolyDataConnectivityFilter()
+        connectivity.SetInputData(inputPolyData)
+        connectivity.SetExtractionModeToAllRegions()
+        connectivity.Update()
+        regionCount = connectivity.GetNumberOfExtractedRegions()
+        if regionCount > 1:
+            warnings.append(f"Mesh contains {regionCount} disconnected components.")
+
+        bounds = inputPolyData.GetBounds()
+        extents = (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+        if any(extent <= 0 for extent in extents):
+            warnings.append("Mesh bounds are degenerate (zero thickness in at least one axis).")
+
+        return warnings
+
+    repaired = repairPolyData(polyData, holeSize=100.0)
+    issues = validatePolyData(repaired)
+    if issues:
+        repaired = repairPolyData(repaired, holeSize=10000.0)
+        issues = validatePolyData(repaired)
+    if issues:
+        raise ValueError(
+            "STL validation failed after repair: " + "; ".join(issues)
+        )
 
     writer = vtk.vtkSTLWriter()
     writer.SetFileName(stlPath)
     writer.SetFileTypeToBinary()
-    writer.SetInputConnection(clean.GetOutputPort())
+    writer.SetInputData(repaired)
     writer.Write()
 
     return stlPath
+
+
+def validateSTL(stlPath: str) -> list[str]:
+    """
+    Perform lightweight printability checks on an STL file.
+
+    Returns a list of warning strings. Empty list means no issues detected.
+    """
+    import os
+    import vtk
+
+    warnings = []
+    if not os.path.exists(stlPath):
+        return [f"STL file was not written: {stlPath}"]
+    if os.path.getsize(stlPath) == 0:
+        return [f"STL file is empty: {stlPath}"]
+
+    reader = vtk.vtkSTLReader()
+    reader.SetFileName(stlPath)
+    reader.Update()
+    polyData = reader.GetOutput()
+
+    if polyData is None or polyData.GetNumberOfPoints() == 0 or polyData.GetNumberOfCells() == 0:
+        return ["STL has no valid geometry (0 points or 0 cells)."]
+
+    featureEdges = vtk.vtkFeatureEdges()
+    featureEdges.SetInputData(polyData)
+    featureEdges.BoundaryEdgesOn()
+    featureEdges.NonManifoldEdgesOn()
+    featureEdges.ManifoldEdgesOff()
+    featureEdges.FeatureEdgesOff()
+    featureEdges.Update()
+    problematicEdgeCount = featureEdges.GetOutput().GetNumberOfCells()
+    if problematicEdgeCount > 0:
+        warnings.append(
+            f"Mesh is not watertight or contains non-manifold edges ({problematicEdgeCount} problematic edges)."
+        )
+
+    connectivity = vtk.vtkPolyDataConnectivityFilter()
+    connectivity.SetInputData(polyData)
+    connectivity.SetExtractionModeToAllRegions()
+    connectivity.Update()
+    regionCount = connectivity.GetNumberOfExtractedRegions()
+    if regionCount > 1:
+        warnings.append(f"Mesh contains {regionCount} disconnected components.")
+
+    bounds = polyData.GetBounds()
+    extents = (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
+    if any(extent <= 0 for extent in extents):
+        warnings.append("Mesh bounds are degenerate (zero thickness in at least one axis).")
+
+    return warnings
