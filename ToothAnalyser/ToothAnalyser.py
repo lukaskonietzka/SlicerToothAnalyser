@@ -25,14 +25,13 @@ from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode
+from slicer.util import VTKObservationMixin
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     Choice, parameterPack
 )
 
 from slicer import vtkMRMLScalarVolumeNode
-from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT
 from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
 # load images for Help and Acknowledgement section
@@ -484,6 +483,12 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """Implement your postprocessing here"""
         pass
 
+    def error(self, msg: str) -> None:
+        slicer.util.errorDisplay(msg)
+
+    def warning(self, msg: str) -> None:
+        slicer.util.warningDisplay(msg)
+
     def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """Abstract method"""
         raise NotImplementedError("Please implement the execute() methode in one of the child classes")
@@ -499,21 +504,14 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     this class contains all the logic needed to visualise
     the anatomical segmentation
     """
-    _anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
-    _midSurfaceName: str = "_MedialSurface_"
+    _anatomicalSegmentationName: str = "_AnatomicalSegmentation"
+    _midSurfaceName: str = "_MedialSurface"
     _stlModelName: str = "_Mesh"
     _segmentNames: list[str] = ["Dentin", "Enamel"]
     _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", ".nii")
 
     def __str__(self):
         return "Anatomical Segmentation"
-
-
-    def error(self, msg: str) -> None:
-        slicer.util.errorDisplay(msg)
-
-    def warning(self, msg: str) -> None:
-        slicer.util.warningDisplay(msg)
 
     def collectFiles(self, path: str, suffix: tuple[str, ...]) -> list[str]:
         """
