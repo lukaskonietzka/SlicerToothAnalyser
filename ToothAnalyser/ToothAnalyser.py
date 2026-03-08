@@ -159,6 +159,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic = None
         self._param = None
         self._parameterNodeGuiTag = None
+        self._isComputing = False
 
     def setup(self) -> None:
         """
@@ -343,6 +344,11 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Enable the apply button when either batch mode is enabled
         or an image is loaded, unless processing is currently active.
         """
+        if self._isComputing:
+            self.ui.apply.enabled = False
+            self.ui.apply.text = "Applying..."
+            return
+
         if self._param.isBatch or self._param.currentImage:
             self.ui.apply.enabled = True
             self.ui.apply.text = "Apply"
@@ -366,11 +372,10 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         no unwanted user input can occur
         @param isVisible: computing mode ist activated when TRUE
         """
+        self._isComputing = isVisible
         slicer.app.processEvents()
 
         self.ui.progressBar.enabled = isVisible
-
-        self.ui.apply.enabled = not isVisible
 
         #self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
@@ -408,14 +413,19 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         self.handleProgressBarRange()
         self.activateComputingMode(True)
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            if self._param.isBatch:
+        try:
+            with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
                 self.logic.setSelectedAlgorithm(self._param.segmentation)
-                self.logic.getSelectedAlgorithm().executeAsBatch(param=self._param, progressBar=self.ui.progressBar)
-            else:
-                self.logic.setSelectedAlgorithm(self._param.segmentation)
-                self.logic.getSelectedAlgorithm().execute(param=self._param, progressBar=self.ui.progressBar)
-        self.activateComputingMode(False)
+                selectedAlgorithm = self.logic.getSelectedAlgorithm()
+                if not selectedAlgorithm:
+                    raise RuntimeError(f"Unsupported segmentation algorithm '{self._param.segmentation}'.")
+
+                if self._param.isBatch:
+                    selectedAlgorithm.executeAsBatch(param=self._param, progressBar=self.ui.progressBar)
+                else:
+                    selectedAlgorithm.execute(param=self._param, progressBar=self.ui.progressBar)
+        finally:
+            self.activateComputingMode(False)
 
 
 # ----- Tooth Analyser logic interface ----- #
@@ -459,6 +469,7 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     def setSelectedAlgorithm(self, currentAlgorithmName):
         """Set the active algorithm instance by display name."""
+        self._selectedAlgorithm = None
         for algorithm in self.getAlgorithms():
             instance = algorithm()  # Instanz erstellen
             if instance.__str__() == currentAlgorithmName:  # __str__-Namen vergleichen
@@ -526,7 +537,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             files -> [file1, file2, ...]
         """
         files = []
-        if os.path.exists(path):
+        if os.path.isdir(path):
             normalizedSuffix = tuple(
                 s.lower() if s.startswith(".") else f".{s.lower()}" for s in suffix
             )
@@ -638,7 +649,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 segment = dentinSegmentation.GetNthSegment(0)
                 segment.SetName(self._segmentNames[0])
                 segment.SetColor(1.0, 0.0, 0.0)
-                self._safeRemoveNode(midSurfaceDentinLabelMapNode)
+                if deleteLabelMapNodes:
+                    self._safeRemoveNode(midSurfaceDentinLabelMapNode)
 
             # create enamel medial surface segmentation
             segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
@@ -652,7 +664,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 segment = enamelSegmentation.GetNthSegment(0)
                 segment.SetName(self._segmentNames[1])
                 segment.SetColor(0.0, 1.0, 0.0)
-                self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
+                if deleteLabelMapNodes:
+                    self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
 
             # copy all segments from dentin to enamel (FIX: clone segments -> no ID conflicts)
             for i in range(dentinSegmentation.GetNumberOfSegments()):
@@ -848,7 +861,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         if param.anatomical.createMesh:
             self.createSTLModelsInScene(segmentationNode, results["imageName"])
 
-        if results["enamelMidSurface"] or results["dentinMidSurface"]:
+        if results["enamelMidSurface"] and results["dentinMidSurface"]:
             dentinNode = self.createLabelMapNode(results["dentinMidSurface"], "tempDentin")
             enamelNode = self.createLabelMapNode(results["enamelMidSurface"], "tempEnamel")
             self.createMedialSurface(

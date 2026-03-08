@@ -24,6 +24,7 @@ class ToothAnalyserTestMixin:
             "testCariesSegmentationName",
             "testValidateBatchSettings",
             "testObserverParametersTriggersHandlers",
+            "testHandleApplyButtonDisablesDuringCompute",
             "testHandlePreProcessingCollapsible",
             "testHandleBatchCollapsible",
             "testHandleSegmentation",
@@ -31,6 +32,8 @@ class ToothAnalyserTestMixin:
             "testSafeRemoveNode",
             "testClearSceneRemovesMatchingNodes",
             "testCollectFilesFiltersSupportedExtensions",
+            "testCollectFilesReturnsEmptyForNonDirectory",
+            "testLoadResultsToSceneRequiresBothMidSurfaces",
             "testCreateAndClearDirectory",
             "testExecuteAsBatchInvalidSourcePath",
             "testExecuteAsBatchInvalidTargetPath",
@@ -52,6 +55,7 @@ class ToothAnalyserTestMixin:
             self.enabled = enabled
             self.maximum = 0
             self.value = 0
+            self.text = ""
 
         def setVisible(self, value: bool):
             self._visible = value
@@ -81,7 +85,7 @@ class ToothAnalyserTestMixin:
             anatomical=SimpleNamespace(calcMidSurface=True),
         )
 
-        widget = SimpleNamespace(ui=ui, _param=param)
+        widget = SimpleNamespace(ui=ui, _param=param, _isComputing=False)
         widget.handleApplyButton = lambda: None
         return widget
 
@@ -97,12 +101,11 @@ class ToothAnalyserTestMixin:
         self.assertIsInstance(logic.getSelectedAlgorithm(), self.AnatomicalSegmentationLogic)
 
     def testSetSelectedAlgorithmUnknownName(self):
-        """Test that unknown algorithm names do not overwrite current selection."""
+        """Test that unknown algorithm names reset selection to None."""
         logic = self.ToothAnalyserLogic()
         logic.setSelectedAlgorithm("Anatomical Segmentation")
-        before = logic.getSelectedAlgorithm()
         logic.setSelectedAlgorithm("This Algorithm Does Not Exist")
-        self.assertIs(logic.getSelectedAlgorithm(), before)
+        self.assertIsNone(logic.getSelectedAlgorithm())
 
     def testLogicRepresentation(self):
         """Test default text representation for base logic class."""
@@ -140,6 +143,25 @@ class ToothAnalyserTestMixin:
         widget.handleSegmentation.assert_called_once()
         widget.handleBatchCollapsible.assert_called_once()
         widget.handlePreProcessingCollapsible.assert_called_once()
+
+    def testHandleApplyButtonDisablesDuringCompute(self):
+        """Test apply button state in compute mode and regular modes."""
+        widget = self._createWidgetStub()
+        widget._param.currentImage = object()
+
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertTrue(widget.ui.apply.enabled)
+        self.assertEqual(widget.ui.apply.text, "Apply")
+
+        widget._isComputing = True
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertFalse(widget.ui.apply.enabled)
+        self.assertEqual(widget.ui.apply.text, "Applying...")
+
+        widget._isComputing = False
+        widget._param.isBatch = True
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertEqual(widget.ui.apply.text, "Apply Batch")
 
     def testHandlePreProcessingCollapsible(self):
         """Test pre-processing collapsible visibility handling."""
@@ -232,6 +254,42 @@ class ToothAnalyserTestMixin:
             files = anatomicalSeg.collectFiles(tmpdir, anatomicalSeg._fileTypes)
 
             self.assertEqual(files, sorted(supported))
+
+    def testCollectFilesReturnsEmptyForNonDirectory(self):
+        """Test collectFiles returns empty list if path is not a directory."""
+        import tempfile
+
+        anatomicalSeg = self.AnatomicalSegmentationLogic()
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            files = anatomicalSeg.collectFiles(tmpfile.name, anatomicalSeg._fileTypes)
+            self.assertEqual(files, [])
+
+    def testLoadResultsToSceneRequiresBothMidSurfaces(self):
+        """Test that medial surface creation requires both enamel and dentin maps."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        logic = self.AnatomicalSegmentationLogic()
+        param = SimpleNamespace(
+            anatomical=SimpleNamespace(createMesh=False),
+            pre=SimpleNamespace(compress=False),
+            currentImage=None,
+        )
+        results = {
+            "labelImage": object(),
+            "imageName": "Case_01",
+            "enamelMidSurface": object(),
+            "dentinMidSurface": None,
+            "image": None,
+        }
+
+        with patch.object(logic, "clearScene"), \
+                patch.object(logic, "createLabelMapNode", return_value=object()) as createLabelMapNode, \
+                patch.object(logic, "createSegmentation", return_value=object()), \
+                patch.object(logic, "createMedialSurface") as createMedialSurface:
+            logic.loadResultsToScene(results, param)
+            createLabelMapNode.assert_called_once()
+            createMedialSurface.assert_not_called()
 
     def testCreateAndClearDirectory(self):
         """Test batch result directory creation and cleanup."""
