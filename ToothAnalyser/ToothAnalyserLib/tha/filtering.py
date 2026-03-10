@@ -283,11 +283,11 @@ def downsample_2_main():
     )
     parser.add_argument(
         "--convert_to_uint8",
-        help="Rescale and convert voxxels to 8 bit unsigned int",
+        help="Rescale and convert voxels to 8 bit unsigned int",
         action="store_true",
     )
     args = parser.parse_args()
-    downsample_2(
+    downsample_2_file_system(
         args.in_file_name,
         args.out_file_name,
         args.use_median,
@@ -305,6 +305,12 @@ def bilateral_filter(
 ) -> None:
     """
     Apply a bilateral filter to an image.
+
+    This function takes in the name of the input image file, the name of
+    the output image file, the domain sigma value (in the same unit as the
+    image spacing), the range sigma value (in grey level units), and the number
+    of samples (voxels) as arguments. It uses the SimpleITK package to perform
+    the bilateral filtering operation.
 
     Args:
         in_file_name (str): The path to the input image file.
@@ -330,22 +336,11 @@ def bilateral_main():
     """
     Perform 3D bilateral filtering.
 
-    This function takes in the name of the input image file, the name of
-    the output image file, the domain sigma value (in the same unit as the
-    image spacing), the range sigma value (in grey level units), and the number
-    of samples (voxels) as arguments. It uses the SimpleITK package to perform
-    the bilateral filtering operation.
-
     Args:
-        in_file_name (str): Name of input image file.
-        out_file_name (str): Name of output image file.
-        domain_sigma (float): Domain sigma value (in the same unit as the
-            image spacing).
-        range_sigma (float): Range sigma value (in grey level units).
-        nr_of_samples (int): Number of samples (voxels).
+        - None
 
     Returns:
-    - None
+        - None
     """
     parser = argparse.ArgumentParser(
         description="Perform 3D bilateral filtering",

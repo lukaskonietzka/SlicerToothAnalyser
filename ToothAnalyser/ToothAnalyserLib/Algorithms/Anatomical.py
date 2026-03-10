@@ -13,7 +13,6 @@ calculate an anatomical segmentation starting from µCTs
 import os
 import SimpleITK as sitk
 from SimpleITK import Image
-from numba.core.cgutils import false_bit
 
 from .Scanco import isq_to_mhd_as_string
 from .utils import measure_time
