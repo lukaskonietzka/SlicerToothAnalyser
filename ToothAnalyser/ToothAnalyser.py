@@ -135,7 +135,7 @@ class ToothAnalyserParameterNode:
     pre: PreProcessing
     anatomical: AnatomicalParameters
     currentImage: vtkMRMLScalarVolumeNode
-    segmentation: Annotated[str, Choice(["Anatomical Segmentation", "Caries Segmentation"])] = "Anatomical Segmentation"
+    segmentation: Annotated[str, Choice(["Anatomical Segmentation"])] = "Anatomical Segmentation"
     batch: Batch
     isBatch: bool
     isPreProcessing: bool

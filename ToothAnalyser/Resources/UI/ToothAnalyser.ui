@@ -74,7 +74,7 @@
          <string>Switch to batch mode</string>
         </property>
         <property name="text">
-         <string>Batch</string>
+         <string>batch</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>isBatch</string>
@@ -87,7 +87,7 @@
          <string>Include Preprocessing to the pipeline</string>
         </property>
         <property name="text">
-         <string>pre Processing</string>
+         <string>include pre processing</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>isPreProcessing</string>
@@ -173,7 +173,7 @@
          <string>Uncheck this checkbox if you don´t need a mesh</string>
         </property>
         <property name="text">
-         <string>create Mesh</string>
+         <string>create mesh</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -205,7 +205,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>Load files from: </string>
+         <string>load files from: </string>
         </property>
        </widget>
       </item>
@@ -225,7 +225,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Save files in:</string>
+         <string>save files in:</string>
         </property>
        </widget>
       </item>
@@ -245,7 +245,7 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>Save files as:</string>
+         <string>save files as:</string>
         </property>
        </widget>
       </item>
