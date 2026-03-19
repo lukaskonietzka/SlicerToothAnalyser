@@ -17,7 +17,7 @@ workflows.
 - [3. Quick Start Guide](#3-quick-start-guide)
 - [4. Tutorials](#4-tutorials)
 - [5. Explanation](#5-explanation)
-- [6. Reference Guide (Developers)](#6-reference-guide-developers)
+- [6. Developers](#6-developers)
 - [7. Visualize and Save Results](#7-visualize-and-save-results)
 - [8. Sample Data](#8-sample-data)
 - [9. Contributors and Organisation](#9-contributors-and-organization)
@@ -60,18 +60,26 @@ To use the Tooth Analyser efficiently, follow these steps:
 - Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**)
     or use the provided sample Data in (**File: Download Sample Data → ToothCrownMicroCT**)
 - Switch to the Tooth Analyser module (**Modules: Segmentation → Tooth Analyser**).  
-- In the **Anatomical Segmentation** section, select the microCT image you want to segment.  
-- Check the box **Calculate Medial Surface** if medial surfaces should be calculated.  
+- In the **Anatomical Segmentation** section, select the microCT image you want to segment.
 - Start the algorithm by clicking the **Apply Anatomical** button.  
 - The cursor will switch to waiting mode, and a progress bar will appear at the bottom.  
 
-⚠️ **Notice**: The algorithm includes filtering and medial surface calculation. In the worst case  
-(large image, medial flattening, filtering), the algorithm can take up to 17 minutes.
+⚠️ **Notice**: With very high-resolution images, the algorithm can take a very long time depending on the machine, 
+because medial filtering is used.
 
 ## 4. Tutorials
 This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
 The extension is divided into several functions, each of which can be executed independently.  
 This chapter covers all components and explains them in detail.
+
+**Topics covered:**
+- Anatomical segmentation (label creation)
+- Mesh creation
+- Handle large datasets
+- Caries classification (focus on medial surfaces)
+- Complex root analysis (also works with a single root, not only a crown)
+- Batch processing
+- Notes (processing, runtime, limitations)
 
 To start a tutorial, follow this link:  
 [Start a Tutorial](Documentation/Tutorial.md)
@@ -84,7 +92,7 @@ For more details, please refer to the documentation.
 
 [Check out the Explanation](Documentation/Explanation.md)
 
-## 6. Reference Guide (Developers)
+## 6. Developers
 This section goes into great detail and provides a technical introduction to the implementation.
 For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
