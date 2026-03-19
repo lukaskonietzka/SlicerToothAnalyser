@@ -33,6 +33,8 @@ in the **Segment Editor**.
 The generated mesh can be sent directly to a 3D printer, allowing you to physically reconstruct and
 print the tooth from the mesh.
 
+[Example-Mesh.stl](../Mesh/Example-Mesh.stl)
+
 ## 3. Handle Large Datasets
 This option reduces resolution (downsampling) so large datasets can be processed faster.
 You can run this function by enabling the **Compress** checkbox in the **Preprocessing** section.
