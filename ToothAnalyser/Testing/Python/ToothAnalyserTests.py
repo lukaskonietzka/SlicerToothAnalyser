@@ -135,6 +135,7 @@ class ToothAnalyserTestMixin:
         from types import SimpleNamespace
 
         widget = SimpleNamespace(
+            syncBatchModeUi=MagicMock(),
             handleApplyButton=MagicMock(),
             handleSegmentation=MagicMock(),
             handleBatchCollapsible=MagicMock(),
