@@ -112,7 +112,6 @@ class AnatomicalParameters:
     The parameters needed by the section
     Anatomical Segmentation
     """
-    selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu"])] = "Otsu"
     calcMidSurface: bool
     createMesh: bool
 
@@ -138,7 +137,6 @@ class ToothAnalyserParameterNode:
     segmentation: Annotated[str, Choice(["Anatomical Segmentation"])] = "Anatomical Segmentation"
     batch: Batch
     isBatch: bool
-    isPreProcessing: bool
     status: str = ""
 
 
@@ -285,7 +283,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
         self.ui.status.enabled = False
-        self._param.anatomical.selectedAnatomicalAlgo = "Otsu"
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -317,27 +314,33 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.handleApplyButton()
         self.handleSegmentation()
         self.handleBatchCollapsible()
-        self.handlePreProcessingCollapsible()
-
-    def handlePreProcessingCollapsible(self):
-        """
-        This methode shows the preprocessing collapsible
-        depending on the preprocessing checkbox
-        """
-        if self._param.isPreProcessing:
-            self.ui.preProcessingCollapsible.setVisible(True)
-        elif not self._param.isPreProcessing:
-            self.ui.preProcessingCollapsible.setVisible(False)
 
     def handleBatchCollapsible(self):
         """
         This methode shows the batch processing collapsible
         depending on the batch processing checkbox
         """
+        self.ui.batchCollapsible.setVisible(True)
         if self._param.isBatch:
-            self.ui.batchCollapsible.setVisible(True)
-        elif not self._param.isBatch:
-            self.ui.batchCollapsible.setVisible(False)
+            self.ui.label_3.setVisible(False)
+            self.ui.currentImage.setVisible(False)
+            self.ui.currentImage.enabled = False
+            self.ui.label_4.setVisible(True)
+            self.ui.sourcePath.setVisible(True)
+            self.ui.label_5.setVisible(True)
+            self.ui.targetPath.setVisible(True)
+            self.ui.label_7.setVisible(True)
+            self.ui.fileType.setVisible(True)
+        else:
+            self.ui.label_3.setVisible(True)
+            self.ui.currentImage.setVisible(True)
+            self.ui.currentImage.enabled = True
+            self.ui.label_4.setVisible(False)
+            self.ui.sourcePath.setVisible(False)
+            self.ui.label_5.setVisible(False)
+            self.ui.targetPath.setVisible(False)
+            self.ui.label_7.setVisible(False)
+            self.ui.fileType.setVisible(False)
 
     def handleApplyButton(self):
         """
@@ -387,10 +390,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def handleSegmentation(self):
         if self._param.segmentation == "Anatomical Segmentation":
-            self.ui.anatomicaCollapsible.setVisible(True)
             self.ui.cariesCollapsible.setVisible(False)
         else:
-            self.ui.anatomicaCollapsible.setVisible(False)
             self.ui.cariesCollapsible.setVisible(True)
 
     def handleProgressBarRange(self) -> None:
@@ -801,7 +802,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
 
-        segmentationType = param.anatomical.selectedAnatomicalAlgo.lower()
+        segmentationType = "otsu"
 
         if sourcePath is None:
             try:
@@ -814,7 +815,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
         segmentationStep = calcSegmentationGen(
             sourcePath=sourcePath,
-            selectedAlgorithm=param.anatomical.selectedAnatomicalAlgo,
+            selectedAlgorithm="Otsu",
             calcMedialSurfaces=param.anatomical.calcMidSurface,
             compress=param.pre.compress)
 
@@ -926,7 +927,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             return
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
-        segmentationType = param.anatomical.selectedAnatomicalAlgo
+        segmentationType = "Otsu"
         files = self.collectFiles(sourcePath, self._fileTypes)
         if not files:
             self.warning("No supported input files found in source directory.")

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>396</width>
-    <height>540</height>
+    <height>543</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -20,17 +20,116 @@
       <string>General</string>
      </property>
      <layout class="QFormLayout" name="formLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>µCT Image:</string>
-        </property>
-       </widget>
-      </item>
       <item row="1" column="0">
        <widget class="QLabel" name="segmentation_label">
         <property name="text">
          <string>Segmentation:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="segmentation">
+        <property name="toolTip">
+         <string>Select the algorithm you want to apply</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>segmentation</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="cbxBatch">
+        <property name="toolTip">
+         <string>Switch to batch mode</string>
+        </property>
+        <property name="text">
+         <string>batch</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>isBatch</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButton_2">
+     <property name="text">
+      <string>Additional functions</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout_5">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="calcMidSurface">
+        <property name="toolTip">
+         <string>Uncheck this checkbox if you don´t need medial surface</string>
+        </property>
+        <property name="text">
+         <string>calculate medial surface</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.calcMidSurface</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QCheckBox" name="createMesh">
+        <property name="toolTip">
+         <string>Uncheck this checkbox if you don´t need a mesh</string>
+        </property>
+        <property name="text">
+         <string>create mesh</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>anatomical.createMesh</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="cbxCompress">
+        <property name="toolTip">
+         <string>Compress the selected image</string>
+        </property>
+        <property name="text">
+         <string>Compress</string>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>pre.compress</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="cariesCollapsible">
+     <property name="text">
+      <string>Caries Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="batchCollapsible">
+     <property name="text">
+      <string>Input Parameters</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <layout class="QFormLayout" name="formLayout_2">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>µCT Image:</string>
         </property>
        </widget>
       </item>
@@ -58,158 +157,14 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="segmentation">
-        <property name="toolTip">
-         <string>Select the algorithm you want to apply</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>segmentation</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="cbxBatch">
-        <property name="toolTip">
-         <string>Switch to batch mode</string>
-        </property>
-        <property name="text">
-         <string>batch</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>isBatch</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="cbxPreProcessing">
-        <property name="toolTip">
-         <string>Include Preprocessing to the pipeline</string>
-        </property>
-        <property name="text">
-         <string>include pre processing</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>isPreProcessing</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="preProcessingCollapsible">
-     <property name="text">
-      <string>Pre Processing</string>
-     </property>
-     <layout class="QFormLayout" name="formLayout_4">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="cbxCompress">
-        <property name="toolTip">
-         <string>Compress the selected image</string>
-        </property>
-        <property name="text">
-         <string>Compress</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>pre.compress</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="anatomicaCollapsible">
-     <property name="text">
-      <string>Anatomical Segmentation</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout">
       <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Segmentation algorithm:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="selectedAnatomicalAlgo">
-        <property name="toolTip">
-         <string>Switch the threshold method for segmentation</string>
-        </property>
-        <property name="placeholderText">
-         <string>select an algorithm</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.selectedAnatomicalAlgo</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="calcMidSurface">
-        <property name="toolTip">
-         <string>Uncheck this checkbox if you don´t need medial surface</string>
-        </property>
-        <property name="text">
-         <string>calculate medial surface</string>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.calcMidSurface</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="createMesh">
-        <property name="toolTip">
-         <string>Uncheck this checkbox if you don´t need a mesh</string>
-        </property>
-        <property name="text">
-         <string>create mesh</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.createMesh</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="cariesCollapsible">
-     <property name="text">
-      <string>Caries Segmentation</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="batchCollapsible">
-     <property name="text">
-      <string>Batch Processing</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout_2">
-      <item row="0" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
          <string>load files from: </string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="1" column="1">
        <widget class="QLineEdit" name="sourcePath">
         <property name="toolTip">
          <string>Select source directory</string>
@@ -222,14 +177,14 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
          <string>save files in:</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <widget class="QLineEdit" name="targetPath">
         <property name="toolTip">
          <string>Select target directory</string>
@@ -242,14 +197,14 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
          <string>save files as:</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <widget class="QComboBox" name="fileType">
         <property name="toolTip">
          <string>Switch the file type for the generated files</string>
@@ -338,22 +293,6 @@
     <hint type="destinationlabel">
      <x>245</x>
      <y>444</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ToothAnalyserWidget</sender>
-   <signal>customContextMenuRequested(QPoint)</signal>
-   <receiver>selectedAnatomicalAlgo</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>200</x>
-     <y>248</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>291</x>
-     <y>199</y>
     </hint>
    </hints>
   </connection>

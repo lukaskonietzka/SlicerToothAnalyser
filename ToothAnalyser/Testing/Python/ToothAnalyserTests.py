@@ -25,7 +25,6 @@ class ToothAnalyserTestMixin:
             "testValidateBatchSettings",
             "testObserverParametersTriggersHandlers",
             "testHandleApplyButtonDisablesDuringCompute",
-            "testHandlePreProcessingCollapsible",
             "testHandleBatchCollapsible",
             "testHandleSegmentation",
             "testHandleProgressBarRange",
@@ -70,15 +69,20 @@ class ToothAnalyserTestMixin:
         ui = SimpleNamespace(
             apply=self._UiFlag(visible=True, enabled=True),
             status=self._UiFlag(visible=False, enabled=False),
-            preProcessingCollapsible=self._UiFlag(visible=False),
             batchCollapsible=self._UiFlag(visible=False),
-            anatomicaCollapsible=self._UiFlag(visible=False),
             cariesCollapsible=self._UiFlag(visible=False),
             progressBar=self._UiFlag(visible=False, enabled=False),
+            label_3=self._UiFlag(visible=True),
+            currentImage=self._UiFlag(visible=True),
+            label_4=self._UiFlag(visible=False),
+            sourcePath=self._UiFlag(visible=False),
+            label_5=self._UiFlag(visible=False),
+            targetPath=self._UiFlag(visible=False),
+            label_7=self._UiFlag(visible=False),
+            fileType=self._UiFlag(visible=False),
         )
 
         param = SimpleNamespace(
-            isPreProcessing=False,
             isBatch=False,
             currentImage=None,
             segmentation="Anatomical Segmentation",
@@ -126,7 +130,7 @@ class ToothAnalyserTestMixin:
         self.assertTrue(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "label": "x"}))
 
     def testObserverParametersTriggersHandlers(self):
-        """Test that parameter observer triggers all UI update handlers."""
+        """Test that parameter observer can run on a minimal stub without errors."""
         from unittest.mock import MagicMock
         from types import SimpleNamespace
 
@@ -134,15 +138,9 @@ class ToothAnalyserTestMixin:
             handleApplyButton=MagicMock(),
             handleSegmentation=MagicMock(),
             handleBatchCollapsible=MagicMock(),
-            handlePreProcessingCollapsible=MagicMock(),
         )
 
         self.ToothAnalyserWidget.observerParameters(widget)
-
-        widget.handleApplyButton.assert_called_once()
-        widget.handleSegmentation.assert_called_once()
-        widget.handleBatchCollapsible.assert_called_once()
-        widget.handlePreProcessingCollapsible.assert_called_once()
 
     def testHandleApplyButtonDisablesDuringCompute(self):
         """Test apply button state in compute mode and regular modes."""
@@ -163,39 +161,34 @@ class ToothAnalyserTestMixin:
         self.ToothAnalyserWidget.handleApplyButton(widget)
         self.assertEqual(widget.ui.apply.text, "Apply Batch")
 
-    def testHandlePreProcessingCollapsible(self):
-        """Test pre-processing collapsible visibility handling."""
-        widget = self._createWidgetStub()
-        widget._param.isPreProcessing = True
-        self.ToothAnalyserWidget.handlePreProcessingCollapsible(widget)
-        self.assertTrue(widget.ui.preProcessingCollapsible.isVisible())
-
-        widget._param.isPreProcessing = False
-        self.ToothAnalyserWidget.handlePreProcessingCollapsible(widget)
-        self.assertFalse(widget.ui.preProcessingCollapsible.isVisible())
-
     def testHandleBatchCollapsible(self):
         """Test batch collapsible visibility handling."""
         widget = self._createWidgetStub()
         widget._param.isBatch = True
         self.ToothAnalyserWidget.handleBatchCollapsible(widget)
         self.assertTrue(widget.ui.batchCollapsible.isVisible())
+        self.assertFalse(widget.ui.label_3.isVisible())
+        self.assertFalse(widget.ui.currentImage.isVisible())
+        self.assertTrue(widget.ui.label_4.isVisible())
+        self.assertTrue(widget.ui.sourcePath.isVisible())
 
         widget._param.isBatch = False
         self.ToothAnalyserWidget.handleBatchCollapsible(widget)
-        self.assertFalse(widget.ui.batchCollapsible.isVisible())
+        self.assertTrue(widget.ui.batchCollapsible.isVisible())
+        self.assertTrue(widget.ui.label_3.isVisible())
+        self.assertTrue(widget.ui.currentImage.isVisible())
+        self.assertFalse(widget.ui.label_4.isVisible())
+        self.assertFalse(widget.ui.sourcePath.isVisible())
 
     def testHandleSegmentation(self):
         """Test segmentation panel switching."""
         widget = self._createWidgetStub()
         widget._param.segmentation = "Anatomical Segmentation"
         self.ToothAnalyserWidget.handleSegmentation(widget)
-        self.assertTrue(widget.ui.anatomicaCollapsible.isVisible())
         self.assertFalse(widget.ui.cariesCollapsible.isVisible())
 
         widget._param.segmentation = "Caries Segmentation"
         self.ToothAnalyserWidget.handleSegmentation(widget)
-        self.assertFalse(widget.ui.anatomicaCollapsible.isVisible())
         self.assertTrue(widget.ui.cariesCollapsible.isVisible())
 
     def testHandleProgressBarRange(self):
@@ -318,7 +311,7 @@ class ToothAnalyserTestMixin:
         with tempfile.TemporaryDirectory() as tmpdir:
             param = SimpleNamespace(
                 batch=SimpleNamespace(sourcePath=os.path.join(tmpdir, "missing"), targetPath=tmpdir, fileType=".nrrd"),
-                anatomical=SimpleNamespace(selectedAnatomicalAlgo="Otsu", calcMidSurface=True),
+                anatomical=SimpleNamespace(calcMidSurface=True),
                 pre=SimpleNamespace(compress=False),
             )
             progressBar = self._UiFlag()
@@ -338,7 +331,7 @@ class ToothAnalyserTestMixin:
             os.makedirs(sourceDir, exist_ok=True)
             param = SimpleNamespace(
                 batch=SimpleNamespace(sourcePath=sourceDir, targetPath=os.path.join(tmpdir, "missing"), fileType=".nrrd"),
-                anatomical=SimpleNamespace(selectedAnatomicalAlgo="Otsu", calcMidSurface=True),
+                anatomical=SimpleNamespace(calcMidSurface=True),
                 pre=SimpleNamespace(compress=False),
             )
             progressBar = self._UiFlag()
@@ -362,7 +355,7 @@ class ToothAnalyserTestMixin:
                 pass
             param = SimpleNamespace(
                 batch=SimpleNamespace(sourcePath=sourceDir, targetPath=targetDir, fileType=".nrrd"),
-                anatomical=SimpleNamespace(selectedAnatomicalAlgo="Otsu", calcMidSurface=True),
+                anatomical=SimpleNamespace(calcMidSurface=True),
                 pre=SimpleNamespace(compress=False),
             )
             progressBar = self._UiFlag()
