@@ -38,16 +38,51 @@
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QCheckBox" name="cbxBatch">
-        <property name="toolTip">
-         <string>Switch to batch mode</string>
-        </property>
+       <widget class="QLabel" name="modeLabel">
         <property name="text">
-         <string>batch</string>
+         <string>Mode:</string>
         </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>isBatch</string>
-        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QWidget" name="modeWidget">
+        <layout class="QHBoxLayout" name="modeLayout">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QRadioButton" name="rdoSingle">
+           <property name="toolTip">
+            <string>Process a single image</string>
+           </property>
+           <property name="text">
+            <string>single</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="rdoBatch">
+           <property name="toolTip">
+            <string>Process a batch of images</string>
+           </property>
+           <property name="text">
+            <string>batch</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>

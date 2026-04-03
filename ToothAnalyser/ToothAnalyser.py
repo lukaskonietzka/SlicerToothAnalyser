@@ -193,6 +193,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         More elements can be added.
         """
         self.ui.apply.connect("clicked(bool)", self.handleOnApply)
+        self.ui.rdoSingle.connect("toggled(bool)", self.onBatchModeChanged)
+        self.ui.rdoBatch.connect("toggled(bool)", self.onBatchModeChanged)
 
 
     def connectObservers(self) -> None:
@@ -311,9 +313,27 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         @param caller:
         @param event. the event that triggered the funktion (ModifiedEvent)
         """
+        self.syncBatchModeUi()
         self.handleApplyButton()
         self.handleSegmentation()
         self.handleBatchCollapsible()
+
+    def syncBatchModeUi(self) -> None:
+        """
+        Keep the radio buttons in sync with the parameter node.
+        """
+        if not self._param:
+            return
+        self.ui.rdoBatch.checked = bool(self._param.isBatch)
+        self.ui.rdoSingle.checked = not self._param.isBatch
+
+    def onBatchModeChanged(self, _checked=None) -> None:
+        """
+        Update parameter node when the batch mode radios change.
+        """
+        if not self._param:
+            return
+        self._param.isBatch = bool(self.ui.rdoBatch.checked)
 
     def handleBatchCollapsible(self):
         """
