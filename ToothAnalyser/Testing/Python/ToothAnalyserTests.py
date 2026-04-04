@@ -21,7 +21,7 @@ class ToothAnalyserTestMixin:
             "testAlgorithmSelection",
             "testSetSelectedAlgorithmUnknownName",
             "testLogicRepresentation",
-            "testCariesSegmentationName",
+            "testPathologicalSegmentationName",
             "testValidateBatchSettings",
             "testObserverParametersTriggersHandlers",
             "testHandleApplyButtonDisablesDuringCompute",
@@ -99,7 +99,7 @@ class ToothAnalyserTestMixin:
         algorithmNames = logic.getAlgorithmsByName()
 
         self.assertIn("Anatomical Segmentation", algorithmNames)
-        self.assertIn("Caries Segmentation", algorithmNames)
+        self.assertIn("Pathological Segmentation", algorithmNames)
 
         logic.setSelectedAlgorithm("Anatomical Segmentation")
         self.assertIsInstance(logic.getSelectedAlgorithm(), self.AnatomicalSegmentationLogic)
@@ -117,10 +117,10 @@ class ToothAnalyserTestMixin:
         self.assertEqual(str(logic), "Unbekannter Algorithmus")
         self.assertIn("ToothAnalyserLogic", repr(logic))
 
-    def testCariesSegmentationName(self):
-        """Test display name for the caries logic implementation."""
-        logic = self.CariesSegmentation()
-        self.assertEqual(str(logic), "Caries Segmentation")
+    def testPathologicalSegmentationName(self):
+        """Test display name for the pathological segmentation logic implementation."""
+        logic = self.PathologicalSegmentation()
+        self.assertEqual(str(logic), "Pathological Segmentation")
 
     def testValidateBatchSettings(self):
         """Test batch settings validation with valid and invalid combinations."""
@@ -188,7 +188,7 @@ class ToothAnalyserTestMixin:
         self.ToothAnalyserWidget.handleSegmentation(widget)
         self.assertFalse(widget.ui.cariesCollapsible.isVisible())
 
-        widget._param.segmentation = "Caries Segmentation"
+        widget._param.segmentation = "Pathological Segmentation"
         self.ToothAnalyserWidget.handleSegmentation(widget)
         self.assertTrue(widget.ui.cariesCollapsible.isVisible())
 

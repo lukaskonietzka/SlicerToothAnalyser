@@ -132,7 +132,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="cariesCollapsible">
      <property name="text">
-      <string>Caries Segmentation</string>
+      <string>Pathological Segmentation</string>
      </property>
     </widget>
    </item>

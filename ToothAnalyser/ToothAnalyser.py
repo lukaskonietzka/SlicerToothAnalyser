@@ -134,7 +134,7 @@ class ToothAnalyserParameterNode:
     pre: PreProcessing
     anatomical: AnatomicalParameters
     currentImage: vtkMRMLScalarVolumeNode
-    segmentation: Annotated[str, Choice(["Anatomical Segmentation"])] = "Anatomical Segmentation"
+    segmentation: Annotated[str, Choice(["Anatomical Segmentation", "Pathological Segmentation"])] = "Anatomical Segmentation"
     batch: Batch
     isBatch: bool
     status: str = ""
@@ -999,23 +999,23 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 continue
 
 
-class CariesSegmentation(ToothAnalyserLogic):
-    """Placeholder implementation for caries segmentation workflows."""
+class PathologicalSegmentation(ToothAnalyserLogic):
+    """Placeholder implementation for pathological segmentation workflows."""
 
     def __str__(self):
         """
         Return the visible algorithm name in the segmentation selector.
         """
-        return "Caries Segmentation"
+        return "Pathological Segmentation"
 
     def execute(self, param: ToothAnalyserParameterNode, progressBar):
         self.preprocessing()
-        print("execute Caries Segmentation ...")
+        print("Coming up soon, execute Pathological Segmentation ...")
         self.postprocessing()
 
     def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar):
         self.preprocessing()
-        print("execute Caries Segmentation as Batch ...")
+        print("Coming up soon, execute Pathological Segmentation as Batch ...")
         self.postprocessing()
 
 
@@ -1030,4 +1030,4 @@ class ToothAnalyserTest(ToothAnalyserTestMixin, ScriptedLoadableModuleTest):
     ToothAnalyserLogic = ToothAnalyserLogic
     ToothAnalyserWidget = ToothAnalyserWidget
     AnatomicalSegmentationLogic = AnatomicalSegmentationLogic
-    CariesSegmentation = CariesSegmentation
+    PathologicalSegmentation = PathologicalSegmentation
