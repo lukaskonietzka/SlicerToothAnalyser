@@ -15,132 +15,119 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QWidget" name="generalWidget">
-     <layout class="QFormLayout" name="formLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="modeLabel">
-        <property name="text">
-         <string>Mode:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QWidget" name="modeWidget">
-        <layout class="QHBoxLayout" name="modeLayout">
-         <property name="leftMargin">
-          <number>0</number>
+    <layout class="QFormLayout" name="formLayout_3">
+     <item row="0" column="0">
+      <widget class="QLabel" name="modeLabel">
+       <property name="text">
+        <string>Mode:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <layout class="QHBoxLayout" name="modeLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QRadioButton" name="rdoSingle">
+         <property name="toolTip">
+          <string>Process a single image</string>
          </property>
-         <property name="topMargin">
-          <number>0</number>
+         <property name="text">
+          <string>single</string>
          </property>
-         <property name="rightMargin">
-          <number>0</number>
+         <property name="checked">
+          <bool>true</bool>
          </property>
-         <property name="bottomMargin">
-          <number>0</number>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="rdoBatch">
+         <property name="toolTip">
+          <string>Process a batch of images</string>
          </property>
-         <item>
-          <widget class="QRadioButton" name="rdoSingle">
-           <property name="toolTip">
-            <string>Process a single image</string>
-           </property>
-           <property name="text">
-            <string>single</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="rdoBatch">
-           <property name="toolTip">
-            <string>Process a batch of images</string>
-           </property>
-           <property name="text">
-            <string>batch</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="segmentation_label">
-        <property name="text">
-         <string>Segmentation:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="segmentation">
-        <property name="toolTip">
-         <string>Select the algorithm you want to apply</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>segmentation</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="CollapsibleButton_2">
-     <property name="text">
-      <string>Additional functions</string>
-     </property>
-     <layout class="QFormLayout" name="formLayout_5">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="calcMidSurface">
-        <property name="toolTip">
-         <string>Uncheck this checkbox if you don´t need medial surface</string>
-        </property>
-        <property name="text">
-         <string>calculate medial surface</string>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.calcMidSurface</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QCheckBox" name="createMesh">
-        <property name="toolTip">
-         <string>Uncheck this checkbox if you don´t need a mesh</string>
-        </property>
-        <property name="text">
-         <string>create mesh</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.createMesh</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="cbxCompress">
-        <property name="toolTip">
-         <string>Compress the selected image</string>
-        </property>
-        <property name="text">
-         <string>Compress</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>pre.compress</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
+         <property name="text">
+          <string>batch</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="segmentation_label">
+       <property name="text">
+        <string>Segmentation:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="segmentation">
+       <property name="toolTip">
+        <string>Select the algorithm you want to apply</string>
+       </property>
+       <property name="SlicerParameterName" stdset="0">
+        <string>segmentation</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="createMesh">
+       <property name="toolTip">
+        <string>Uncheck this checkbox if you don´t need a mesh</string>
+       </property>
+       <property name="text">
+        <string>create mesh</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <property name="SlicerParameterName" stdset="0">
+        <string>anatomical.createMesh</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="cbxCompress">
+       <property name="toolTip">
+        <string>Compress the selected image</string>
+       </property>
+       <property name="text">
+        <string>compress</string>
+       </property>
+       <property name="SlicerParameterName" stdset="0">
+        <string>pre.compress</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="calcMidSurface">
+       <property name="toolTip">
+        <string>Uncheck this checkbox if you don´t need medial surface</string>
+       </property>
+       <property name="text">
+        <string>calculate medial surface</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+       <property name="SlicerParameterName" stdset="0">
+        <string>anatomical.calcMidSurface</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="ctkCollapsibleButton" name="cariesCollapsible">
