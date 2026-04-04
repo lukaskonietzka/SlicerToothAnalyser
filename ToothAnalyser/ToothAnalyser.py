@@ -96,7 +96,6 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
-
 @parameterPack
 class PreProcessing:
     """
@@ -195,7 +194,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.apply.connect("clicked(bool)", self.handleOnApply)
         self.ui.rdoSingle.connect("toggled(bool)", self.onBatchModeChanged)
         self.ui.rdoBatch.connect("toggled(bool)", self.onBatchModeChanged)
-
 
     def connectObservers(self) -> None:
         """

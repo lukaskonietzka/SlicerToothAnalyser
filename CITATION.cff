@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: "    Tooth Analyser"
+message: "Wenn du dieses Projekt nutzt, zitiere es bitte wie folgt:"
+type: software
+authors:
+  - family-names: "Mustermann"
+    given-names: "Max"
+repository-code: "https://github.com/deinname/deinrepo"
+version: "1.0.0"
+date-released: 2026-01-01
+license: APACHE
