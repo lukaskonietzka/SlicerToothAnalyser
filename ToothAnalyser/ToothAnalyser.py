@@ -134,7 +134,7 @@ class ToothAnalyserParameterNode:
     pre: PreProcessing
     anatomical: AnatomicalParameters
     currentImage: vtkMRMLScalarVolumeNode
-    segmentation: Annotated[str, Choice(["Anatomical Segmentation", "Pathological Segmentation"])] = "Anatomical Segmentation"
+    segmentation: Annotated[str, Choice(["Anatomical Segmentation"])] = "Anatomical Segmentation"
     batch: Batch
     isBatch: bool
     status: str = ""
@@ -337,10 +337,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def handleBatchCollapsible(self):
         """
-        This methode shows the batch processing collapsible
-        depending on the batch processing checkbox
+        Toggle input parameter visibility depending on batch mode.
         """
-        self.ui.batchCollapsible.setVisible(True)
         if self._param.isBatch:
             self.ui.label_3.setVisible(False)
             self.ui.currentImage.setVisible(False)
@@ -351,6 +349,9 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.targetPath.setVisible(True)
             self.ui.label_7.setVisible(True)
             self.ui.fileType.setVisible(True)
+            self.ui.sourcePath.enabled = True
+            self.ui.targetPath.enabled = True
+            self.ui.fileType.enabled = True
         else:
             self.ui.label_3.setVisible(True)
             self.ui.currentImage.setVisible(True)
@@ -361,6 +362,9 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.targetPath.setVisible(False)
             self.ui.label_7.setVisible(False)
             self.ui.fileType.setVisible(False)
+            self.ui.sourcePath.enabled = False
+            self.ui.targetPath.enabled = False
+            self.ui.fileType.enabled = False
 
     def handleApplyButton(self):
         """

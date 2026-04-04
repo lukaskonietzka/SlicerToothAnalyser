@@ -69,7 +69,7 @@ class ToothAnalyserTestMixin:
         ui = SimpleNamespace(
             apply=self._UiFlag(visible=True, enabled=True),
             status=self._UiFlag(visible=False, enabled=False),
-            batchCollapsible=self._UiFlag(visible=False),
+            inputParametersGroup=self._UiFlag(visible=True),
             cariesCollapsible=self._UiFlag(visible=False),
             progressBar=self._UiFlag(visible=False, enabled=False),
             label_3=self._UiFlag(visible=True),
@@ -163,23 +163,29 @@ class ToothAnalyserTestMixin:
         self.assertEqual(widget.ui.apply.text, "Apply Batch")
 
     def testHandleBatchCollapsible(self):
-        """Test batch collapsible visibility handling."""
+        """Test input parameter visibility for batch and single modes."""
         widget = self._createWidgetStub()
         widget._param.isBatch = True
         self.ToothAnalyserWidget.handleBatchCollapsible(widget)
-        self.assertTrue(widget.ui.batchCollapsible.isVisible())
         self.assertFalse(widget.ui.label_3.isVisible())
         self.assertFalse(widget.ui.currentImage.isVisible())
         self.assertTrue(widget.ui.label_4.isVisible())
         self.assertTrue(widget.ui.sourcePath.isVisible())
+        self.assertTrue(widget.ui.label_5.isVisible())
+        self.assertTrue(widget.ui.targetPath.isVisible())
+        self.assertTrue(widget.ui.label_7.isVisible())
+        self.assertTrue(widget.ui.fileType.isVisible())
 
         widget._param.isBatch = False
         self.ToothAnalyserWidget.handleBatchCollapsible(widget)
-        self.assertTrue(widget.ui.batchCollapsible.isVisible())
         self.assertTrue(widget.ui.label_3.isVisible())
         self.assertTrue(widget.ui.currentImage.isVisible())
         self.assertFalse(widget.ui.label_4.isVisible())
         self.assertFalse(widget.ui.sourcePath.isVisible())
+        self.assertFalse(widget.ui.label_5.isVisible())
+        self.assertFalse(widget.ui.targetPath.isVisible())
+        self.assertFalse(widget.ui.label_7.isVisible())
+        self.assertFalse(widget.ui.fileType.isVisible())
 
     def testHandleSegmentation(self):
         """Test segmentation panel switching."""
