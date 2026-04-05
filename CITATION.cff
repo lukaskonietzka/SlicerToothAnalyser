@@ -1,11 +1,13 @@
 cff-version: 1.2.0
-title: "    Tooth Analyser"
+title: "Tooth Analyser"
 message: "Wenn du dieses Projekt nutzt, zitiere es bitte wie folgt:"
-type: software
+type: Software
 authors:
-  - family-names: "Mustermann"
-    given-names: "Max"
-repository-code: "https://github.com/deinname/deinrepo"
+  - family-names: "Konietzka"
+    given-names: "Lukas"
+  - family-names: "Walter"
+    given-names: "Elias"
+repository-code: "https://github.com/lukaskonietzka/SlicerToothAnalyser"
 version: "1.0.0"
 date-released: 2026-01-01
-license: APACHE
+license: APACHE 2.0
