@@ -16,11 +16,11 @@ workflows.
 - [2. Installation](#2-installation)
 - [3. Quick Start Guide](#3-quick-start-guide)
 - [4. Tutorials](#4-tutorials)
-- [5. Explanation](#5-explanation)
+- [5. Explanation](#5-explanations)
 - [6. Developers](#6-developers)
 - [7. Visualize and Save Results](#7-visualize-and-save-results)
 - [8. Sample Data](#8-sample-data)
-- [9. Contributors and Organisation](#9-contributors-and-organization)
+- [9. Contributors and Organisation](#9-contributors-and-organisation)
 
 ## 1. Introduction and Purpose
 MicroCT has become a cornerstone in dental research, offering high-resolution,
@@ -97,7 +97,7 @@ This section goes into great detail and provides a technical introduction to the
 For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
 
-[Check out the Reference Guide](Documentation/ReferenceGuide.md)
+[Check out the Developer Guide](Documentation/Developers.md)
 
 ## 7. Visualize and Save Results
 When the algorithm is finished, the results are automatically loaded into the Slicer scene,  

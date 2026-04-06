@@ -1,4 +1,4 @@
-# Reference Guide (Developers)
+# Developers
 This chapter is intended as a reference for all developers who want to further develop
 the Tooth Analyser. It discusses the architecture of the module and outlines the steps
 required to add additional functionality.
