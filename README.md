@@ -81,14 +81,14 @@ This chapter covers all components and explains them in detail.
 - Batch processing
 - Notes (processing, runtime, limitations)
 
-To start a tutorial, follow this link:  
+To start a tutorial, follow this link:
+
 [Start a Tutorial](Documentation/Tutorial.md)
 
 ## 5. Explanations
 This chapter provides a detailed introduction to the functionality of the various features of
 the ToothAnalyzer. The focus is on the procedure itself rather than the technical implementation.
 For more details, please refer to the documentation.
-
 
 [Check out the Explanation](Documentation/Explanation.md)
 

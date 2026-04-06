@@ -41,14 +41,13 @@ relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
 relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
 
-# Pfad zur Moduldatei (ToothAnalyser.py)
+# path to main module (ToothAnalyser.py)
 module_dir = os.path.dirname(__file__)
 
-# Pfad zum Library-Ordner (ToothAnalyserLib)
+# path to library folder (ToothAnalyserLib)
 lib_path = os.path.join(module_dir, 'ToothAnalyserLib')
 test_path = os.path.join(module_dir, 'Testing', 'Python')
 
-# Falls noch nicht im sys.path, hinzufügen
 if lib_path not in sys.path:
     sys.path.insert(0, lib_path)
 if test_path not in sys.path:
@@ -61,7 +60,6 @@ class ToothAnalyser(ScriptedLoadableModule):
     and add the connection to the 3D Slicer core application.
     As a child class of "ScriptedLoadableModule" all methods from
     this class can be used."""
-
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("Tooth Analyser")
@@ -96,6 +94,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
+# ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
 class PreProcessing:
     """
@@ -104,7 +103,6 @@ class PreProcessing:
     """
     compress: bool
 
-# ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
 class AnatomicalParameters:
     """
@@ -401,8 +399,6 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         slicer.app.processEvents()
 
         self.ui.progressBar.enabled = isVisible
-
-        #self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
@@ -494,9 +490,9 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """Set the active algorithm instance by display name."""
         self._selectedAlgorithm = None
         for algorithm in self.getAlgorithms():
-            instance = algorithm()  # Instanz erstellen
-            if instance.__str__() == currentAlgorithmName:  # __str__-Namen vergleichen
-                self._selectedAlgorithm = instance  # Instanz speichern
+            instance = algorithm()
+            if instance.__str__() == currentAlgorithmName:
+                self._selectedAlgorithm = instance
                 break
 
     def getSelectedAlgorithm(self):
@@ -702,7 +698,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 newSegmentId = enamelSegmentation.GenerateUniqueSegmentID(
                     sourceSegment.GetName()
                 )
-
                 enamelSegmentation.AddSegment(newSegment, newSegmentId)
 
             # remove dentin helper segmentation
@@ -799,7 +794,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         """
         return sitkUtils.PushVolumeToSlicer(itkImage, None, labelMapName, "vtkMRMLLabelMapVolumeNode")
 
-
     def createVolume(self, img):
         """
         This method creates a Slicer volume starting form an itk
@@ -861,7 +855,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             "image": toothDict.get("img"),
             "toothDict": toothDict
         }
-
         return results
 
     def loadResultsToScene(self, results: dict, param: ToothAnalyserParameterNode) -> None:
@@ -874,7 +867,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @return:
         """
         self.clearScene()
-
 
         labelNode = self.createLabelMapNode(results["labelImage"], "tempLabel")
         segmentationNode = self.createSegmentation(
@@ -1003,7 +995,6 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
 class PathologicalSegmentation(ToothAnalyserLogic):
     """Placeholder implementation for pathological segmentation workflows."""
-
     def __str__(self):
         """
         Return the visible algorithm name in the segmentation selector.
@@ -1021,10 +1012,8 @@ class PathologicalSegmentation(ToothAnalyserLogic):
         self.postprocessing()
 
 
-
 # ----- Tooth Analyser Tests ----- #
 from Testing.Python.ToothAnalyserTests import ToothAnalyserTestMixin
-
 
 class ToothAnalyserTest(ToothAnalyserTestMixin, ScriptedLoadableModuleTest):
     """Wrapper class so Slicer's Reload-and-Test discovers module tests."""
