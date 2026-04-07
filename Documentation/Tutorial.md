@@ -1,82 +1,107 @@
 # Tutorial
-This chapter describes the parameter settings and functions of the Tooth Analyser.
-The extension is organized into several independent steps. The following sections
-list all key functions and their results in a structured way.
+This chapter describes the parameter settings and functions of the Tooth Analyser in a concise,
+step-by-step way. The tutorial is structured to mirror the **Parameters** section in the Slicer UI,
+so you can follow the documentation in the same order you see the controls. Each section explains
+what the corresponding option does, when to use it, and what to expect from the results.
+
+![Screenshot parameters](/Screenshots/parameters.png)
 
 ## Table of contents
-- [1. Anatomical Segmentation (Labels)](#1-anatomical-segmentation-labels)
-- [2. Mesh Creation](#2-mesh-creation)
-- [3. Handle Large Datasets](#3-handle-large-datasets)
-- [4. Caries Classification (Medial Surfaces)](#4-caries-classification-medial-surfaces)
-- [5. Complex Root Analysis](#5-complex-root-analysis)
-- [6. Batch Processing](#6-batch-processing)
-- [7. Notes: Processing, Runtime, Limitations](#7-notes-processing-runtime-limitations)
+- [1. Mode](#1-mode)
+  - [1.1 Single Mode](#11-single)
+  - [1.2 Batch Mode](#12-batch)
+- [2. Segmentation](#2-segmentation)
+- [3. Additional](#3-additional)
+  - [3.1 Mesh Creation](#31-mesh-creation)
+  - [3.2 Medial Surfaces](#32-medial-surfaces)
+  - [3.3 Compress](#33-compress)
+- [4. Possibilities](#4-possibilities)
+  - [4.1 Caries Classification](#41-caries-classification)
+  - [4.2 Complex Root Analysis](#42-complex-root-analysis)
+- [5. Runtime](#5-runtime)
 
-## 1. Anatomical Segmentation (Labels)
-Anatomical segmentation is the core of the extension. It segments the microCT image into the main tissues
-such as dentin and enamel and creates the corresponding label images. Optionally, medial surfaces can be
-computed, which are relevant for later caries classification.
+## 1. Mode
+Select how the module should process your data. The mode defines whether you work on the
+currently loaded volume or run the same workflow on a folder of images.
 
-| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Parameters                                                                                                                             |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| **Image for Segmentation**: Select the CT volume to segment.<br/><br/> **Calculate Medial Surface**: Computes medial surfaces for dentin and enamel based on the segmentation.<br/><br/> **Apply Anatomical:** Starts anatomical segmentation. | ![Screenshot of the application](/Screenshots/slicerASParameter.png) <br/> *Figure 1: Parameter selection for anatomical segmentation* |
+### 1.1 Single
+Process one dataset loaded in the Slicer scene. Results are written into the current scene and
+can be inspected immediately. To show or hide individual segments, use the **Data** module and
+toggle the visibility of the generated segmentation and model nodes.
 
-| Description                                                                                                                                    | Result View                                                                                                                   |
-|------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Results are immediately visible in the scene. To toggle individual segments, use the Data module (Module: Data).       | ![Screenshot of the application](../Screenshots/result.gif) <br/> *Figure 2: Result of the anatomical segmentation* |
+**Input parameters**
+- **µCT Image**: The scalar volume to segment. This must be loaded into Slicer first.
+- **Apply Segmentation**: Starts the segmentation on the selected image. The progress bar shows
+  the current step.
 
-## 2. Mesh Creation
-A 3D mesh can be created from the segmentation. The mesh is generated from the label images and is
-relevant for visualization, measurements, and export. Creation follows the standard Slicer workflows
-in the **Segment Editor**.
+![Screenshot of the application](/Screenshots/single_mode.png)
+*Figure 1: Input Parameter for the single process*
 
-The generated mesh can be sent directly to a 3D printer, allowing you to physically reconstruct and
-print the tooth from the mesh.
+![Screenshot of the application](/Screenshots/result.gif)
+*Figure 1: Input Parameter for the single process*
 
-[Example-Mesh.stl](../Mesh/Example-Mesh.stl)
+### 1.2 Batch
+Process a folder of datasets with the same parameters. Batch processing is useful once you have
+validated a good parameter configuration on a single case.
 
-## 3. Handle Large Datasets
-This option reduces resolution (downsampling) so large datasets can be processed faster.
-You can run this function by enabling the **Compress** checkbox in the **Preprocessing** section.
-With the checkbox enabled, large high-resolution images can be segmented significantly faster,
-but this also reduces accuracy.
+**Input parameters**
+- **load files from**: Source directory containing the images to process.
+- **save files in**: Target directory where results are written.
+- **save files as**: Output file type for the generated label maps (`.nrrd`, `.nii`, `.mhd`).
+- **Apply Batch**: Starts processing for all files in the source directory. For each input image,
+  the module creates a dedicated subfolder and stores the outputs there.
 
-If you compress an image multiple times, the algorithm becomes faster each time, but accuracy
-decreases with every additional compression.
+![Screenshot of the application](../Screenshots/batch_mode.png)
+*Figure 3: Input Parameter for the batch process*
 
-**Recommended workflow:**
-If a segmentation requires high resolution, use a very high-resolution image and allow the
-algorithm to run longer instead of compressing.
+![Screenshot of the application](/Screenshots/resultbatch.png)
+*Figure 4: Result batch process*
 
-## 4. Caries Classification (Medial Surfaces)
-Caries classification is based on medial surfaces. By overlaying the original data with medial surfaces,
-relevant regions, especially medial areas, can be analyzed and classified more precisely.
+## 2. Segmentation
+Choose the segmentation algorithm to apply. The algorithm performs the actual tissue separation
+and produces label maps that represent the main anatomical structures.
 
-| Description                                                                                                                                                                      | Result View                                                                                                            |
-|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| Medial surfaces of dentin and enamel support identification of caries-relevant regions when overlaid with the original image. | ![Screenshot of the application](/Screenshots/resultMedialSurface.png) <br/> *Figure 3: Usage for the medial surfaces* |
+- **Segmentation**: Select the desired algorithm. Currently, the available option is
+  **Anatomical Segmentation**, which segments the main tooth tissues (e.g., enamel and dentin)
+  and creates corresponding label images. The resulting segmentation is placed into the scene and
+  can be refined further using standard Slicer workflows if needed.
 
-## 5. Complex Root Analysis
-Root analysis enables complex evaluation of tooth root geometry. The algorithm is designed to work
-with a single root and does not require a complete crown.
+## 3. Additional
+Optional steps that extend or modify the segmentation workflow. These options can be enabled or
+disabled depending on the analysis target and required output.
 
-## 6. Batch Processing
-With batch processing, tested parameters can be applied to a whole series of CT images.
-The Tooth Analyser automatically creates a folder structure in the file system where
-results are stored per case. Exactly one *use parameters for batch* checkbox must be enabled.
+### 3.1 Mesh Creation
+- **create mesh**: Generates 3D surface models from the segmentation. This is useful for
+  visualization, measurements, and export (e.g., 3D printing). The mesh is created from the label
+  images following standard Slicer segmentation-to-model workflows.
 
-| Description                                                                                                                                                                                                                                                                                                                                                                                                                        | Parameters                                                                                                                            |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| **Load file from**: Select the folder containing the CT scans to process.<br/><br/> **Save files in**: Target folder for results.<br/><br/> **Save files as**: Output format for the images.<br/><br/> **Apply Batch:** Starts batch processing. The button is only active when source and target folders are set and exactly one function is selected for batch. | ![Screenshot of the application](../Screenshots/slicerBatchParameter.png)<br/> *Figure 4: Parameter selection for the batch function* |
+### 3.2 Medial Surfaces
+- **calculate medial surface**: Computes medial surfaces for dentin and enamel based on the
+  segmentation. These surfaces can be overlaid with the original image and are required for
+  downstream analyses such as caries classification.
 
-| Description                                                                                                                                                                                           | Result View                                                                                          |
-|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| For each image in the batch, a subfolder is created where the segmentation files are stored. | ![Screenshot of the application](/Screenshots/resultbatch.png)<br/> *Figure 5: Result batch process* |
+### 3.3 Compress
+- **compress**: Downsamples the input image before processing. This can significantly reduce
+  runtime on large datasets, but it also reduces accuracy. If you compress multiple times, runtime
+  drops further while accuracy decreases with each additional compression. For high-quality results,
+  prefer running on a high-resolution image and accept longer processing times.
 
-## 7. Notes: Processing, Runtime, Limitations
-When a function is executed, the Tooth Analyzer switches to processing mode. Progress is shown
-via progress bar.
+## 4. Possibilities
+These analyses build on the segmentation results and are available as downstream workflows.
+They focus on pathology assessment and root-specific evaluation.
 
-Runtime depends strongly on the data, e.g., image size, filtering, and optional computations.
+### 4.1 Caries Classification
+Caries classification is based on the medial surfaces. By overlaying the original data with the
+medial surfaces, caries-relevant regions can be analyzed more precisely and compared across cases.
 
-Supported formats include `.ISQ`, `.mhd`, `.nii`, `.nrrd`, and compressed variants such as `.nii.gz`.
+![Screenshot of the application](/Screenshots/resultMedialSurface.png)
+*Figure 5: Usage for the medial surfaces*
+
+### 4.2 Complex Root Analysis
+Root analysis enables evaluation of tooth root geometry. The algorithm is designed to work with a
+single root and does not require a complete crown.
+
+## 5. Runtime
+Runtime depends strongly on your system and the dataset. Large images, medial surface computation,
+mesh creation, and batch processing all increase runtime. Use the progress bar to monitor the
+current step, and consider **compress** for faster processing when appropriate.
