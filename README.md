@@ -60,12 +60,15 @@ To use the Tooth Analyser efficiently, follow these steps:
 - Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**)
     or use the provided sample Data in (**File: Download Sample Data → ToothCrownMicroCT**)
 - Switch to the Tooth Analyser module (**Modules: Segmentation → Tooth Analyser**).  
-- In the **Anatomical Segmentation** section, select the microCT image you want to segment.
-- Start the algorithm by clicking the **Apply Anatomical** button.  
+- In the **Parameter** section, select the single mode.
+- Then select a µCT in the **Input Parameter** section.
+- Start the algorithm by clicking the **Apply** button.  
 - The cursor will switch to waiting mode, and a progress bar will appear at the bottom.  
+- The algorithm is finished when the progress bar reaches 100% an the result ist visible.
 
 ⚠️ **Notice**: With very high-resolution images, the algorithm can take a very long time depending on the machine, 
-because medial filtering is used.
+because medial filtering is used. If you want a qick result, select the checkbox **compress** in the **Parameter**
+Section.
 
 ## 4. Tutorials
 This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
