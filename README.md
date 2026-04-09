@@ -128,8 +128,6 @@ The sample images are microCT scans provided open-source by the *Department of C
 You can download sample data here:  
 [Download Sample Data](https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz)
 
-![SampelData](/Screenshots/sampleData.png)
-
 ⚠️ **Notice**: The Tooth Analyzer was specifically developed for microCT scans  
 with tooth structures, which is why other types of CT scans may result in errors. 
 

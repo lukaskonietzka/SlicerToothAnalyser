@@ -37,12 +37,12 @@ toggle the visibility of the generated segmentation and model nodes.
     <td align="center">
       <img src="/Screenshots/single_mode.png" alt="Single mode input parameters" width="100%"/>
       <br/>
-      <em>Figure 2: Single mode input parameters</em>
+      <em>Figure 1: Single mode input parameters</em>
     </td>
     <td align="center">
       <img src="/Screenshots/result.gif" alt="Single mode result preview" width="100%"/>
       <br/>
-      <em>Figure 3: Single mode result preview</em>
+      <em>Figure 2: Single mode result preview</em>
     </td>
   </tr>
 </table>
@@ -63,12 +63,12 @@ validated a good parameter configuration on a single case.
     <td align="center">
       <img src="/Screenshots/batch_mode.png" alt="Batch mode input parameters" width="100%"/>
       <br/>
-      <em>Figure 4: Batch mode input parameters</em>
+      <em>Figure 3: Batch mode input parameters</em>
     </td>
     <td align="center">
       <img src="/Screenshots/resultbatch.png" alt="Batch mode results" width="100%"/>
       <br/>
-      <em>Figure 5: Batch mode results</em>
+      <em>Figure 4: Batch mode results</em>
     </td>
   </tr>
 </table>
@@ -110,10 +110,9 @@ They focus on pathology assessment and root-specific evaluation.
 Caries classification is based on the medial surfaces. By overlaying the original data with the
 medial surfaces, caries-relevant regions can be analyzed more precisely and compared across cases.
 
-<figure align="center">
-  <img src="/Screenshots/resultMedialSurface.png" alt="Medial surface usage" width="80%"/>
-  <figcaption><em>Figure 6: Usage for the medial surfaces</em></figcaption>
-</figure>
+<img src="/Screenshots/resultMedialSurface.png" alt="ScreenshotCaries" width="300">
+
+<em>Figure 4. Caries Classification</em>
 
 ### 4.2 Complex Root Analysis
 Root analysis enables segmentation even when only the root is present. The algorithm is not

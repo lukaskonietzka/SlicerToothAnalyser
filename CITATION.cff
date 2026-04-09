@@ -1,6 +1,5 @@
 cff-version: 1.2.0
 title: "Tooth Analyser"
-message: "Wenn du dieses Projekt nutzt, zitiere es bitte wie folgt:"
 type: Software
 authors:
   - family-names: "Konietzka"
