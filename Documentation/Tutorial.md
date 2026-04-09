@@ -4,8 +4,6 @@ step-by-step way. The tutorial is structured to mirror the **Parameters** sectio
 so you can follow the documentation in the same order you see the controls. Each section explains
 what the corresponding option does, when to use it, and what to expect from the results.
 
-![Screenshot parameters](/Screenshots/parameters.png)
-
 ## Table of contents
 - [1. Mode](#1-mode)
   - [1.1 Single Mode](#11-single)
@@ -34,11 +32,20 @@ toggle the visibility of the generated segmentation and model nodes.
 - **Apply Segmentation**: Starts the segmentation on the selected image. The progress bar shows
   the current step.
 
-![Screenshot of the application](/Screenshots/single_mode.png)
-*Figure 1: Input Parameter for the single process*
-
-![Screenshot of the application](/Screenshots/result.gif)
-*Figure 1: Input Parameter for the single process*
+<table>
+  <tr>
+    <td align="center">
+      <img src="/Screenshots/single_mode.png" alt="Single mode input parameters" width="100%"/>
+      <br/>
+      <em>Figure 2: Single mode input parameters</em>
+    </td>
+    <td align="center">
+      <img src="/Screenshots/result.gif" alt="Single mode result preview" width="100%"/>
+      <br/>
+      <em>Figure 3: Single mode result preview</em>
+    </td>
+  </tr>
+</table>
 
 ### 1.2 Batch
 Process a folder of datasets with the same parameters. Batch processing is useful once you have
@@ -51,11 +58,20 @@ validated a good parameter configuration on a single case.
 - **Apply Batch**: Starts processing for all files in the source directory. For each input image,
   the module creates a dedicated subfolder and stores the outputs there.
 
-![Screenshot of the application](../Screenshots/batch_mode.png)
-*Figure 3: Input Parameter for the batch process*
-
-![Screenshot of the application](/Screenshots/resultbatch.png)
-*Figure 4: Result batch process*
+<table>
+  <tr>
+    <td align="center">
+      <img src="/Screenshots/batch_mode.png" alt="Batch mode input parameters" width="100%"/>
+      <br/>
+      <em>Figure 4: Batch mode input parameters</em>
+    </td>
+    <td align="center">
+      <img src="/Screenshots/resultbatch.png" alt="Batch mode results" width="100%"/>
+      <br/>
+      <em>Figure 5: Batch mode results</em>
+    </td>
+  </tr>
+</table>
 
 ## 2. Segmentation
 Choose the segmentation algorithm to apply. The algorithm performs the actual tissue separation
@@ -94,14 +110,20 @@ They focus on pathology assessment and root-specific evaluation.
 Caries classification is based on the medial surfaces. By overlaying the original data with the
 medial surfaces, caries-relevant regions can be analyzed more precisely and compared across cases.
 
-![Screenshot of the application](/Screenshots/resultMedialSurface.png)
-*Figure 5: Usage for the medial surfaces*
+<figure align="center">
+  <img src="/Screenshots/resultMedialSurface.png" alt="Medial surface usage" width="80%"/>
+  <figcaption><em>Figure 6: Usage for the medial surfaces</em></figcaption>
+</figure>
 
 ### 4.2 Complex Root Analysis
-Root analysis enables evaluation of tooth root geometry. The algorithm is designed to work with a
-single root and does not require a complete crown.
+Root analysis enables segmentation even when only the root is present. The algorithm is not
+limited to tooth crowns and can also process CTs that contain a full root without the crown.
 
 ## 5. Runtime
-Runtime depends strongly on your system and the dataset. Large images, medial surface computation,
-mesh creation, and batch processing all increase runtime. Use the progress bar to monitor the
-current step, and consider **compress** for faster processing when appropriate.
+Runtime depends strongly on your system and the dataset. The largest share of runtime typically
+comes from the **median smoothing** step: it operates on the full 3D volume and evaluates local
+neighborhoods for every voxel, so processing time grows quickly with image size. Large images,
+medial surface computation, mesh creation, and batch processing all further increase runtime.
+Use the progress bar to monitor the current step, and consider **compress** for faster processing
+when appropriate. **Compress** reduces the volume resolution before smoothing, which speeds up
+runtime noticeably but also lowers spatial detail and can reduce segmentation quality.
