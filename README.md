@@ -16,11 +16,11 @@ workflows.
 - [2. Installation](#2-installation)
 - [3. Quick Start Guide](#3-quick-start-guide)
 - [4. Tutorials](#4-tutorials)
-- [5. Explanation](#5-explanation)
-- [6. Reference Guide (Developers)](#6-reference-guide-developers)
+- [5. Anatomical Segmentation](#5-anatomical-segmentation)
+- [6. Developers](#6-developers)
 - [7. Visualize and Save Results](#7-visualize-and-save-results)
 - [8. Sample Data](#8-sample-data)
-- [9. Contributors and Organisation](#9-contributors-and-organization)
+- [9. Contributors and Organisation](#9-contributors-and-organisation)
 
 ## 1. Introduction and Purpose
 MicroCT has become a cornerstone in dental research, offering high-resolution,
@@ -60,36 +60,48 @@ To use the Tooth Analyser efficiently, follow these steps:
 - Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**)
     or use the provided sample Data in (**File: Download Sample Data → ToothCrownMicroCT**)
 - Switch to the Tooth Analyser module (**Modules: Segmentation → Tooth Analyser**).  
-- In the **Anatomical Segmentation** section, select the microCT image you want to segment.  
-- Check the box **Calculate Medial Surface** if medial surfaces should be calculated.  
-- Start the algorithm by clicking the **Apply Anatomical** button.  
+- In the **Parameter** section, select the single mode.
+- Then select a µCT in the **Input Parameter** section.
+- Start the algorithm by clicking the **Apply** button.  
 - The cursor will switch to waiting mode, and a progress bar will appear at the bottom.  
+- The algorithm is finished when the progress bar reaches 100% an the result ist visible.
 
-⚠️ **Notice**: The algorithm includes filtering and medial surface calculation. In the worst case  
-(large image, medial flattening, filtering), the algorithm can take up to 17 minutes.
+⚠️ **Notice**: With very high-resolution images, the algorithm can take a very long time depending on the machine, 
+because medial filtering is used. If you want a qick result, select the checkbox **compress** in the **Parameter**
+Section.
 
 ## 4. Tutorials
 This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
 The extension is divided into several functions, each of which can be executed independently.  
 This chapter covers all components and explains them in detail.
 
-To start a tutorial, follow this link:  
-[Start a Tutorial](Documentation/Tutorial.md)
+**Topics covered:**
+- Anatomical segmentation (label creation)
+- Mesh creation
+- Handle large datasets
+- Caries classification (focus on medial surfaces)
+- Complex root analysis (also works with a single root, not only a crown)
+- Batch processing
+- Notes (processing, runtime, limitations)
 
-## 5. Explanations
-This chapter provides a detailed introduction to the functionality of the various features of
-the ToothAnalyzer. The focus is on the procedure itself rather than the technical implementation.
-For more details, please refer to the documentation.
+To start a tutorial, follow this link:
 
+[Start a tutorial](Documentation/Tutorial.md)
 
-[Check out the Explanation](Documentation/Explanation.md)
+## 5. Anatomical Segmentation
+This chapter explains the function and algorithmic formulation of the anatomical
+segmentation pipeline. It focuses on how the segmentation steps are defined conceptually,
+not on their implementation details. Optional steps beyond the core segmentation are
+clearly separated in the documentation.
 
-## 6. Reference Guide (Developers)
+[Check out the explanation for the anatomical segmentation](Documentation/AnatomicalSegmentation.md)
+
+## 6. Developers
 This section goes into great detail and provides a technical introduction to the implementation.
 For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
 
-[Check out the Reference Guide](Documentation/ReferenceGuide.md)
+[Check out the developer guide](Documentation/Developers.md)
 
 ## 7. Visualize and Save Results
 When the algorithm is finished, the results are automatically loaded into the Slicer scene,  

@@ -10,10 +10,14 @@ This module contains all the logic related to the 3D Slicer core system
 
 import logging
 import os
+import sys
+import shutil
+import time
 
 from typing import Annotated, Optional
 
 import sitkUtils
+import vtkSegmentationCorePython as vtkSegCore
 import vtk
 
 import slicer
@@ -21,13 +25,14 @@ from MRMLCorePython import vtkMRMLLabelMapVolumeNode
 from slicer.i18n import tr as _
 from slicer.i18n import translate
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode
+from slicer.util import VTKObservationMixin
 from slicer.parameterNodeWrapper import (
     parameterNodeWrapper,
     Choice, parameterPack
 )
 
 from slicer import vtkMRMLScalarVolumeNode
+from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
 # load images for Help and Acknowledgement section
 scriptDir = os.path.dirname(__file__)
@@ -36,15 +41,25 @@ relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
 relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
 
+# path to main module (ToothAnalyser.py)
+module_dir = os.path.dirname(__file__)
+
+# path to library folder (ToothAnalyserLib)
+lib_path = os.path.join(module_dir, 'ToothAnalyserLib')
+test_path = os.path.join(module_dir, 'Testing', 'Python')
+
+if lib_path not in sys.path:
+    sys.path.insert(0, lib_path)
+if test_path not in sys.path:
+    sys.path.insert(0, test_path)
+
 
 # ----- Tooth Analyser meta information ----- #
-
 class ToothAnalyser(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
     and add the connection to the 3D Slicer core application.
     As a child class of "ScriptedLoadableModule" all methods from
     this class can be used."""
-
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = _("Tooth Analyser")
@@ -76,43 +91,17 @@ class ToothAnalyser(ScriptedLoadableModule):
             <img src="{relativePathLMU}" width="100">
         """)
         # Additional initialization step after application startup is complete
-        slicer.app.connect("startupCompleted()", registerSampleData)
-
-
-# ----- Sample Data for Tooth Analyser----- #
-def registerSampleData():
-    """
-    This Methode provides sample Data for the module tests
-    To ensure that the source code repository remains small
-    (can be downloaded and installed quickly) it is recommended to
-    store data sets that are larger than a few MB in a GitHub release.
-    """
-    import SampleData
-    iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
-
-    # fist sample CT -> ToothCrownMicroCT
-    SampleData.SampleDataLogic.registerCustomSampleDataSource(
-        category="General",
-        sampleName="ToothCrownMicroCT",
-        thumbnailFileName=os.path.join(iconsPath, "toothCT.png"),
-        # path to sample image
-        uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz",
-        fileNames="P01A-C0005278.nii.gz",
-        checksums=None,
-        nodeNames="ToothCrownMicroCT",
-    )
+        slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
 # ----- Tooth Analyser Parameter Node ----- #
 @parameterPack
-class AnalyticalParameters:
+class PreProcessing:
     """
-    The parameters needed by the section
-    Analytics
+    The Parameter needed by the section
+    Pre Processing
     """
-    currentAnalyticalVolume: vtkMRMLScalarVolumeNode
-    showHistogram: bool
-    useAnalyticForBatch: bool
+    compress: bool
 
 @parameterPack
 class AnatomicalParameters:
@@ -120,10 +109,8 @@ class AnatomicalParameters:
     The parameters needed by the section
     Anatomical Segmentation
     """
-    currentAnatomicalVolume: vtkMRMLScalarVolumeNode
-    selectedAnatomicalAlgo: Annotated[str, Choice(["Otsu", "Renyi"])] = "Otsu"
     calcMidSurface: bool
-    useAnatomicalForBatch: bool
+    createMesh: bool
 
 @parameterPack
 class Batch:
@@ -141,13 +128,16 @@ class ToothAnalyserParameterNode:
     All parameters needed by module
     separated in: analytical, anatomical, batch
     """
-    analytical: AnalyticalParameters
+    pre: PreProcessing
     anatomical: AnatomicalParameters
+    currentImage: vtkMRMLScalarVolumeNode
+    segmentation: Annotated[str, Choice(["Anatomical Segmentation"])] = "Anatomical Segmentation"
     batch: Batch
+    isBatch: bool
     status: str = ""
 
 
-# ----- Tooth Analyser widget clas ----- #
+# ----- Tooth Analyser widget class ----- #
 class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic
@@ -164,6 +154,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic = None
         self._param = None
         self._parameterNodeGuiTag = None
+        self._isComputing = False
 
     def setup(self) -> None:
         """
@@ -198,9 +189,9 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         This method connects all static ui elements that has no specific parameter
         More elements can be added.
         """
-        self.ui.applyAnalytics.connect("clicked(bool)", self.onApplyAnalyticsButton)
-        self.ui.applyAnatomical.connect("clicked(bool)", self.onApplyAnatomicalButton)
-        self.ui.applyBatch.connect("clicked(bool)", self.onApplyBatchButton)
+        self.ui.apply.connect("clicked(bool)", self.handleOnApply)
+        self.ui.rdoSingle.connect("toggled(bool)", self.onBatchModeChanged)
+        self.ui.rdoBatch.connect("toggled(bool)", self.onBatchModeChanged)
 
     def connectObservers(self) -> None:
         """
@@ -279,24 +270,17 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._param.anatomical.currentAnatomicalVolume:
+        if not self._param.currentImage:
             firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
             if firstVolumeNode:
-                self._param.anatomical.currentAnatomicalVolume = firstVolumeNode
-
-        # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._param.analytical.currentAnalyticalVolume:
-            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-            if firstVolumeNode:
-                self._param.analytical.currentAnalyticalVolume = firstVolumeNode
+                self._param.currentImage = firstVolumeNode
 
         # default settings for the parameters
-        self.ui.showHistogram.checked = True
         self.ui.calcMidSurface.checked = True
+        self.ui.createMesh.checked = True
         self.ui.progressBar.setVisible(False)
         self.ui.status.setVisible(False)
         self.ui.status.enabled = False
-        self._param.anatomical.selectedAnatomicalAlgo = "Otsu"
 
     def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
         """
@@ -325,49 +309,77 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         @param caller:
         @param event. the event that triggered the funktion (ModifiedEvent)
         """
-        self.handleApplyBatchButton()
-        self.handleApplyAnalyticsButton()
-        self.handleApplyAnatomicalButton()
+        self.syncBatchModeUi()
+        self.handleApplyButton()
+        self.handleSegmentation()
+        self.handleBatchCollapsible()
 
-    def handleApplyBatchButton(self):
+    def syncBatchModeUi(self) -> None:
         """
-        This methode check if there is exactly one
-        enabled checkbox for the batch process.
+        Keep the radio buttons in sync with the parameter node.
         """
-        if not self.validateBatchSettings(
-            paramsToCheck={
-                "analytics": self._param.analytical.useAnalyticForBatch,
-                "anatomical": self._param.anatomical.useAnatomicalForBatch})\
-            or not self._param.batch.sourcePath or not self._param.batch.targetPath:
-                self.ui.applyBatch.enabled = False
-        elif self.ui.status.isVisible():
-            self.ui.applyBatch.enabled = False
-        else:
-            self.ui.applyBatch.enabled = True
+        if not self._param:
+            return
+        self.ui.rdoBatch.checked = bool(self._param.isBatch)
+        self.ui.rdoSingle.checked = not self._param.isBatch
 
-    def handleApplyAnalyticsButton(self):
+    def onBatchModeChanged(self, _checked=None) -> None:
         """
-        Enable the "Apply Analytical" Button, if an image is
-        loaded to the scene.
+        Update parameter node when the batch mode radios change.
         """
-        if not self._param.analytical.currentAnalyticalVolume:
-            self.ui.applyAnalytics.enabled = False
-        elif self.ui.status.isVisible():
-            self.ui.applyAnalytics.enabled = False
-        else:
-            self.ui.applyAnalytics.enabled = True
+        if not self._param:
+            return
+        self._param.isBatch = bool(self.ui.rdoBatch.checked)
 
-    def handleApplyAnatomicalButton(self):
+    def handleBatchCollapsible(self):
         """
-        Enable the "Apply Anatomical" Button, if an image is
-        loaded to the scene.
+        Toggle input parameter visibility depending on batch mode.
         """
-        if not self._param.anatomical.currentAnatomicalVolume:
-            self.ui.applyAnatomical.enabled = False
-        elif self.ui.status.isVisible():
-            self.ui.applyAnatomical.enabled = False
+        if self._param.isBatch:
+            self.ui.label_3.setVisible(False)
+            self.ui.currentImage.setVisible(False)
+            self.ui.currentImage.enabled = False
+            self.ui.label_4.setVisible(True)
+            self.ui.sourcePath.setVisible(True)
+            self.ui.label_5.setVisible(True)
+            self.ui.targetPath.setVisible(True)
+            self.ui.label_7.setVisible(True)
+            self.ui.fileType.setVisible(True)
+            self.ui.sourcePath.enabled = True
+            self.ui.targetPath.enabled = True
+            self.ui.fileType.enabled = True
         else:
-            self.ui.applyAnatomical.enabled = True
+            self.ui.label_3.setVisible(True)
+            self.ui.currentImage.setVisible(True)
+            self.ui.currentImage.enabled = True
+            self.ui.label_4.setVisible(False)
+            self.ui.sourcePath.setVisible(False)
+            self.ui.label_5.setVisible(False)
+            self.ui.targetPath.setVisible(False)
+            self.ui.label_7.setVisible(False)
+            self.ui.fileType.setVisible(False)
+            self.ui.sourcePath.enabled = False
+            self.ui.targetPath.enabled = False
+            self.ui.fileType.enabled = False
+
+    def handleApplyButton(self):
+        """
+        Enable the apply button when either batch mode is enabled
+        or an image is loaded, unless processing is currently active.
+        """
+        if self._isComputing:
+            self.ui.apply.enabled = False
+            self.ui.apply.text = "Applying..."
+            return
+
+        if self._param.isBatch or self._param.currentImage:
+            self.ui.apply.enabled = True
+            self.ui.apply.text = "Apply"
+            if self._param.isBatch:
+                self.ui.apply.text = "Apply Batch"
+        else:
+            self.ui.apply.enabled = False
+            self.ui.apply.text = "Apply"
 
     def validateBatchSettings(self, paramsToCheck: dict) -> bool:
         """
@@ -383,65 +395,56 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         no unwanted user input can occur
         @param isVisible: computing mode ist activated when TRUE
         """
+        self._isComputing = isVisible
         slicer.app.processEvents()
 
         self.ui.progressBar.enabled = isVisible
-
-        self.ui.applyAnalytics.enabled = not isVisible
-        self.ui.applyAnatomical.enabled = not isVisible
-        self.ui.applyBatch.enabled = not isVisible
-
-        self.ui.status.setVisible(isVisible)
         self.ui.progressBar.setVisible(isVisible)
         self.ui.progressBar.enabled = isVisible
 
-        self.handleApplyAnalyticsButton()
-        self.handleApplyAnatomicalButton()
+        self.handleApplyButton()
 
         slicer.app.processEvents()
 
-    def onApplyAnalyticsButton(self) -> None:
-        """
-        Run the analytical processing in an error display
-        when user clicks "Apply Analytics" Button.
-        """
-        self._param.status = "start analytics..."
-        self.activateComputingMode(True)
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            Analytics.execute(self._param)
-        self.activateComputingMode(False)
+    def handleSegmentation(self):
+        if self._param.segmentation == "Anatomical Segmentation":
+            self.ui.cariesCollapsible.setVisible(False)
+        else:
+            self.ui.cariesCollapsible.setVisible(True)
 
-    def onApplyAnatomicalButton(self) -> None:
+    def handleProgressBarRange(self) -> None:
         """
-        Run the anatomical segmentation processing in an error display
-        when user clicks "Apply Analytics" Button.
+        This Methode sets the maximum for the progress Bar
+        depending on the medial surfaces
         """
-        self._param.status = "start anatomical segmentation..."
-        self.activateComputingMode(True)
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            try:
-                AnatomicalSegmentationLogic.execute(param=self._param)
-            except:
-                slicer.util.errorDisplay("""An error occurred while processing the image. Please note
-                    that this module is specifically designed for CT scans of teeth."""
-                )
-            print("anatomical")
-        self.activateComputingMode(False)
+        maxWithMedialSurface = 13
+        maxWithoutMedialSurface = 11
 
-    def onApplyBatchButton(self) -> None:
+        if self._param.anatomical.calcMidSurface:
+            self.ui.progressBar.maximum = maxWithMedialSurface
+        else:
+            self.ui.progressBar.maximum = maxWithoutMedialSurface
+
+
+    def handleOnApply(self):
         """
-        Run the batch processing in an error display
-        when user clicks "Apply Batch" button.
+        This methode is called when the apply button is pressed
         """
+        self.handleProgressBarRange()
         self.activateComputingMode(True)
-        with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
-            if self._param.analytical.useAnalyticForBatch:
-                Analytics.executeAsBatch(param=self._param)
-                self.activateComputingMode(False)
-            elif self._param.anatomical.useAnatomicalForBatch:
-                slicer.util.warningDisplay("""The Batch processing of the anatomical segmentation may take a lot of resources on your local machine.""")
-                AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
-        self.activateComputingMode(False)
+        try:
+            with slicer.util.tryWithErrorDisplay(_("Failed to compute results."), waitCursor=True):
+                self.logic.setSelectedAlgorithm(self._param.segmentation)
+                selectedAlgorithm = self.logic.getSelectedAlgorithm()
+                if not selectedAlgorithm:
+                    raise RuntimeError(f"Unsupported segmentation algorithm '{self._param.segmentation}'.")
+
+                if self._param.isBatch:
+                    selectedAlgorithm.executeAsBatch(param=self._param, progressBar=self.ui.progressBar)
+                else:
+                    selectedAlgorithm.execute(param=self._param, progressBar=self.ui.progressBar)
+        finally:
+            self.activateComputingMode(False)
 
 
 # ----- Tooth Analyser logic interface ----- #
@@ -454,93 +457,75 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     Uses ScriptedLoadableModuleLogic base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
+    _algorithm = []
+
     def __init__(self) -> None:
         """ Called when the logic class is instantiated.
         Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
+        self._selectedAlgorithm = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls not in ToothAnalyserLogic._algorithm:
+            ToothAnalyserLogic._algorithm.append(cls)
+
+    def __str__(self):
+        """Return the default algorithm label if subclasses do not override ``__str__``."""
+        return "Unbekannter Algorithmus"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
+    def getAlgorithmsByName(self):
+        """Return algorithm names as exposed by each subclass ``__str__`` implementation."""
+        return [subclass().__str__() for subclass in self._algorithm]
+
+    def getAlgorithms(self):
+        """Return all registered algorithm classes."""
+        return [subclass for subclass in self._algorithm]
+
+    def setSelectedAlgorithm(self, currentAlgorithmName):
+        """Set the active algorithm instance by display name."""
+        self._selectedAlgorithm = None
+        for algorithm in self.getAlgorithms():
+            instance = algorithm()
+            if instance.__str__() == currentAlgorithmName:
+                self._selectedAlgorithm = instance
+                break
+
+    def getSelectedAlgorithm(self):
+        """Return the currently selected algorithm instance."""
+        return self._selectedAlgorithm
 
     def getParameterNode(self) -> ToothAnalyserParameterNode:
         """
-        Getter methode for the ParameterNode needed in the logic class
-        return: The ParameterNode from this module
+        Return the module-specific wrapped parameter node.
         """
         return ToothAnalyserParameterNode(super().getParameterNode())
 
-    def preProcessing(self) -> None:
-        """Implement your pre processing here"""
+    def preprocessing(self) -> None:
+        """Implement your preprocessing here"""
         pass
 
-    def postProcessing(self) -> None:
-        """Implement your post processing here"""
+    def postprocessing(self) -> None:
+        """Implement your postprocessing here"""
         pass
 
-    def execute(self, param: ToothAnalyserParameterNode) -> None:
+    def error(self, msg: str) -> None:
+        slicer.util.errorDisplay(msg)
+
+    def warning(self, msg: str) -> None:
+        slicer.util.warningDisplay(msg)
+
+    def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """Abstract method"""
         raise NotImplementedError("Please implement the execute() methode in one of the child classes")
 
-    def executeAsBatch(self, param: ToothAnalyserParameterNode) -> None:
+    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """Abstract method"""
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
-
-
-# ----- Tooth Analyser section Analytics ----- #
-class Analytics(ToothAnalyserLogic):
-    """
-    this class contains all the logic needed to visualise
-    the analytics
-    """
-
-    @classmethod
-    def _showHistogram(cls, image: vtkMRMLScalarVolumeNode) -> None:
-        """
-        This Methode creates a histogram from the current selected Volume
-        @param image: the image for which a histogram is required
-        """
-        import numpy as np
-        from collections import namedtuple
-
-        AxisFitting = namedtuple('AxisFitting', ['x', 'y'])
-        axes = AxisFitting(x="Intensity", y="Frequency")
-
-        # create histogram data
-        imageData = slicer.util.arrayFromVolume(image)
-        histogram = np.histogram(imageData, bins= 200)
-
-        # create plot
-        chartNode = slicer.util.plot(
-            narray=histogram,
-            xColumnIndex=1,
-            columnNames=[axes.x, axes.y],
-            title=image.GetName() + "_Histogram")
-
-        # set properties for chartNode
-        chartNode.SetTitle("Histogram of Image: " + image.GetName())
-        chartNode.SetYAxisTitle(axes.y)
-        chartNode.SetXAxisTitle(axes.x)
-        chartNode.SetLegendVisibility(True)
-        chartNode.SetYAxisRange(0, 100)
-        chartNode.SetXAxisRange(0, 100)
-        # set properties for  plot series
-        plotSeries = getNode("*PlotSeries*")
-        plotSeries.SetName(axes.y)
-
-    @classmethod
-    def execute(cls, param: ToothAnalyserParameterNode) -> None:
-        """
-        This method is an abstract method form the parent class
-        ToothAnalyserLogic. It is implementing the algorithm
-        for the analytics
-        """
-        if param.analytical.showHistogram:
-            param.status = "calculate histogram"
-            cls._showHistogram(param.analytical.currentAnalyticalVolume)
-
-    @classmethod
-    def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
-        print("Analytics as Batch")
-        print(type(param.batch.fileType))
-
 
 
 # ----- Tooth Analyser section anatomical segmentation ----- #
@@ -549,13 +534,16 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
     this class contains all the logic needed to visualise
     the anatomical segmentation
     """
-    _anatomicalSegmentationName: str = "_AnatomicalSegmentation_"
-    _midSurfaceName: str = "_MedialSurface_"
+    _anatomicalSegmentationName: str = "_AnatomicalSegmentation"
+    _midSurfaceName: str = "_MedialSurface"
+    _stlModelName: str = "_Mesh"
     _segmentNames: list[str] = ["Dentin", "Enamel"]
-    _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", "nii")
+    _fileTypes: tuple[str] = (".ISQ", ".mhd", ".nrrd", ".nii")
 
-    @classmethod
-    def collectFiles(cls, path: str, suffix: tuple) -> list:
+    def __str__(self):
+        return "Anatomical Segmentation"
+
+    def collectFiles(self, path: str, suffix: tuple[str, ...]) -> list[str]:
         """
         Loads all data with the given suffix from the given path
         @param path: the path to the directory where the files are located
@@ -568,118 +556,181 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             files -> [file1, file2, ...]
         """
         files = []
-        if os.path.exists(path):
-            files = sorted([f for f in os.listdir(path) if f.endswith(suffix)])
+        if os.path.isdir(path):
+            normalizedSuffix = tuple(
+                s.lower() if s.startswith(".") else f".{s.lower()}" for s in suffix
+            )
+            files = sorted([
+                f for f in os.listdir(path)
+                if os.path.isfile(os.path.join(path, f))
+                and os.path.splitext(f)[1].lower() in normalizedSuffix
+            ])
         return files
 
-    @classmethod
-    def createSegmentation(cls, labelMapNode: vtkMRMLLabelMapVolumeNode,
+    def _safeRemoveNode(self, node):
+        """Remove node only if it still exists in the scene."""
+        if node and node.GetScene():
+            slicer.mrmlScene.RemoveNode(node)
+
+    def createSegmentation(self, labelMapNode: vtkMRMLLabelMapVolumeNode,
                            deleteLabelMapNode: bool,
-                           currentImageName: str) -> None:
+                           currentImageName: str):
         """
         Generates a segmentationNode from a given labelNode.
         After generation the segmentationNode will get some properties
-        @param labelMapNode: The labelNode to be segmented
-        @param deleteLabelMapNode: Decides whether the given labelNode should be deleted after segmentation
-        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
-        @example:
-            cls.createSegmentation(labelImageNode, True, currentImageName)
         """
-        # create segmentation
-        seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelMapNode, seg)
-        seg.CreateClosedSurfaceRepresentation()
+        try:
+            # create segmentation
+            seg = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelMapNode, seg)
+            seg.CreateClosedSurfaceRepresentation()
 
-        # set properties for segmentation
-        seg.SetName(currentImageName + cls._anatomicalSegmentationName)
-        default_names = cls._segmentNames
+            # set properties for segmentation
+            seg.SetName(currentImageName + self._anatomicalSegmentationName)
+            default_names = self._segmentNames
 
-        # set properties for segmentation
-        num_segments = seg.GetSegmentation().GetNumberOfSegments()
-        for i in range(num_segments):
-            if i < len(default_names):
-                segment_name = default_names[i]
-                if segment_name == "Enamel":
-                    seg.GetSegmentation().GetNthSegment(i).SetColor(0.435, 0.722, 0.824)
-                if segment_name == "Dentin":
-                    seg.GetSegmentation().GetNthSegment(i).SetColor(1.0, 1.0, 0.8)
-            else:
-                segment_name = f"Segment {i + 1}"
-            seg.GetSegmentation().GetNthSegment(i).SetName(segment_name)
+            segmentation = seg.GetSegmentation()
+            num_segments = segmentation.GetNumberOfSegments()
 
-        # delete the given labelNode
-        if deleteLabelMapNode:
-            slicer.mrmlScene.RemoveNode(labelMapNode)
+            for i in range(num_segments):
+                segment = segmentation.GetNthSegment(i)
 
-    @classmethod
-    def createMedialSurface(cls, midSurfaceDentinLabelMapNode: vtkMRMLLabelMapVolumeNode,
+                if i < len(default_names):
+                    segment_name = default_names[i]
+
+                    if segment_name == "Enamel":
+                        segment.SetColor(0.435, 0.722, 0.824)
+
+                    if segment_name == "Dentin":
+                        segment.SetColor(1.0, 1.0, 0.8)
+                else:
+                    segment_name = f"Segment {i + 1}"
+
+                segment.SetName(segment_name)
+
+            # delete the given labelNode
+            if deleteLabelMapNode:
+                self._safeRemoveNode(labelMapNode)
+
+            return seg
+
+        except Exception as e:
+            self.error(f"Error while creating the segmentation! {e}")
+            return None
+
+    def createSTLModelsInScene(self, segmentationNode, currentImageName: str) -> None:
+        """
+        Create STL-ready model nodes from the segmentation and store them in the Slicer scene.
+        """
+        try:
+            if not segmentationNode:
+                return
+
+            modelNodesBefore = {
+                slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode").GetID()
+                for i in range(slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode"))
+            }
+
+            segmentationNode.CreateClosedSurfaceRepresentation()
+            shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+            folderItemId = shNode.CreateFolderItem(
+                shNode.GetSceneItemID(),
+                currentImageName + self._stlModelName
+            )
+            slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, folderItemId)
+
+            modelCount = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
+            for i in range(modelCount):
+                modelNode = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+                if modelNode.GetID() not in modelNodesBefore:
+                    modelNode.SetName(f"{currentImageName}_{modelNode.GetName()}{self._stlModelName}")
+        except Exception as e:
+            logging.exception("Failed to create STL model nodes for '%s'", currentImageName)
+            self.warning(f"Could not create STL models in scene for '{currentImageName}': {e}")
+
+    def createMedialSurface(self, midSurfaceDentinLabelMapNode: vtkMRMLLabelMapVolumeNode,
                             midSurfaceEnamelLabelMapNode: vtkMRMLLabelMapVolumeNode,
                             currentImageName: str,
                             deleteLabelMapNodes: bool) -> None:
         """
         This method creates a segmentation for the given medial surface
-        @param midSurfaceDentinLabelMapNode: the dentin label map image to be segmented
-        @param midSurfaceEnamelLabelMapNode: the enamel label map image to be segmented
-        @param deleteLabelMapNodes: True if labeImage should be deleted after segmentation
-        @param currentImageName: the name of the segmented image, so give the segmentation a unique name
-        @example:
-            currentImageName = 'P01A-C0005278'
-            cls.createMedialSurface(dentinMidSurfaceNode, enamelMidSurfaceNode, True, currentImageName)
-        """
-        # create dentin medial surface segmentation
-        segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceDentinLabelMapNode, segDentin)
-        segDentin.SetName("MedialSurface_source")
-
-        if segDentin.GetSegmentation().GetNumberOfSegments() > 0:
-            segDentin.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[0])
-            segDentin.GetSegmentation().GetNthSegment(0).SetColor(1.0, 0.0, 0.0)
-            slicer.mrmlScene.RemoveNode(midSurfaceDentinLabelMapNode)
-
-        # create enamel medial surface segmentation
-        segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
-        slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(midSurfaceEnamelLabelMapNode, segEnamel)
-        print("Midname: " + currentImageName)
-        segEnamel.SetName(currentImageName + cls._midSurfaceName)
-
-        if segEnamel.GetSegmentation().GetNumberOfSegments() > 0:
-            segEnamel.GetSegmentation().GetNthSegment(0).SetName(cls._segmentNames[1])
-            segEnamel.GetSegmentation().GetNthSegment(0).SetColor(0.0, 1.0, 0.0)
-            slicer.mrmlScene.RemoveNode(midSurfaceEnamelLabelMapNode)
-
-        # copy all segments from dentin to enamel and delete dentin
-        for i in range(segDentin.GetSegmentation().GetNumberOfSegments()):
-            source_segment = segDentin.GetSegmentation().GetNthSegment(i)
-            segment_id = segDentin.GetSegmentation().GetSegmentIdBySegment(source_segment)
-            segEnamel.GetSegmentation().CopySegmentFromSegmentation(segDentin.GetSegmentation(), segment_id, True)
-        slicer.mrmlScene.RemoveNode(getNode("MedialSurface_source"))
-
-        if deleteLabelMapNodes:
-            slicer.mrmlScene.RemoveNode(midSurfaceEnamelLabelMapNode)
-            slicer.mrmlScene.RemoveNode(midSurfaceDentinLabelMapNode)
-
-    @classmethod
-    def clearScene(cls, currentImageName: str) -> None:
-        """
-        Deletes all nodes from the scene, that where generated
-        by the algorithm.
-        @param currentImageName: the image to be segmented
-        @return: None
-        @example:
-            imgNode = 'P01A-C0005278.ISQ'
-            cls.clearScene(imgNode)
         """
         try:
-            anatomicalSegmentation = getNode("*" + cls._anatomicalSegmentationName)
-            slicer.mrmlScene.RemoveNode(anatomicalSegmentation)
+            # create dentin medial surface segmentation
+            segDentin = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(
+                midSurfaceDentinLabelMapNode, segDentin)
+            segDentin.SetName("MedialSurface_source")
 
-            midSurface = getNode("*" + cls._midSurfaceName)
-            slicer.mrmlScene.RemoveNode(midSurface)
-        except:
-            pass
+            dentinSegmentation = segDentin.GetSegmentation()
 
-    @classmethod
-    def clearDirectory(cls, path: str) -> None:
+            if dentinSegmentation.GetNumberOfSegments() > 0:
+                segment = dentinSegmentation.GetNthSegment(0)
+                segment.SetName(self._segmentNames[0])
+                segment.SetColor(1.0, 0.0, 0.0)
+                if deleteLabelMapNodes:
+                    self._safeRemoveNode(midSurfaceDentinLabelMapNode)
+
+            # create enamel medial surface segmentation
+            segEnamel = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLSegmentationNode")
+            slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(
+                midSurfaceEnamelLabelMapNode, segEnamel)
+            segEnamel.SetName(currentImageName + self._midSurfaceName)
+
+            enamelSegmentation = segEnamel.GetSegmentation()
+
+            if enamelSegmentation.GetNumberOfSegments() > 0:
+                segment = enamelSegmentation.GetNthSegment(0)
+                segment.SetName(self._segmentNames[1])
+                segment.SetColor(0.0, 1.0, 0.0)
+                if deleteLabelMapNodes:
+                    self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
+
+            # copy all segments from dentin to enamel (FIX: clone segments -> no ID conflicts)
+            for i in range(dentinSegmentation.GetNumberOfSegments()):
+                sourceSegment = dentinSegmentation.GetNthSegment(i)
+
+                # clone segment
+                newSegment = vtkSegCore.vtkSegment()
+                newSegment.DeepCopy(sourceSegment)
+
+                # generate guaranteed unique ID in target
+                newSegmentId = enamelSegmentation.GenerateUniqueSegmentID(
+                    sourceSegment.GetName()
+                )
+                enamelSegmentation.AddSegment(newSegment, newSegmentId)
+
+            # remove dentin helper segmentation
+            try:
+                node = slicer.util.getFirstNodeByName("MedialSurface_source")
+                self._safeRemoveNode(node)
+            except Exception as e:
+                logging.exception("Failed to remove helper node 'MedialSurface_source'")
+                self.warning(f"Could not remove temporary medial-surface helper node: {e}")
+
+            if deleteLabelMapNodes:
+                self._safeRemoveNode(midSurfaceEnamelLabelMapNode)
+                self._safeRemoveNode(midSurfaceDentinLabelMapNode)
+
+        except Exception as e:
+            self.error(f"Error while creating the medial surfaces! {e}")
+
+    def clearScene(self) -> None:
+        """
+        Deletes all nodes from the scene that were generated by the algorithm.
+        """
+        try:
+            for node in slicer.util.getNodes("*" + self._anatomicalSegmentationName).values():
+                self._safeRemoveNode(node)
+            for node in slicer.util.getNodes("*" + self._midSurfaceName).values():
+                self._safeRemoveNode(node)
+            for node in slicer.util.getNodes("*" + self._stlModelName).values():
+                self._safeRemoveNode(node)
+        except Exception as e:
+            logging.exception("Failed to clear generated scene nodes")
+            self.warning(f"Could not fully clear generated scene nodes: {e}")
+
+    def clearDirectory(self, path: str) -> None:
         """
         Delete all files in the given directory
         @param path: path to the directory to be cleaned
@@ -687,7 +738,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             path = "/data/MicroCT/Original_ISQ/Results"
             cls.clearDirectory(path)
         """
-        import shutil
+
         if not os.path.exists(path):
             slicer.util.errorDisplay("The given directory for the batch process does not exists")
             return
@@ -700,11 +751,10 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 elif os.path.isdir(item_path):
                     shutil.rmtree(item_path)
         except Exception as e:
-            print(f"Error while cleaning directory '{path}': {e}")
-            slicer.util.errorDisplay("Error while cleaning directory")
+            logging.exception("Failed to clear batch target directory '%s'", path)
+            self.error(f"Could not clear batch target directory '{path}': {e}")
 
-    @classmethod
-    def createDirectory(cls, path: str, directoryName: str) -> str:
+    def createDirectory(self, path: str, directoryName: str) -> str:
         """
         Creates a directory with the given name in the given path if
         there is no directory with this name.
@@ -712,217 +762,175 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         :param directoryName: The name of the new directory
         :return targetDirectory: The absolut path to the created directory
         """
-        targetDirectory = path + directoryName + "/"
+        targetDirectory = os.path.join(path, directoryName) + os.sep
         try:
             os.makedirs(targetDirectory, exist_ok=True)
         except Exception as e:
-            print(f"Error while creating directory: {e}")
+            self.error(f"Error while creating directory: {e}")
         return targetDirectory
 
-    @classmethod
-    def createTemporaryStorageNode(cls, param):
+    def createTemporaryStorageNode(self, param):
+        """
+        This methode creates a storage node, to cache the sample data
+
+        @param param:
+        @return:
+        """
         tempPath = slicer.app.temporaryPath
-        print("temp pfad: ", tempPath)
-        fileName = param.anatomical.currentAnatomicalVolume.GetName() + ".nrrd"
+        fileName = (param.currentImage.GetName() + ".nrrd")
         filePath = os.path.join(tempPath, fileName)
         storageNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLVolumeArchetypeStorageNode")
         storageNode.SetFileName(filePath)
-        param.anatomical.currentAnatomicalVolume.SetAndObserveStorageNodeID(storageNode.GetID())
-        storageNode.WriteData(param.anatomical.currentAnatomicalVolume)
+        param.currentImage.SetAndObserveStorageNodeID(storageNode.GetID())
+        storageNode.WriteData(param.currentImage)
 
-    @classmethod
-    def createLabelMapNode(cls, itkImage, labelMapName: str) -> any:
+    def createLabelMapNode(self, itkImage, labelMapName: str) -> any:
+        """
+        This methode creates a Slicer labelMapNode starting from itk
+
+        @param itkImage:
+        @param labelMapName:
+        @return:
+        """
         return sitkUtils.PushVolumeToSlicer(itkImage, None, labelMapName, "vtkMRMLLabelMapVolumeNode")
 
-    @classmethod
-    def calcPipeline(cls, sourcePath: str, calcMidSurface: bool, param: ToothAnalyserParameterNode) -> dict:
+    def createVolume(self, img):
         """
-        This method forms the complete pipeline for the calculation of smoothing,
-        labels and medial surfaces. It is very large but therefore the clearest
-        @param sourcePath: the path to the file that should be entered in the pipeline
-        @param calcMidSurface: the path to the directory where the generated images are saved in the file system
-        @param param: parameters from the UI
-        @return: the full created tooth dictionary with all images
-        @example:
-            path = '/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ'
-            targetPath = '/data/MicroCT/Original_ISQ/anatomicalSegmentationOtsu/'
-            tooth_dict = pipe_full_dict_selection(path, param)
+        This method creates a Slicer volume starting form an itk
+
+        @param img:
+        @return:
         """
+        return sitkUtils.PushVolumeToSlicer(img)
 
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import (
-            loadImage, isSmoothed, smoothImage, imageMask, smoothImageMask, enamelSelect, enamelSmoothSelect,
-            enamelLayering, enamelPreparation, enamelFilling, additionalEnamelFilling, dentinLayers,
-            segmentationLabels, enamelMidSurface, dentinMidSurface)
+    def runSegmentationPipeline(
+            self,
+            param: ToothAnalyserParameterNode,
+            progressBar,
+            sourcePath: Optional[str] = None) -> dict:
+        """
+        This methode executes the segmentation pipeline and provide the
+        results in a dictionary
 
-        # 1. load and filter image
-        img, name = loadImage(sourcePath)
-        print("type: ", img.GetPixelIDTypeAsString())
-        param.status = "loading image " + name + "..."
+        @param param:
+        @param progressBar:
+        @return:
+        """
+        from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
+
+        segmentationType = "otsu"
+
+        if sourcePath is None:
+            try:
+                sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
+            except Exception:
+                self.createTemporaryStorageNode(param)
+                sourcePath = param.currentImage.GetStorageNode().GetFullNameFromFileName()
+
         slicer.app.processEvents()
 
-        if isSmoothed(img):
-            img_smooth = img
-        else:
-            param.status = "smoothing image..."
-            slicer.app.processEvents()
-            img_smooth = smoothImage(img)
+        segmentationStep = calcSegmentationGen(
+            sourcePath=sourcePath,
+            selectedAlgorithm="Otsu",
+            calcMedialSurfaces=param.anatomical.calcMidSurface,
+            compress=param.pre.compress)
 
-        # 2. extract the tooth from the background
-        param.status = "extracting tooth from background..."
-        slicer.app.processEvents()
-        tooth, tooth_masked = imageMask(img, img_smooth)
-        tooth_smooth_masked = smoothImageMask(img_smooth, tooth)
-        # 3. select enamel area
-        param.status = "extracting enamel segment from tooth..."
-        slicer.app.processEvents()
-        enamel_select = enamelSelect(param.anatomical.selectedAnatomicalAlgo, tooth_masked)
-        enamel_smooth_select = enamelSmoothSelect(param.anatomical.selectedAnatomicalAlgo, tooth_smooth_masked)
+        while True:
+            result = next(segmentationStep)
 
-        # 4. stack the enamels
-        param.status = "creating enamel segment..."
-        slicer.app.processEvents()
-        enamel_layers = enamelLayering(enamel_select, enamel_smooth_select)
+            if isinstance(result, dict):
+                toothDict = result
+                break
+            else:
+                progressBar.value = result
+                slicer.app.processEvents()
 
-        # 5. Prepare the enamel
-        param.status = "smoothing enamel segment..."
-        slicer.app.processEvents()
-        enamel_layers_extended_smooth_2 = enamelPreparation(enamel_layers)
-
-        # 6. Filling of small structures within the tooth
-        param.status = "filling structures on enamel segment..."
-        slicer.app.processEvents()
-        contour_extended, enamel_layers_extended_smooth_3 = enamelFilling(enamel_layers_extended_smooth_2, tooth)
-
-        # 7. Filling of small structures within the tooth, important with many datasets
-        param.status = "filling structures on enamel segment..."
-        slicer.app.processEvents()
-        enamel_layers = additionalEnamelFilling(enamel_layers, enamel_layers_extended_smooth_3)
-
-        # 8. generate dentin segment
-        param.status = "extracting dentin segment from tooth..."
-        slicer.app.processEvents()
-        dentin_layers = dentinLayers(contour_extended, enamel_layers, tooth)
-
-        # 9. generate label file for segmentation
-        param.status = "creating segmentation labels..."
-        slicer.app.processEvents()
-        segmentation_labels = segmentationLabels(dentin_layers, enamel_layers)
-
-        # 10. generating medial surface for enamel and dentin if needed
-        if calcMidSurface:
-            param.status = "creating medial surfaces enamel..."
-            slicer.app.processEvents()
-            enamel_midsurface = enamelMidSurface(enamel_layers)
-            param.status = "creating medial surfaces dentin..."
-            slicer.app.processEvents()
-            dentin_midsurface = dentinMidSurface(dentin_layers)
-        else:
-            enamel_midsurface = None
-            dentin_midsurface = None
-
-        # 11. generate tooth dictionary to store all generated data sets local
-        filt_1 = param.anatomical.selectedAnatomicalAlgo.lower()
-        filt_2 = param.anatomical.selectedAnatomicalAlgo.lower()
-
-        enamel_key = 'enamel_' + filt_1
-        enamel_smooth_key = 'enamel_smooth_' + filt_2
-        enamel_layers_key = 'enamel_' + filt_1 + '_' + filt_2 + '_layers'
-        dentin_layers_key = 'dentin_' + filt_1 + '_' + filt_2 + '_layers'
-        segmentation_labels_key = 'segmentation_' + filt_1 + '_' + filt_2 + '_labels'
-        enamel_midsurface_key = 'enamel_' + filt_1 + '_' + filt_2 + '_midsurface'
-        dentin_midsurface_key = 'dentin_' + filt_1 + '_' + filt_2 + '_midsurface'
-
-        tooth_dict = {
-            'path': sourcePath,
-            'name': name,
-            'img': img,
-            'img_smooth': img_smooth,
-            'tooth': tooth,
-            enamel_key: enamel_select,
-            enamel_smooth_key: enamel_smooth_select,
-            enamel_layers_key: enamel_layers,
-            dentin_layers_key: dentin_layers,
-            segmentation_labels_key: segmentation_labels,
-            enamel_midsurface_key: enamel_midsurface,
-            dentin_midsurface_key: dentin_midsurface
+        # provide results in dict
+        results = {
+            "segmentationType": segmentationType,
+            "enamelMidSurface": toothDict.get(f"enamel_{segmentationType}_{segmentationType}_midsurface"),
+            "dentinMidSurface": toothDict.get(f"dentin_{segmentationType}_{segmentationType}_midsurface"),
+            "labelImage": toothDict.get(f"segmentation_{segmentationType}_{segmentationType}_labels"),
+            "imageName": toothDict.get("name", os.path.basename(sourcePath)),
+            "image": toothDict.get("img"),
+            "toothDict": toothDict
         }
-        return tooth_dict
+        return results
 
-    @classmethod
-    def execute(cls, param: ToothAnalyserParameterNode) -> None:
+    def loadResultsToScene(self, results: dict, param: ToothAnalyserParameterNode) -> None:
         """
-        This methode starts the pipeline to compute the output
-        of one file and load it into the slicer scene
-        @param param: all parameter from the user interface (UI)
-        @return: None
-        @example:
-            AnatomicalSegmentationLogic.execute(param=self._param)
+        This methode takes the results from the segmentation pipeline and
+        load it to the Slicer scene.
+
+        @param results:
+        @param param:
+        @return:
         """
-        import time
+        self.clearScene()
 
-        start = time.time()
-        logging.info("Processing started")
+        labelNode = self.createLabelMapNode(results["labelImage"], "tempLabel")
+        segmentationNode = self.createSegmentation(
+            labelMapNode=labelNode,
+            deleteLabelMapNode=True,
+            currentImageName=results["imageName"])
+        if param.anatomical.createMesh:
+            self.createSTLModelsInScene(segmentationNode, results["imageName"])
 
-        segmentationType = param.anatomical.selectedAnatomicalAlgo
-        currentImageNameWithTyp = param.anatomical.currentAnatomicalVolume.GetName()
-        try:
-            sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
-        except:
-            cls.createTemporaryStorageNode(param)
-            sourcePath = param.anatomical.currentAnatomicalVolume.GetStorageNode().GetFullNameFromFileName()
+        if results["enamelMidSurface"] and results["dentinMidSurface"]:
+            dentinNode = self.createLabelMapNode(results["dentinMidSurface"], "tempDentin")
+            enamelNode = self.createLabelMapNode(results["enamelMidSurface"], "tempEnamel")
+            self.createMedialSurface(
+                midSurfaceDentinLabelMapNode=dentinNode,
+                midSurfaceEnamelLabelMapNode=enamelNode,
+                currentImageName=results["imageName"],
+                deleteLabelMapNodes=True)
 
-        param.status = "start processing..."
-        slicer.app.processEvents()
+        if param.pre.compress and param.currentImage:
+            import SimpleITK as sitk
 
-        #Calculate Anatomical Segmentation by executing pipeline
-        toothDict = cls.calcPipeline(
-            sourcePath=sourcePath, #path to file
-            calcMidSurface=param.anatomical.calcMidSurface,
-            param=param,)
+            oldNode = param.currentImage
+            compressedImage = results["image"]
+            if compressedImage.GetPixelID() != sitk.sitkUInt8:
+                compressedImage = sitk.Cast(compressedImage, sitk.sitkUInt8)
 
-        # extract itk images from the calculated tooth dictionary
-        segmentationType = segmentationType.lower()
-        enamelMidSurfaceITK = toothDict["enamel_" + segmentationType + "_" + segmentationType + "_midsurface"]
-        dentinMidSurfaceITK = toothDict["dentin_" + segmentationType + "_" + segmentationType + "_midsurface"]
-        labelImageITK = toothDict["segmentation_" + segmentationType + "_" + segmentationType + "_labels"]
-        currentImageName = toothDict["name"]
-
-        # Delete unused nodes from the scene
-        cls.clearScene(currentImageName=currentImageNameWithTyp)
-
-        try:
-            # try to create the segmentation based on the label image
-            cls.createSegmentation(
-                labelMapNode=cls.createLabelMapNode(labelImageITK, "tempLabel"),
-                deleteLabelMapNode=True,
-                currentImageName=currentImageName)
-
-            # try to create medial surfaces if there were calculated
-            if enamelMidSurfaceITK is not None or dentinMidSurfaceITK is not None:
-                cls.createMedialSurface(
-                    midSurfaceDentinLabelMapNode=cls.createLabelMapNode(dentinMidSurfaceITK, "tempDentin"),
-                    midSurfaceEnamelLabelMapNode=cls.createLabelMapNode(enamelMidSurfaceITK, "tempEnamel"),
-                    currentImageName=currentImageName,
-                    deleteLabelMapNodes=True)
-        except:
-            slicer.util.errorDisplay("""An error occurred while processing the image.
-                Please note that this module is specifically designed for CT scans of teeth."""
+            compressedNode = sitkUtils.PushVolumeToSlicer(
+                compressedImage,
+                None,
+                f"{results['imageName']}_Comp",
+                "vtkMRMLScalarVolumeNode"
             )
+            param.currentImage = compressedNode
+            self._safeRemoveNode(oldNode)
 
-        stop = time.time()
-        print("Processing completed in: ", f" {(stop - start) // 60:.0f} minutes and {(stop - start) % 60:.0f} seconds")
-
-
-    @classmethod
-    def executeAsBatch(cls, param: ToothAnalyserParameterNode) -> None:
+    def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
         """
-        This method starts the pipeline to compute all files in an batch process
+        Execute the algorithm by clicking the "apply" Button.
+        @param param:
+        @param progressBar:
+        @return:
+        """
+        start = time.time()
+
+        # calculate Segmentation
+        segmentationResults = self.runSegmentationPipeline(param, progressBar)
+
+        # load the segmentation th the slicer scene
+        self.loadResultsToScene(segmentationResults, param)
+
+        duration = time.time() - start
+        logging.info("Verarbeitung abgeschlossen in: %.0f Minuten und %.0f Sekunden",duration // 60, duration % 60)
+
+    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
+        """
+        This method starts the pipeline to compute all files in batch process
         @param param: all parameters from the user interface (UI)
+        @param progressBar
         @return: None
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName, writeToothDict
+        from ToothAnalyserLib.Algorithms.Anatomical import writeToothDict
+        from ToothAnalyserLib.Algorithms.utils import createSTL
 
         # create local variables for all parameters
         if not os.path.isdir(param.batch.sourcePath):
@@ -933,200 +941,84 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             return
         sourcePath = param.batch.sourcePath
         targetPath = param.batch.targetPath
-        segmentationType = param.anatomical.selectedAnatomicalAlgo
-        fileType = param.batch.fileType
-        files = cls.collectFiles(sourcePath, cls._fileTypes)
-        numOfFiles = len(files)
-        param.status = "detecting " + str(numOfFiles) + "files"
+        segmentationType = "Otsu"
+        files = self.collectFiles(sourcePath, self._fileTypes)
+        if not files:
+            self.warning("No supported input files found in source directory.")
+            return
 
         # Create result directory
-        targetDirectory = cls.createDirectory(
+        targetDirectory = self.createDirectory(
             path=targetPath,
-            directoryName=cls._anatomicalSegmentationName + segmentationType)
+            directoryName=self._anatomicalSegmentationName + segmentationType)
 
         # Delete the old segmentation to keep order
-        cls.clearDirectory(targetDirectory)
+        self.clearDirectory(targetDirectory)
 
         for file in files:
-            fileName = parseName(file)
-            fullFilePath = sourcePath + "/" + file
-            # create directory for each File to be calculated
-            targetFileDirectory = cls.createDirectory(
-                path=targetDirectory,
-                directoryName=fileName)
+            fullFilePath = os.path.join(sourcePath, file)
 
-            toothDict = cls.calcPipeline(
-                sourcePath=fullFilePath,
-                calcMidSurface=param.anatomical.calcMidSurface,
-                param=param)
-            writeToothDict(tooth=toothDict,
-                           path=targetFileDirectory,
-                           calcMidSurface=param.anatomical.calcMidSurface,
-                           fileType=param.batch.fileType)
-            toothDictName = toothDict['name']
+            try:
+                segmentationResults = self.runSegmentationPipeline(
+                    param=param,
+                    progressBar=progressBar,
+                    sourcePath=fullFilePath)
+                toothDict = segmentationResults["toothDict"]
+
+                # create directory for each File to be calculated
+                targetFileDirectory = self.createDirectory(
+                    path=targetDirectory,
+                    directoryName=segmentationResults["imageName"])
+
+                writeToothDict(
+                    tooth=toothDict,
+                    path=targetFileDirectory,
+                    calcMidSurface=param.anatomical.calcMidSurface,
+                    fileType=param.batch.fileType)
+
+                if param.anatomical.createMesh:
+                    stlFileName = (
+                        f"{segmentationResults['imageName']}_"
+                        f"{segmentationResults['segmentationType']}_segmentation"
+                    )
+                    createSTL(
+                        labelImage=segmentationResults["labelImage"],
+                        outputDirectory=targetFileDirectory,
+                        fileName=stlFileName,
+                        printMode=True
+                    )
+            except Exception as e:
+                logging.exception("Batch processing failed for '%s'", fullFilePath)
+                self.warning(f"Skipping '{file}': {e}")
+                continue
+
+
+class PathologicalSegmentation(ToothAnalyserLogic):
+    """Placeholder implementation for pathological segmentation workflows."""
+    def __str__(self):
+        """
+        Return the visible algorithm name in the segmentation selector.
+        """
+        return "Pathological Segmentation"
+
+    def execute(self, param: ToothAnalyserParameterNode, progressBar):
+        self.preprocessing()
+        print("Coming up soon, execute Pathological Segmentation ...")
+        self.postprocessing()
+
+    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar):
+        self.preprocessing()
+        print("Coming up soon, execute Pathological Segmentation as Batch ...")
+        self.postprocessing()
 
 
 # ----- Tooth Analyser Tests ----- #
-class ToothAnalyserTest(ScriptedLoadableModuleTest):
-    """
-    This is the test case for your scripted module.
-    Uses ScriptedLoadableModuleTest base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
+from Testing.Python.ToothAnalyserTests import ToothAnalyserTestMixin
 
-    def setUp(self):
-        """Do whatever is needed to reset the state - typically a scene clear will be enough."""
-        slicer.mrmlScene.Clear()
-        self.loadSampleData()
+class ToothAnalyserTest(ToothAnalyserTestMixin, ScriptedLoadableModuleTest):
+    """Wrapper class so Slicer's Reload-and-Test discovers module tests."""
 
-    def loadSampleData(self):
-        import SampleData
-        self.delayDisplay("loading sample data. This will take some minutes...")
-        return SampleData.downloadSample('ToothCrownMicroCT')
-
-    def getSampleDataAsITK(self):
-        node = slicer.util.getFirstNodeByName("ToothCrownMicroCT")
-        self.delayDisplay("Setting up test suit...")
-        return sitkUtils.PullVolumeFromSlicer(node)
-
-    def runTest(self):
-        """Run as few or as many tests as needed here."""
-        self.setUp()
-        self.testHandleApplyAnalyticsButton()
-        self.testCreateDirectory()
-        self.testValidateBatchSettingsOneEnabled()
-        self.testValidateBatchSettingsOneDisabled()
-        self.testParsName()
-        self.testParseType()
-        self.testCast8UInt()
-        self.testPixelType()
-        #self.testSmoothImage() # takes a lot of time
-        self.testIsSmoothed()
-
-    def testHandleApplyAnalyticsButton(self):
-        from unittest.mock import MagicMock
-
-        self.mockedClass = MagicMock()
-        self.mockedClass.ui.applyAnalytics = MagicMock()
-        self.mockedClass._param.analytical = MagicMock()
-
-        self.mockedClass._param.analytical.currentAnalyticalVolume = None
-        self.mockedClass.handleApplyAnalyticsButton()
-        self.mockedClass.ui.applyAnalytics.enabled = False
-        self.mockedClass._param.analytical.currentAnalyticalVolume = "SomeVolume"
-        self.mockedClass.handleApplyAnalyticsButton()
-        self.mockedClass.ui.applyAnalytics.enabled = True
-
-        self.delayDisplay("Test 1 passed")
-
-    def testCreateDirectory(self):
-        path = "/data/test/"
-        directoryName = "new_folder"
-        expectedDirectory = "/data/test/new_folder/"
-        result = AnatomicalSegmentationLogic.createDirectory(path, directoryName)
-
-        self.assertEqual(result, expectedDirectory)
-        self.delayDisplay("Test 2 passed")
-
-    def testValidateBatchSettingsOneEnabled(self):
-        from unittest.mock import MagicMock
-
-        self.mockedClass = MagicMock()
-        params = {
-            "option1": False,
-            "option2": True,
-            "option3": False
-        }
-        result = self.mockedClass.validateBatchSettings(params)
-
-        self.assertTrue(result)
-        self.delayDisplay("Test 3 passed")
-
-    def testValidateBatchSettingsOneDisabled(self):
-        from unittest.mock import MagicMock
-
-        self.mockedClass = MagicMock()
-        params = {
-            "option1": False,
-            "option2": False,
-            "option3": False
-        }
-        result = self.mockedClass.validateBatchSettings(params)
-
-        self.assertTrue(result)
-        self.delayDisplay("Test 4 passed")
-
-    def testParsName(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseName
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "P01A-C0005278"
-        result = parseName(path)
-        self.assertEqual(result, expectation)
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "P01A-C0005278.ISQ"
-        result = parseName(path)
-        self.assertNotEqual(result, expectation)
-
-        self.delayDisplay("Test 5 passed")
-
-    def testParseType(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import parseTyp
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "isq"
-        result = parseTyp(path)
-        self.assertEqual(expectation, result)
-
-        path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        expectation = "ISQ"
-        result = parseTyp(path)
-        self.assertNotEqual(expectation, result)
-
-        self.delayDisplay("Test 6 passed")
-
-    def testCast8UInt(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import cast8UInt
-
-        sampleData = self.getSampleDataAsITK()
-        beforeCast = sampleData.GetPixelID()
-        imageCast = cast8UInt(sampleData)
-        afterCast = imageCast.GetPixelID()
-
-        self.assertNotEqual(beforeCast, afterCast)
-        self.delayDisplay("Test 7 passed")
-
-    def testPixelType(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import pixelType
-
-        sampleDate = self.getSampleDataAsITK()
-        expectation = sampleDate.GetPixelIDTypeAsString()
-        result = pixelType(sampleDate)
-
-        self.assertEqual(expectation, result)
-        self.delayDisplay("Test 8 passed")
-
-    def testSmoothImage(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import smoothImage
-        import numpy as np
-        import SimpleITK as sitk
-
-        sampleData = self.getSampleDataAsITK()
-        self.delayDisplay("filtering image...")
-        sampleDataFiltered = smoothImage(sampleData)
-
-        sampleData_std_dev = np.std(sitk.GetArrayFromImage(sampleData))
-        sampleDataFiltered_std_dev = np.std(sitk.GetArrayFromImage(sampleDataFiltered))
-
-        self.assertTrue(sampleDataFiltered_std_dev < sampleData_std_dev)
-        self.delayDisplay("Test 9 passed")
-
-    def testIsSmoothed(self):
-        from ToothAnalyserLib.AnatomicalSegmentation.Segmentation import isSmoothed
-
-        sampleDate = self.getSampleDataAsITK()
-        result = isSmoothed(sampleDate)
-
-        self.assertFalse(result)
-        self.delayDisplay("Test 10 passed")
+    ToothAnalyserLogic = ToothAnalyserLogic
+    ToothAnalyserWidget = ToothAnalyserWidget
+    AnatomicalSegmentationLogic = AnatomicalSegmentationLogic
+    PathologicalSegmentation = PathologicalSegmentation

@@ -1,0 +1,372 @@
+"""Regression tests for the ToothAnalyser scripted module.
+
+This file keeps test implementation separate from ``ToothAnalyser.py`` while
+preserving Slicer's Reload-and-Test integration through a wrapper class.
+"""
+
+import os
+import slicer
+
+
+class ToothAnalyserTestMixin:
+    """Mixin containing module-level regression tests for ToothAnalyser.py."""
+
+    def setUp(self):
+        """Reset scene state before each test run."""
+        slicer.mrmlScene.Clear()
+
+    def runTest(self):
+        """Entry point used by Slicer's Reload-and-Test button."""
+        testMethods = [
+            "testAlgorithmSelection",
+            "testSetSelectedAlgorithmUnknownName",
+            "testLogicRepresentation",
+            "testPathologicalSegmentationName",
+            "testValidateBatchSettings",
+            "testObserverParametersTriggersHandlers",
+            "testHandleApplyButtonDisablesDuringCompute",
+            "testHandleBatchCollapsible",
+            "testHandleSegmentation",
+            "testHandleProgressBarRange",
+            "testSafeRemoveNode",
+            "testClearSceneRemovesMatchingNodes",
+            "testCollectFilesFiltersSupportedExtensions",
+            "testCollectFilesReturnsEmptyForNonDirectory",
+            "testLoadResultsToSceneRequiresBothMidSurfaces",
+            "testCreateAndClearDirectory",
+            "testExecuteAsBatchInvalidSourcePath",
+            "testExecuteAsBatchInvalidTargetPath",
+            "testExecuteAsBatchNoSupportedFiles",
+        ]
+
+        self.delayDisplay(f"Starting ToothAnalyser tests ({len(testMethods)} cases)...", 200)
+        for methodName in testMethods:
+            self.setUp()
+            getattr(self, methodName)()
+            self.delayDisplay(f"Passed: {methodName}", 100)
+        self.delayDisplay("All ToothAnalyser tests passed.", 300)
+
+    class _UiFlag:
+        """Minimal UI element stub with visibility/enabled state."""
+
+        def __init__(self, visible=False, enabled=True):
+            self._visible = visible
+            self.enabled = enabled
+            self.maximum = 0
+            self.value = 0
+            self.text = ""
+
+        def setVisible(self, value: bool):
+            self._visible = value
+
+        def isVisible(self):
+            return self._visible
+
+    def _createWidgetStub(self):
+        """Create a lightweight widget-like object for UI logic tests."""
+        from types import SimpleNamespace
+
+        ui = SimpleNamespace(
+            apply=self._UiFlag(visible=True, enabled=True),
+            status=self._UiFlag(visible=False, enabled=False),
+            inputParametersGroup=self._UiFlag(visible=True),
+            cariesCollapsible=self._UiFlag(visible=False),
+            progressBar=self._UiFlag(visible=False, enabled=False),
+            label_3=self._UiFlag(visible=True),
+            currentImage=self._UiFlag(visible=True),
+            label_4=self._UiFlag(visible=False),
+            sourcePath=self._UiFlag(visible=False),
+            label_5=self._UiFlag(visible=False),
+            targetPath=self._UiFlag(visible=False),
+            label_7=self._UiFlag(visible=False),
+            fileType=self._UiFlag(visible=False),
+        )
+
+        param = SimpleNamespace(
+            isBatch=False,
+            currentImage=None,
+            segmentation="Anatomical Segmentation",
+            anatomical=SimpleNamespace(calcMidSurface=True),
+        )
+
+        widget = SimpleNamespace(ui=ui, _param=param, _isComputing=False)
+        widget.handleApplyButton = lambda: None
+        return widget
+
+    def testAlgorithmSelection(self):
+        """Test algorithm discovery and name-based selection."""
+        logic = self.ToothAnalyserLogic()
+        algorithmNames = logic.getAlgorithmsByName()
+
+        self.assertIn("Anatomical Segmentation", algorithmNames)
+        self.assertIn("Pathological Segmentation", algorithmNames)
+
+        logic.setSelectedAlgorithm("Anatomical Segmentation")
+        self.assertIsInstance(logic.getSelectedAlgorithm(), self.AnatomicalSegmentationLogic)
+
+    def testSetSelectedAlgorithmUnknownName(self):
+        """Test that unknown algorithm names reset selection to None."""
+        logic = self.ToothAnalyserLogic()
+        logic.setSelectedAlgorithm("Anatomical Segmentation")
+        logic.setSelectedAlgorithm("This Algorithm Does Not Exist")
+        self.assertIsNone(logic.getSelectedAlgorithm())
+
+    def testLogicRepresentation(self):
+        """Test default text representation for base logic class."""
+        logic = self.ToothAnalyserLogic()
+        self.assertEqual(str(logic), "Unbekannter Algorithmus")
+        self.assertIn("ToothAnalyserLogic", repr(logic))
+
+    def testPathologicalSegmentationName(self):
+        """Test display name for the pathological segmentation logic implementation."""
+        logic = self.PathologicalSegmentation()
+        self.assertEqual(str(logic), "Pathological Segmentation")
+
+    def testValidateBatchSettings(self):
+        """Test batch settings validation with valid and invalid combinations."""
+        self.assertTrue(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "b": False}))
+        self.assertFalse(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": False, "b": False}))
+        self.assertFalse(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "b": True}))
+        self.assertTrue(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "label": "x"}))
+
+    def testObserverParametersTriggersHandlers(self):
+        """Test that parameter observer can run on a minimal stub without errors."""
+        from unittest.mock import MagicMock
+        from types import SimpleNamespace
+
+        widget = SimpleNamespace(
+            syncBatchModeUi=MagicMock(),
+            handleApplyButton=MagicMock(),
+            handleSegmentation=MagicMock(),
+            handleBatchCollapsible=MagicMock(),
+        )
+
+        self.ToothAnalyserWidget.observerParameters(widget)
+
+    def testHandleApplyButtonDisablesDuringCompute(self):
+        """Test apply button state in compute mode and regular modes."""
+        widget = self._createWidgetStub()
+        widget._param.currentImage = object()
+
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertTrue(widget.ui.apply.enabled)
+        self.assertEqual(widget.ui.apply.text, "Apply")
+
+        widget._isComputing = True
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertFalse(widget.ui.apply.enabled)
+        self.assertEqual(widget.ui.apply.text, "Applying...")
+
+        widget._isComputing = False
+        widget._param.isBatch = True
+        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.assertEqual(widget.ui.apply.text, "Apply Batch")
+
+    def testHandleBatchCollapsible(self):
+        """Test input parameter visibility for batch and single modes."""
+        widget = self._createWidgetStub()
+        widget._param.isBatch = True
+        self.ToothAnalyserWidget.handleBatchCollapsible(widget)
+        self.assertFalse(widget.ui.label_3.isVisible())
+        self.assertFalse(widget.ui.currentImage.isVisible())
+        self.assertTrue(widget.ui.label_4.isVisible())
+        self.assertTrue(widget.ui.sourcePath.isVisible())
+        self.assertTrue(widget.ui.label_5.isVisible())
+        self.assertTrue(widget.ui.targetPath.isVisible())
+        self.assertTrue(widget.ui.label_7.isVisible())
+        self.assertTrue(widget.ui.fileType.isVisible())
+
+        widget._param.isBatch = False
+        self.ToothAnalyserWidget.handleBatchCollapsible(widget)
+        self.assertTrue(widget.ui.label_3.isVisible())
+        self.assertTrue(widget.ui.currentImage.isVisible())
+        self.assertFalse(widget.ui.label_4.isVisible())
+        self.assertFalse(widget.ui.sourcePath.isVisible())
+        self.assertFalse(widget.ui.label_5.isVisible())
+        self.assertFalse(widget.ui.targetPath.isVisible())
+        self.assertFalse(widget.ui.label_7.isVisible())
+        self.assertFalse(widget.ui.fileType.isVisible())
+
+    def testHandleSegmentation(self):
+        """Test segmentation panel switching."""
+        widget = self._createWidgetStub()
+        widget._param.segmentation = "Anatomical Segmentation"
+        self.ToothAnalyserWidget.handleSegmentation(widget)
+        self.assertFalse(widget.ui.cariesCollapsible.isVisible())
+
+        widget._param.segmentation = "Pathological Segmentation"
+        self.ToothAnalyserWidget.handleSegmentation(widget)
+        self.assertTrue(widget.ui.cariesCollapsible.isVisible())
+
+    def testHandleProgressBarRange(self):
+        """Test progress bar range setup for with/without medial surfaces."""
+        widget = self._createWidgetStub()
+        widget._param.anatomical.calcMidSurface = True
+        self.ToothAnalyserWidget.handleProgressBarRange(widget)
+        self.assertEqual(widget.ui.progressBar.maximum, 13)
+
+        widget._param.anatomical.calcMidSurface = False
+        self.ToothAnalyserWidget.handleProgressBarRange(widget)
+        self.assertEqual(widget.ui.progressBar.maximum, 11)
+
+    def testSafeRemoveNode(self):
+        """Test _safeRemoveNode removes nodes only when they are in a scene."""
+        logic = self.AnatomicalSegmentationLogic()
+
+        realNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode")
+        realNodeId = realNode.GetID()
+        logic._safeRemoveNode(realNode)
+        self.assertIsNone(slicer.mrmlScene.GetNodeByID(realNodeId))
+
+        # No-op cases should not raise exceptions.
+        logic._safeRemoveNode(realNode)
+        logic._safeRemoveNode(None)
+
+    def testClearSceneRemovesMatchingNodes(self):
+        """Test clearScene queries all generated node groups and removes returned nodes."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        logic = self.AnatomicalSegmentationLogic()
+        anatomicalNode = SimpleNamespace(GetScene=lambda: True)
+        midsurfaceNode = SimpleNamespace(GetScene=lambda: True)
+
+        with patch("slicer.util.getNodes") as getNodes, patch.object(logic, "_safeRemoveNode") as safeRemove:
+            getNodes.side_effect = [{"a": anatomicalNode}, {"m": midsurfaceNode}, {}]
+            logic.clearScene()
+            self.assertEqual(getNodes.call_count, 3)
+            self.assertEqual(safeRemove.call_count, 2)
+
+    def testCollectFilesFiltersSupportedExtensions(self):
+        """Test that batch input collection only returns supported files."""
+        import tempfile
+
+        anatomicalSeg = self.AnatomicalSegmentationLogic()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            supported = ["a.ISQ", "b.mhd", "c.nrrd", "d.nii", "e.NII"]
+            unsupported = ["f.txt", "g", "h.raw"]
+            for name in supported + unsupported:
+                with open(os.path.join(tmpdir, name), "w", encoding="utf8"):
+                    pass
+
+            os.makedirs(os.path.join(tmpdir, "nested.nii"), exist_ok=True)
+
+            files = anatomicalSeg.collectFiles(tmpdir, anatomicalSeg._fileTypes)
+
+            self.assertEqual(files, sorted(supported))
+
+    def testCollectFilesReturnsEmptyForNonDirectory(self):
+        """Test collectFiles returns empty list if path is not a directory."""
+        import tempfile
+
+        anatomicalSeg = self.AnatomicalSegmentationLogic()
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            files = anatomicalSeg.collectFiles(tmpfile.name, anatomicalSeg._fileTypes)
+            self.assertEqual(files, [])
+
+    def testLoadResultsToSceneRequiresBothMidSurfaces(self):
+        """Test that medial surface creation requires both enamel and dentin maps."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        logic = self.AnatomicalSegmentationLogic()
+        param = SimpleNamespace(
+            anatomical=SimpleNamespace(createMesh=False),
+            pre=SimpleNamespace(compress=False),
+            currentImage=None,
+        )
+        results = {
+            "labelImage": object(),
+            "imageName": "Case_01",
+            "enamelMidSurface": object(),
+            "dentinMidSurface": None,
+            "image": None,
+        }
+
+        with patch.object(logic, "clearScene"), \
+                patch.object(logic, "createLabelMapNode", return_value=object()) as createLabelMapNode, \
+                patch.object(logic, "createSegmentation", return_value=object()), \
+                patch.object(logic, "createMedialSurface") as createMedialSurface:
+            logic.loadResultsToScene(results, param)
+            createLabelMapNode.assert_called_once()
+            createMedialSurface.assert_not_called()
+
+    def testCreateAndClearDirectory(self):
+        """Test batch result directory creation and cleanup."""
+        import tempfile
+
+        anatomicalSeg = self.AnatomicalSegmentationLogic()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            resultPath = anatomicalSeg.createDirectory(tmpdir, "results")
+            self.assertTrue(os.path.isdir(resultPath))
+
+            with open(os.path.join(resultPath, "result_1.nrrd"), "w", encoding="utf8"):
+                pass
+            os.makedirs(os.path.join(resultPath, "nested"), exist_ok=True)
+            with open(os.path.join(resultPath, "nested", "result_2.nrrd"), "w", encoding="utf8"):
+                pass
+
+            anatomicalSeg.clearDirectory(resultPath)
+            self.assertEqual(os.listdir(resultPath), [])
+
+    def testExecuteAsBatchInvalidSourcePath(self):
+        """Test executeAsBatch error handling for invalid source path."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            param = SimpleNamespace(
+                batch=SimpleNamespace(sourcePath=os.path.join(tmpdir, "missing"), targetPath=tmpdir, fileType=".nrrd"),
+                anatomical=SimpleNamespace(calcMidSurface=True),
+                pre=SimpleNamespace(compress=False),
+            )
+            progressBar = self._UiFlag()
+            logic = self.AnatomicalSegmentationLogic()
+            with patch("slicer.util.errorDisplay") as errorDisplay:
+                logic.executeAsBatch(param, progressBar)
+                errorDisplay.assert_called_once()
+
+    def testExecuteAsBatchInvalidTargetPath(self):
+        """Test executeAsBatch error handling for invalid target path."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sourceDir = os.path.join(tmpdir, "source")
+            os.makedirs(sourceDir, exist_ok=True)
+            param = SimpleNamespace(
+                batch=SimpleNamespace(sourcePath=sourceDir, targetPath=os.path.join(tmpdir, "missing"), fileType=".nrrd"),
+                anatomical=SimpleNamespace(calcMidSurface=True),
+                pre=SimpleNamespace(compress=False),
+            )
+            progressBar = self._UiFlag()
+            logic = self.AnatomicalSegmentationLogic()
+            with patch("slicer.util.errorDisplay") as errorDisplay:
+                logic.executeAsBatch(param, progressBar)
+                errorDisplay.assert_called_once()
+
+    def testExecuteAsBatchNoSupportedFiles(self):
+        """Test executeAsBatch warning when no supported files are found."""
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sourceDir = os.path.join(tmpdir, "source")
+            targetDir = os.path.join(tmpdir, "target")
+            os.makedirs(sourceDir, exist_ok=True)
+            os.makedirs(targetDir, exist_ok=True)
+            with open(os.path.join(sourceDir, "ignore.txt"), "w", encoding="utf8"):
+                pass
+            param = SimpleNamespace(
+                batch=SimpleNamespace(sourcePath=sourceDir, targetPath=targetDir, fileType=".nrrd"),
+                anatomical=SimpleNamespace(calcMidSurface=True),
+                pre=SimpleNamespace(compress=False),
+            )
+            progressBar = self._UiFlag()
+            logic = self.AnatomicalSegmentationLogic()
+            with patch.object(logic, "warning") as warning:
+                logic.executeAsBatch(param, progressBar)
+                warning.assert_called_once()

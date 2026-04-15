@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>396</width>
-    <height>502</height>
+    <height>543</height>
    </rect>
   </property>
   <property name="styleSheet">
@@ -15,157 +15,104 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="qMRMLCollapsibleButton" name="analyticalCollapsible">
-     <property name="autoFillBackground">
-      <bool>false</bool>
+    <widget class="QGroupBox" name="generalParametersGroup">
+     <property name="title">
+      <string>Parameters</string>
      </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
-     <property name="text">
-      <string>Analytics</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout_4">
+     <layout class="QFormLayout" name="formLayout_3">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
+       <widget class="QLabel" name="modeLabel">
         <property name="text">
-         <string>Volume to be analyzed:</string>
+         <string>Mode:</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="currentAnalyticalVolume">
+       <layout class="QHBoxLayout" name="modeLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QRadioButton" name="rdoSingle">
+          <property name="toolTip">
+           <string>Process a single image</string>
+          </property>
+          <property name="text">
+           <string>single</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="rdoBatch">
+          <property name="toolTip">
+           <string>Process a batch of images</string>
+          </property>
+          <property name="text">
+           <string>batch</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="segmentation_label">
+        <property name="text">
+         <string>Segmentation:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="segmentation">
         <property name="toolTip">
-         <string>Pick the input to the algorithm.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLScalarVolumeNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>false</bool>
+         <string>Select the algorithm you want to apply</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>analytical.currentAnalyticalVolume</string>
+         <string>segmentation</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
-       <widget class="QPushButton" name="applyAnalytics">
+      <item row="3" column="1">
+       <widget class="QCheckBox" name="createMesh">
         <property name="toolTip">
-         <string>Select a node to apply the analytics</string>
+         <string>Uncheck this checkbox if you don´t need a mesh</string>
         </property>
         <property name="text">
-         <string>Apply Analytics</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="showHistogram">
-        <property name="toolTip">
-         <string/>
-        </property>
-        <property name="text">
-         <string>Show Histogram              </string>
+         <string>create mesh</string>
         </property>
         <property name="checked">
          <bool>true</bool>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>analytical.showHistogram</string>
+         <string>anatomical.createMesh</string>
         </property>
        </widget>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_4">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="ctkCollapsibleButton" name="anatomicaCollapsible">
-     <property name="text">
-      <string>Anatomical Segmentation</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Volumen for segmentation:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qMRMLNodeComboBox" name="currentAnatomicalVolume">
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="cbxCompress">
         <property name="toolTip">
-         <string>Pick the input to the algorithm.</string>
+         <string>Compress the selected image</string>
         </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLScalarVolumeNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>false</bool>
+        <property name="text">
+         <string>compress</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.currentAnatomicalVolume</string>
+         <string>pre.compress</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Segmentation algorithm:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QComboBox" name="selectedAnatomicalAlgo">
-        <property name="toolTip">
-         <string>Switch the threshold method for segmentation</string>
-        </property>
-        <property name="placeholderText">
-         <string>select an algorithm</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.selectedAnatomicalAlgo</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
+      <item row="4" column="1">
        <widget class="QCheckBox" name="calcMidSurface">
         <property name="toolTip">
          <string>Uncheck this checkbox if you don´t need medial surface</string>
@@ -184,26 +131,10 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
-       <widget class="QCheckBox" name="useAnatomicalForBatch">
-        <property name="toolTip">
-         <string>Select this checkbox to apply the parameters for the anatomical Segmentation to the batch mode</string>
-        </property>
+      <item row="3" column="0">
+       <widget class="QLabel" name="lbAdditional">
         <property name="text">
-         <string>use parameters for batch</string>
-        </property>
-        <property name="SlicerParameterName" stdset="0">
-         <string>anatomical.useAnatomicalForBatch</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QPushButton" name="applyAnatomical">
-        <property name="toolTip">
-         <string>Select a node to apply the anatomical segmentation</string>
-        </property>
-        <property name="text">
-         <string>Apply Segmentation</string>
+         <string>Additional:</string>
         </property>
        </widget>
       </item>
@@ -211,39 +142,61 @@
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+    <widget class="ctkCollapsibleButton" name="cariesCollapsible">
+     <property name="text">
+      <string>Pathological Segmentation</string>
      </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
+    </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="batchCollapsible">
-     <property name="text">
-      <string>Batch Processing</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
+    <widget class="QGroupBox" name="inputParametersGroup">
+     <property name="title">
+      <string>Source</string>
      </property>
      <layout class="QFormLayout" name="formLayout_2">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
+       <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Load files from: </string>
+         <string>µCT Image:</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
+       <widget class="qMRMLNodeComboBox" name="currentImage">
+        <property name="toolTip">
+         <string>Pick the input to the algorithm.</string>
+        </property>
+        <property name="nodeTypes">
+         <stringlist notr="true">
+          <string>vtkMRMLScalarVolumeNode</string>
+         </stringlist>
+        </property>
+        <property name="showChildNodeTypes">
+         <bool>false</bool>
+        </property>
+        <property name="addEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="SlicerParameterName" stdset="0">
+         <string>currentImage</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>load files from: </string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
        <widget class="QLineEdit" name="sourcePath">
+        <property name="toolTip">
+         <string>Select source directory</string>
+        </property>
         <property name="placeholderText">
          <string>Select source directory</string>
         </property>
@@ -252,15 +205,18 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Save files in:</string>
+         <string>save files in:</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <widget class="QLineEdit" name="targetPath">
+        <property name="toolTip">
+         <string>Select target directory</string>
+        </property>
         <property name="placeholderText">
          <string>Select target directory</string>
         </property>
@@ -269,14 +225,14 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
-         <string>Save files as:</string>
+         <string>save files as:</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <widget class="QComboBox" name="fileType">
         <property name="toolTip">
          <string>Switch the file type for the generated files</string>
@@ -286,20 +242,17 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
-       <widget class="QPushButton" name="applyBatch">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="toolTip">
-         <string>Check if there is exactly one batch setting applyed</string>
-        </property>
-        <property name="text">
-         <string>Apply Batch</string>
-        </property>
-       </widget>
-      </item>
      </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="apply">
+     <property name="toolTip">
+      <string>Select a node or switch to batch mode to apply the anatomical segmentation</string>
+     </property>
+     <property name="text">
+      <string>Apply Segmentation</string>
+     </property>
     </widget>
    </item>
    <item>
@@ -325,10 +278,10 @@
    <item>
     <widget class="QProgressBar" name="progressBar">
      <property name="maximum">
-      <number>0</number>
+      <number>11</number>
      </property>
      <property name="value">
-      <number>-1</number>
+      <number>0</number>
      </property>
     </widget>
    </item>
@@ -339,12 +292,6 @@
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>qMRMLCollapsibleButton</class>
-   <extends>ctkCollapsibleButton</extends>
-   <header>qMRMLCollapsibleButton.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -363,38 +310,6 @@
  <connections>
   <connection>
    <sender>ToothAnalyserWidget</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>currentAnalyticalVolume</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>122</x>
-     <y>132</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>256</x>
-     <y>121</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ToothAnalyserWidget</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>currentAnatomicalVolume</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>186</x>
-     <y>217</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>261</x>
-     <y>223</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ToothAnalyserWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
    <receiver>fileType</receiver>
    <slot>show()</slot>
@@ -411,17 +326,33 @@
   </connection>
   <connection>
    <sender>ToothAnalyserWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>currentImage</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>186</x>
+     <y>217</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>261</x>
+     <y>223</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ToothAnalyserWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
-   <receiver>selectedAnatomicalAlgo</receiver>
+   <receiver>segmentation_label</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>200</x>
-     <y>248</y>
+     <x>197</x>
+     <y>250</y>
     </hint>
     <hint type="destinationlabel">
-     <x>291</x>
-     <y>199</y>
+     <x>53</x>
+     <y>72</y>
     </hint>
    </hints>
   </connection>
