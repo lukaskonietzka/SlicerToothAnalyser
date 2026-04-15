@@ -89,9 +89,10 @@ To start a tutorial, follow this link:
 [Start a Tutorial](Documentation/Tutorial.md)
 
 ## 5. Explanations
-This chapter provides a detailed introduction to the functionality of the various features of
-the ToothAnalyzer. The focus is on the procedure itself rather than the technical implementation.
-For more details, please refer to the documentation.
+This chapter explains the function and algorithmic formulation of the anatomical
+segmentation pipeline. It focuses on how the segmentation steps are defined conceptually,
+not on their implementation details. Optional steps beyond the core segmentation are
+clearly separated in the documentation.
 
 [Check out the Explanation](Documentation/Explanation.md)
 

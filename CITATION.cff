@@ -1,12 +1,21 @@
 cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
 title: "Tooth Analyser"
-type: Software
+abstract: "Tooth Analyser is an ongoing development effort for a 3D Slicer extension designed for micro-computed tomography (microCT) scans of teeth. It provides specialized preprocessing, segmentation, and analysis features tailored for the analysis of tooth anatomy and pathology."
+type: software
 authors:
   - family-names: "Konietzka"
     given-names: "Lukas"
   - family-names: "Walter"
     given-names: "Elias"
 repository-code: "https://github.com/lukaskonietzka/SlicerToothAnalyser"
+url: "https://github.com/lukaskonietzka/SlicerToothAnalyser"
+keywords:
+  - "3D Slicer"
+  - "microCT"
+  - "tooth segmentation"
+  - "dental imaging"
+  - "anatomical segmentation"
 version: "1.0.0"
 date-released: 2026-01-01
-license: APACHE 2.0
+license: Apache-2.0
