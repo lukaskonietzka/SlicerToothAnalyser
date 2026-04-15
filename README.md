@@ -16,7 +16,7 @@ workflows.
 - [2. Installation](#2-installation)
 - [3. Quick Start Guide](#3-quick-start-guide)
 - [4. Tutorials](#4-tutorials)
-- [5. Explanation](#5-explanations)
+- [5. Anatomical Segmentation](#5-anatomical-segmentation)
 - [6. Developers](#6-developers)
 - [7. Visualize and Save Results](#7-visualize-and-save-results)
 - [8. Sample Data](#8-sample-data)
@@ -86,22 +86,22 @@ This chapter covers all components and explains them in detail.
 
 To start a tutorial, follow this link:
 
-[Start a Tutorial](Documentation/Tutorial.md)
+[Start a tutorial](Documentation/Tutorial.md)
 
-## 5. Explanations
+## 5. Anatomical Segmentation
 This chapter explains the function and algorithmic formulation of the anatomical
 segmentation pipeline. It focuses on how the segmentation steps are defined conceptually,
 not on their implementation details. Optional steps beyond the core segmentation are
 clearly separated in the documentation.
 
-[Check out the Explanation](Documentation/Explanation.md)
+[Check out the explanation for the anatomical segmentation](Documentation/AnatomicalSegmentation.md)
 
 ## 6. Developers
 This section goes into great detail and provides a technical introduction to the implementation.
 For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
 
-[Check out the Developer Guide](Documentation/Developers.md)
+[Check out the developer guide](Documentation/Developers.md)
 
 ## 7. Visualize and Save Results
 When the algorithm is finished, the results are automatically loaded into the Slicer scene,  

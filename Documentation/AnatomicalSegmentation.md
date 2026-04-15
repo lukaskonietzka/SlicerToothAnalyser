@@ -1,4 +1,4 @@
-# Explanation of the Anatomical Segmentation
+# Anatomical Segmentation
 This chapter explains the functionality and the algorithmic formulation of the
 anatomical segmentation pipeline. The focus is limited to the segmentation logic
 itself and does not cover implementation details.
