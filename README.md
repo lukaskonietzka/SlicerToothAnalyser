@@ -7,9 +7,9 @@ the analysis of tooth anatomy and pathology.
 
 Developed in collaboration between the *Department of Computer Science* at
 the Technical University of Augsburg and the *Department of Conservative
-Dentistry and Periodontology* at the LMU Hospital, Munich. Tooth Analyser
-facilitates advanced dental research through automated and semi-automate
-workflows.
+Dentistry, Periodontology and Digital Dentistry* at the LMU Hospital, Munich. 
+The Tooth Analyser facilitates advanced dental research through automated and 
+semi-automatitc workflows.
 
 ## Table of Contents
 - [1. Introduction and Purpose](#1-introduction-and-purpose)
