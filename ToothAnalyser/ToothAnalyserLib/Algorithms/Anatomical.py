@@ -11,6 +11,7 @@ calculate an anatomical segmentation starting from µCTs
 """
 
 import os
+import logging
 import SimpleITK as sitk
 from SimpleITK import Image
 
@@ -334,7 +335,7 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
         thresh_filter.SetOutsideValue(1)
         if filter_selection == 'Intermodes':
             if debug:
-                print("SetNumberOfHistogramBins(5000) because of IntermodesThreshold")
+                logging.info("SetNumberOfHistogramBins(5000) because of IntermodesThreshold")
             thresh_filter.SetNumberOfHistogramBins(500)
         else:
             pass
@@ -347,16 +348,16 @@ def thresholdFilter(img: Image, mask: Image=None, filter_selection: str= 'Otsu',
         else:
             thresh_img = thresh_filter.Execute(img)
             if debug:
-                print("no mask specified")
+                logging.info("no mask specified")
             thresh_img = thresh_filter.Execute(img)
         thresh_value = thresh_filter.GetThreshold()
     except KeyError:
-        print("KeyError")
+        logging.warning("Unknown threshold filter selection '%s'", filter_selection)
         thresh_value = 0
         thresh_img = img>thresh_value
 
     if debug:
-        print("Threshold used: " + str(thresh_value))
+        logging.info("Threshold used: %s", thresh_value)
     return thresh_img
 
 
@@ -790,12 +791,12 @@ def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfa
 
     # 1. load and filter image
     img, name = loadImage(sourcePath)
-    print("type: ", img.GetPixelIDTypeAsString())
+    logging.info("Image pixel type: %s", img.GetPixelIDTypeAsString())
     yield 1
 
     # 2. compress if needed
     if compress:
-        print("down sampling...")
+        logging.info("Down sampling image")
         img = downsample_2(
             input_image=img,
             use_median=False,

@@ -65,7 +65,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.title = _("Tooth Analyser")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []
-        self.parent.contributors = ["Lukas Konietzka (THA)", "Simon Hofmann (THA)", "Prof. Dr. Peter Rösch (THA)", "Dr. Elias Walter (LMU)"]
+        self.parent.contributors = ["Lukas Konietzka", "Dr. Elias Walter (Department of Conservative Dentistry, Periodontology and Digital Dentistry at the LMU Hospital, Munich)", "Simon Hofmann", "Prof. Dr. Peter Rösch (Technical University of Augsburg)"]
         self.parent.helpText = _(f"""
             <img src="{relativePathLogo}" width="200">
             <br>
@@ -77,7 +77,7 @@ class ToothAnalyser(ScriptedLoadableModule):
             <br>
             <br>
             If you need more information
-            check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser/tree/dev">module documentation</a>.
+            check out the <a href="https://github.com/lukaskonietzka/SlicerToothAnalyser">module documentation</a>.
         """)
         self.parent.acknowledgementText = _(f"""
             Developed in collaboration between the *Department of Computer Science* at

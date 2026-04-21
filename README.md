@@ -130,7 +130,7 @@ The sample data ensures that the module is accessible to everyone.
 The sample images are microCT scans provided open-source by the *Department of Conservative Dentistry and Periodontology, LMU Hospital, LMU Munich, Germany*. You can find the sample files under the assets in the current release.
 
 You can download sample data here:  
-[Download Sample Data](https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz)
+[Download Sample Data](https://github.com/lukaskonietzka/SlicerToothAnalyser/releases/download/v1.0.0/Z_149_C0005709_bm4_20.nii)
 
 ⚠️ **Notice**: The Tooth Analyzer was specifically developed for microCT scans  
 with tooth structures, which is why other types of CT scans may result in errors. 

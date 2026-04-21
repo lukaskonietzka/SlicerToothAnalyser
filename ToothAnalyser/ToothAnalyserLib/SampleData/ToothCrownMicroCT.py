@@ -35,7 +35,7 @@ def registerToothCrownMicroCT():
         sampleName="ToothCrownMicroCTRaw",
         thumbnailFileName=os.path.join(iconsPath, "SampleData.png"),
         # path to sample image
-        uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/P01A-C0005278.nii.gz",
+        uris="https://github.com/lukaskonietzka/SlicerToothAnalyser/releases/download/v1.0.0/P01A-C0005278.nii.gz",
         fileNames="P01A-C0005278.nii.gz",
         checksums=None,
         nodeNames="ToothCrownMicroCTRaw",
@@ -57,7 +57,7 @@ def registerToothCrownMicroCT8Bit():
         sampleName="ToothCrownMicroCT",
         thumbnailFileName=os.path.join(iconsPath, "SampleData.png"),
         # path to sample image
-        uris="https://github.com/lukaskonietzka/ToothAnalyserSampleData/releases/download/v1.0.0/Z_149_C0005709_bm4_20.nii",
+        uris="https://github.com/lukaskonietzka/SlicerToothAnalyser/releases/download/v1.0.0/Z_149_C0005709_bm4_20.nii",
         fileNames="Z_149_C0005709_bm4_20.nii",
         checksums=None,
         nodeNames="ToothCrownMicroCT",

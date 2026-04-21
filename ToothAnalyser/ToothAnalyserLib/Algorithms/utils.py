@@ -13,6 +13,8 @@ Author
 Lukas Konietzka, lukas.konietzka@tha.de
 """
 
+import logging
+
 
 
 def measure_time(func):
@@ -34,7 +36,7 @@ def measure_time(func):
         minutes = int(elapsed // 60)
         seconds = int(elapsed % 60)
 
-        print(f"{func.__name__}: Done {minutes}:{seconds:02d} minutes")
+        logging.info("%s: Done %d:%02d minutes", func.__name__, minutes, seconds)
         return result
 
     return wrapper
