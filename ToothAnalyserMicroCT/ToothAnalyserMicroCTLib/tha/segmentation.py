@@ -1,5 +1,5 @@
 """
-ToothAnalyserLib.tha.segmentation
+ToothAnalyserMicroCTLib.tha.segmentation
 =================================
 
 This module provides functions to evaluate and compare 3D tooth µCT segmentations.
@@ -10,11 +10,11 @@ but WITHOUT ANY WARRANTY.
 Example Usage
 -------------
 In Python:
-    import ToothAnalyserLib.tha.segmentation as seg
+    import ToothAnalyserMicroCTLib.tha.segmentation as seg
     seg.create_segmentation_metrics_file("pairs.txt", "metrics.txt")
 
 From the command line:
-    $ python -m ToothAnalyserLib.tha.segmentation metrics_main pairs.txt metrics.txt
+    $ python -m ToothAnalyserMicroCTLib.tha.segmentation metrics_main pairs.txt metrics.txt
 
 Author
 -------

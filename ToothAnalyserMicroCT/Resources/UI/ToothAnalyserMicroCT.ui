@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ToothAnalyserWidget</class>
- <widget class="qMRMLWidget" name="ToothAnalyserWidget">
+ <class>ToothAnalyserMicroCTWidget</class>
+ <widget class="qMRMLWidget" name="ToothAnalyserMicroCTWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -309,7 +309,7 @@
  <resources/>
  <connections>
   <connection>
-   <sender>ToothAnalyserWidget</sender>
+   <sender>ToothAnalyserMicroCTWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
    <receiver>fileType</receiver>
    <slot>show()</slot>
@@ -325,7 +325,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>ToothAnalyserWidget</sender>
+   <sender>ToothAnalyserMicroCTWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
    <receiver>currentImage</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
@@ -341,7 +341,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>ToothAnalyserWidget</sender>
+   <sender>ToothAnalyserMicroCTWidget</sender>
    <signal>customContextMenuRequested(QPoint)</signal>
    <receiver>segmentation_label</receiver>
    <slot>show()</slot>

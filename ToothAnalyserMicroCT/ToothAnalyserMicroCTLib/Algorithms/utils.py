@@ -1,5 +1,5 @@
 """
-ToothAnalyserLib.Algorithm.utils
+ToothAnalyserMicroCTLib.Algorithm.utils
 =================================
 
 This module provides general standard functions and decorators that may be useful for all algorithms.

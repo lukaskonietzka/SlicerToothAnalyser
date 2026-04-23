@@ -32,7 +32,7 @@ from slicer.parameterNodeWrapper import (
 )
 
 from slicer import vtkMRMLScalarVolumeNode
-from ToothAnalyserLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
+from ToothAnalyserMicroCTLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
 # load images for Help and Acknowledgement section
 scriptDir = os.path.dirname(__file__)
@@ -41,11 +41,11 @@ relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
 relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
 relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
 
-# path to main module (ToothAnalyser.py)
+# path to main module (ToothAnalyserMicroCT.py)
 module_dir = os.path.dirname(__file__)
 
-# path to library folder (ToothAnalyserLib)
-lib_path = os.path.join(module_dir, 'ToothAnalyserLib')
+# path to library folder (ToothAnalyserMicroCTLib)
+lib_path = os.path.join(module_dir, 'ToothAnalyserMicroCTLib')
 test_path = os.path.join(module_dir, 'Testing', 'Python')
 
 if lib_path not in sys.path:
@@ -54,15 +54,15 @@ if test_path not in sys.path:
     sys.path.insert(0, test_path)
 
 
-# ----- Tooth Analyser meta information ----- #
-class ToothAnalyser(ScriptedLoadableModule):
+# ----- ToothAnalyserMicroCT meta information ----- #
+class ToothAnalyserMicroCT(ScriptedLoadableModule):
     """ This Class holds all meta information about this module
     and add the connection to the 3D Slicer core application.
     As a child class of "ScriptedLoadableModule" all methods from
     this class can be used."""
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("Tooth Analyser")
+        self.parent.title = _("ToothAnalyserMicroCT")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []
         self.parent.contributors = ["Lukas Konietzka", "Dr. Elias Walter (Department of Conservative Dentistry, Periodontology and Digital Dentistry at the LMU Hospital, Munich)", "Simon Hofmann", "Prof. Dr. Peter Rösch (Technical University of Augsburg)"]
@@ -70,7 +70,7 @@ class ToothAnalyser(ScriptedLoadableModule):
             <img src="{relativePathLogo}" width="200">
             <br>
             <br>
-            Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM)
+            ToothAnalyserMicroCT is an ongoing development effort for a 3D Slicer extension (SEM)
             designed for micro-computed tomography (microCT) scans of teeth. It provides
             specialized preprocessing, segmentation, and analysis features tailored for
             the analysis of tooth anatomy and pathology.
@@ -82,7 +82,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         self.parent.acknowledgementText = _(f"""
             Developed in collaboration between the *Department of Computer Science* at
             the Technical University of Augsburg and the *Department of Conservative
-            Dentistry and Periodontology* at the LMU Hospital, Munich. Tooth Analyser
+            Dentistry and Periodontology* at the LMU Hospital, Munich. ToothAnalyserMicroCT
             facilitates advanced dental research through automated and semi-automate
             workflows.
             <br>
@@ -94,7 +94,7 @@ class ToothAnalyser(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", registerToothCrownMicroCT8Bit)
 
 
-# ----- Tooth Analyser Parameter Node ----- #
+# ----- ToothAnalyserMicroCT Parameter Node ----- #
 @parameterPack
 class PreProcessing:
     """
@@ -123,7 +123,7 @@ class Batch:
     fileType: Annotated[str, Choice([".nrrd", ".nii", ".mhd"])] = ".nrrd"
 
 @parameterNodeWrapper
-class ToothAnalyserParameterNode:
+class ToothAnalyserMicroCTParameterNode:
     """
     All parameters needed by module
     separated in: analytical, anatomical, batch
@@ -137,8 +137,8 @@ class ToothAnalyserParameterNode:
     status: str = ""
 
 
-# ----- Tooth Analyser widget class ----- #
-class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+# ----- ToothAnalyserMicroCT widget class ----- #
+class ToothAnalyserMicroCTWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """
     This class include all the frontend logic
     Uses ScriptedLoadableModuleWidget base class, available at:
@@ -175,7 +175,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
-        self.logic = ToothAnalyserLogic()
+        self.logic = ToothAnalyserMicroCTLogic()
 
         # Add scene Connections
         self.connectObservers()
@@ -208,7 +208,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Additional widgets can be instantiated manually and added to self.layout
         return: the created ui as a widget
         """
-        uiWidget = slicer.util.loadUI(self.resourcePath("UI/ToothAnalyser.ui"))
+        uiWidget = slicer.util.loadUI(self.resourcePath("UI/ToothAnalyserMicroCT.ui"))
         self.layout.addWidget(uiWidget)
         self.ui = slicer.util.childWidgetVariables(uiWidget)
         return uiWidget
@@ -282,7 +282,7 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.status.setVisible(False)
         self.ui.status.enabled = False
 
-    def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserParameterNode]) -> None:
+    def setParameterNode(self, inputParameterNode: Optional[ToothAnalyserMicroCTParameterNode]) -> None:
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
@@ -297,14 +297,14 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # ui element that needs connection.
             self._parameterNodeGuiTag = self._param.connectGui(self.ui)
 
-            # attach an observer to the parameters in the Tooth Analyser widget
+            # attach an observer to the parameters in the ToothAnalyserMicroCT widget
             self.addObserver(self._param, vtk.vtkCommand.ModifiedEvent,self.observerParameters)
             self.observerParameters()
 
     def observerParameters(self, caller=None, event=None) -> None:
         """
         This is an event function connected to the parameters in the widget.
-        Called everytime a Tooth Analyser parameter changes.
+        Called everytime a ToothAnalyserMicroCT parameter changes.
         call up everything that is to be updated here if the parameters in the ui change
         @param caller:
         @param event. the event that triggered the funktion (ModifiedEvent)
@@ -447,8 +447,8 @@ class ToothAnalyserWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.activateComputingMode(False)
 
 
-# ----- Tooth Analyser logic interface ----- #
-class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
+# ----- ToothAnalyserMicroCT logic interface ----- #
+class ToothAnalyserMicroCTLogic(ScriptedLoadableModuleLogic):
     """ This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
@@ -468,8 +468,8 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if cls not in ToothAnalyserLogic._algorithm:
-            ToothAnalyserLogic._algorithm.append(cls)
+        if cls not in ToothAnalyserMicroCTLogic._algorithm:
+            ToothAnalyserMicroCTLogic._algorithm.append(cls)
 
     def __str__(self):
         """Return the default algorithm label if subclasses do not override ``__str__``."""
@@ -499,11 +499,11 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
         """Return the currently selected algorithm instance."""
         return self._selectedAlgorithm
 
-    def getParameterNode(self) -> ToothAnalyserParameterNode:
+    def getParameterNode(self) -> ToothAnalyserMicroCTParameterNode:
         """
         Return the module-specific wrapped parameter node.
         """
-        return ToothAnalyserParameterNode(super().getParameterNode())
+        return ToothAnalyserMicroCTParameterNode(super().getParameterNode())
 
     def preprocessing(self) -> None:
         """Implement your preprocessing here"""
@@ -519,17 +519,17 @@ class ToothAnalyserLogic(ScriptedLoadableModuleLogic):
     def warning(self, msg: str) -> None:
         slicer.util.warningDisplay(msg)
 
-    def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
+    def execute(self, param: ToothAnalyserMicroCTParameterNode, progressBar) -> None:
         """Abstract method"""
         raise NotImplementedError("Please implement the execute() methode in one of the child classes")
 
-    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
+    def executeAsBatch(self, param: ToothAnalyserMicroCTParameterNode, progressBar) -> None:
         """Abstract method"""
         raise NotImplementedError("Please implement the executeAsBatch() methode in one of the child classes")
 
 
-# ----- Tooth Analyser section anatomical segmentation ----- #
-class AnatomicalSegmentationLogic(ToothAnalyserLogic):
+# ----- ToothAnalyserMicroCT section anatomical segmentation ----- #
+class AnatomicalSegmentationLogic(ToothAnalyserMicroCTLogic):
     """
     this class contains all the logic needed to visualise
     the anatomical segmentation
@@ -805,7 +805,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
 
     def runSegmentationPipeline(
             self,
-            param: ToothAnalyserParameterNode,
+            param: ToothAnalyserMicroCTParameterNode,
             progressBar,
             sourcePath: Optional[str] = None) -> dict:
         """
@@ -816,7 +816,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @param progressBar:
         @return:
         """
-        from ToothAnalyserLib.Algorithms.Anatomical import calcSegmentationGen
+        from ToothAnalyserMicroCTLib.Algorithms.Anatomical import calcSegmentationGen
 
         segmentationType = "otsu"
 
@@ -857,7 +857,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         }
         return results
 
-    def loadResultsToScene(self, results: dict, param: ToothAnalyserParameterNode) -> None:
+    def loadResultsToScene(self, results: dict, param: ToothAnalyserMicroCTParameterNode) -> None:
         """
         This methode takes the results from the segmentation pipeline and
         load it to the Slicer scene.
@@ -902,7 +902,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
             param.currentImage = compressedNode
             self._safeRemoveNode(oldNode)
 
-    def execute(self, param: ToothAnalyserParameterNode, progressBar) -> None:
+    def execute(self, param: ToothAnalyserMicroCTParameterNode, progressBar) -> None:
         """
         Execute the algorithm by clicking the "apply" Button.
         @param param:
@@ -920,7 +920,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         duration = time.time() - start
         logging.info("Verarbeitung abgeschlossen in: %.0f Minuten und %.0f Sekunden",duration // 60, duration % 60)
 
-    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar) -> None:
+    def executeAsBatch(self, param: ToothAnalyserMicroCTParameterNode, progressBar) -> None:
         """
         This method starts the pipeline to compute all files in batch process
         @param param: all parameters from the user interface (UI)
@@ -929,8 +929,8 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
         @example:
             AnatomicalSegmentationLogic.executeAsBatch(param=self._param)
         """
-        from ToothAnalyserLib.Algorithms.Anatomical import writeToothDict
-        from ToothAnalyserLib.Algorithms.utils import createSTL
+        from ToothAnalyserMicroCTLib.Algorithms.Anatomical import writeToothDict
+        from ToothAnalyserMicroCTLib.Algorithms.utils import createSTL
 
         # create local variables for all parameters
         if not os.path.isdir(param.batch.sourcePath):
@@ -993,7 +993,7 @@ class AnatomicalSegmentationLogic(ToothAnalyserLogic):
                 continue
 
 
-class PathologicalSegmentation(ToothAnalyserLogic):
+class PathologicalSegmentation(ToothAnalyserMicroCTLogic):
     """Placeholder implementation for pathological segmentation workflows."""
     def __str__(self):
         """
@@ -1001,24 +1001,24 @@ class PathologicalSegmentation(ToothAnalyserLogic):
         """
         return "Pathological Segmentation"
 
-    def execute(self, param: ToothAnalyserParameterNode, progressBar):
+    def execute(self, param: ToothAnalyserMicroCTParameterNode, progressBar):
         self.preprocessing()
         print("Coming up soon, execute Pathological Segmentation ...")
         self.postprocessing()
 
-    def executeAsBatch(self, param: ToothAnalyserParameterNode, progressBar):
+    def executeAsBatch(self, param: ToothAnalyserMicroCTParameterNode, progressBar):
         self.preprocessing()
         print("Coming up soon, execute Pathological Segmentation as Batch ...")
         self.postprocessing()
 
 
-# ----- Tooth Analyser Tests ----- #
-from Testing.Python.ToothAnalyserTests import ToothAnalyserTestMixin
+# ----- ToothAnalyserMicroCT Tests ----- #
+from Testing.Python.ToothAnalyserMicroCTTests import ToothAnalyserMicroCTTestMixin
 
-class ToothAnalyserTest(ToothAnalyserTestMixin, ScriptedLoadableModuleTest):
+class ToothAnalyserMicroCTTest(ToothAnalyserMicroCTTestMixin, ScriptedLoadableModuleTest):
     """Wrapper class so Slicer's Reload-and-Test discovers module tests."""
 
-    ToothAnalyserLogic = ToothAnalyserLogic
-    ToothAnalyserWidget = ToothAnalyserWidget
+    ToothAnalyserMicroCTLogic = ToothAnalyserMicroCTLogic
+    ToothAnalyserMicroCTWidget = ToothAnalyserMicroCTWidget
     AnatomicalSegmentationLogic = AnatomicalSegmentationLogic
     PathologicalSegmentation = PathologicalSegmentation

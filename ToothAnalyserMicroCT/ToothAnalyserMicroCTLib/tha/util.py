@@ -1,9 +1,9 @@
 """
-ToothAnalyserLib.tha.util
+ToothAnalyserMicroCTLib.tha.util
 =========================
 
 This module provides various utility functions for handling, converting,
-and visualizing µCT image data used in the ToothAnalyser framework.
+and visualizing µCT image data used in the ToothAnalyserMicroCT framework.
 
 It includes tools for matching corresponding image files between directories,
 reading and converting Scanco ISQ image files to MetaImage (MHD) or other formats,
@@ -15,12 +15,12 @@ but WITHOUT ANY WARRANTY.
 Example Usage
 -------------
 In Python:
-    import ToothAnalyserLib.tha.util as util
+    import ToothAnalyserMicroCTLib.tha.util as util
     util.convert_isq("sample.isq", "sample.nii.gz")
     util.corresponding_files_to_file("dirA", "dirB", r"(\d+)", ".bak", "pairs.txt")
 
 From the command line:
-    $ python -m ToothAnalyserLib.tha.util convert_isq_main sample.isq sample.nii.gz
+    $ python -m ToothAnalyserMicroCTLib.tha.util convert_isq_main sample.isq sample.nii.gz
 
 Author
 -------
