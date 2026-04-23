@@ -39,7 +39,7 @@ try:
     import numba
 except ModuleNotFoundError:
     if slicer.util.confirmOkCancelDisplay(
-            "This module requires the 'numba' Python package. Click OK to install it now."):
+            "This module requires the 'numba' Python package. Click OK to install it now and click apply again."):
         slicer.util.pip_install("numba")
 
 
