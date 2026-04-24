@@ -781,7 +781,7 @@ def dentinMedialSurface(dentin_layers: any) -> Image:
 def calcSegmentationGen(sourcePath: str, selectedAlgorithm: str, calcMedialSurfaces: bool = False, compress: bool = False):
     """
     This Method combines all segmentation steps and store dem in a dictionary.
-    This dictionary can be used in the ToothAnalyser Core application
+    This dictionary can be used in the ToothAnalyserMicroCT core application
     @param sourcePath:
     @param selectedAlgorithm:
     @param calcMedialSurfaces:

@@ -1,5 +1,5 @@
 #-----------------------------------------------------------------------------
-set(MODULE_NAME ToothAnalyser)
+set(MODULE_NAME ToothAnalyserMicroCT)
 
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS

@@ -1,6 +1,6 @@
-"""Regression tests for the ToothAnalyser scripted module.
+"""Regression tests for the ToothAnalyserMicroCT scripted module.
 
-This file keeps test implementation separate from ``ToothAnalyser.py`` while
+This file keeps test implementation separate from ``ToothAnalyserMicroCT.py`` while
 preserving Slicer's Reload-and-Test integration through a wrapper class.
 """
 
@@ -8,8 +8,8 @@ import os
 import slicer
 
 
-class ToothAnalyserTestMixin:
-    """Mixin containing module-level regression tests for ToothAnalyser.py."""
+class ToothAnalyserMicroCTTestMixin:
+    """Mixin containing module-level regression tests for ToothAnalyserMicroCT.py."""
 
     def setUp(self):
         """Reset scene state before each test run."""
@@ -39,12 +39,12 @@ class ToothAnalyserTestMixin:
             "testExecuteAsBatchNoSupportedFiles",
         ]
 
-        self.delayDisplay(f"Starting ToothAnalyser tests ({len(testMethods)} cases)...", 200)
+        self.delayDisplay(f"Starting ToothAnalyserMicroCT tests ({len(testMethods)} cases)...", 200)
         for methodName in testMethods:
             self.setUp()
             getattr(self, methodName)()
             self.delayDisplay(f"Passed: {methodName}", 100)
-        self.delayDisplay("All ToothAnalyser tests passed.", 300)
+        self.delayDisplay("All ToothAnalyserMicroCT tests passed.", 300)
 
     class _UiFlag:
         """Minimal UI element stub with visibility/enabled state."""
@@ -95,7 +95,7 @@ class ToothAnalyserTestMixin:
 
     def testAlgorithmSelection(self):
         """Test algorithm discovery and name-based selection."""
-        logic = self.ToothAnalyserLogic()
+        logic = self.ToothAnalyserMicroCTLogic()
         algorithmNames = logic.getAlgorithmsByName()
 
         self.assertIn("Anatomical Segmentation", algorithmNames)
@@ -106,16 +106,16 @@ class ToothAnalyserTestMixin:
 
     def testSetSelectedAlgorithmUnknownName(self):
         """Test that unknown algorithm names reset selection to None."""
-        logic = self.ToothAnalyserLogic()
+        logic = self.ToothAnalyserMicroCTLogic()
         logic.setSelectedAlgorithm("Anatomical Segmentation")
         logic.setSelectedAlgorithm("This Algorithm Does Not Exist")
         self.assertIsNone(logic.getSelectedAlgorithm())
 
     def testLogicRepresentation(self):
         """Test default text representation for base logic class."""
-        logic = self.ToothAnalyserLogic()
+        logic = self.ToothAnalyserMicroCTLogic()
         self.assertEqual(str(logic), "Unbekannter Algorithmus")
-        self.assertIn("ToothAnalyserLogic", repr(logic))
+        self.assertIn("ToothAnalyserMicroCTLogic", repr(logic))
 
     def testPathologicalSegmentationName(self):
         """Test display name for the pathological segmentation logic implementation."""
@@ -124,10 +124,10 @@ class ToothAnalyserTestMixin:
 
     def testValidateBatchSettings(self):
         """Test batch settings validation with valid and invalid combinations."""
-        self.assertTrue(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "b": False}))
-        self.assertFalse(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": False, "b": False}))
-        self.assertFalse(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "b": True}))
-        self.assertTrue(self.ToothAnalyserWidget.validateBatchSettings(None, {"a": True, "label": "x"}))
+        self.assertTrue(self.ToothAnalyserMicroCTWidget.validateBatchSettings(None, {"a": True, "b": False}))
+        self.assertFalse(self.ToothAnalyserMicroCTWidget.validateBatchSettings(None, {"a": False, "b": False}))
+        self.assertFalse(self.ToothAnalyserMicroCTWidget.validateBatchSettings(None, {"a": True, "b": True}))
+        self.assertTrue(self.ToothAnalyserMicroCTWidget.validateBatchSettings(None, {"a": True, "label": "x"}))
 
     def testObserverParametersTriggersHandlers(self):
         """Test that parameter observer can run on a minimal stub without errors."""
@@ -141,32 +141,32 @@ class ToothAnalyserTestMixin:
             handleBatchCollapsible=MagicMock(),
         )
 
-        self.ToothAnalyserWidget.observerParameters(widget)
+        self.ToothAnalyserMicroCTWidget.observerParameters(widget)
 
     def testHandleApplyButtonDisablesDuringCompute(self):
         """Test apply button state in compute mode and regular modes."""
         widget = self._createWidgetStub()
         widget._param.currentImage = object()
 
-        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.ToothAnalyserMicroCTWidget.handleApplyButton(widget)
         self.assertTrue(widget.ui.apply.enabled)
         self.assertEqual(widget.ui.apply.text, "Apply")
 
         widget._isComputing = True
-        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.ToothAnalyserMicroCTWidget.handleApplyButton(widget)
         self.assertFalse(widget.ui.apply.enabled)
         self.assertEqual(widget.ui.apply.text, "Applying...")
 
         widget._isComputing = False
         widget._param.isBatch = True
-        self.ToothAnalyserWidget.handleApplyButton(widget)
+        self.ToothAnalyserMicroCTWidget.handleApplyButton(widget)
         self.assertEqual(widget.ui.apply.text, "Apply Batch")
 
     def testHandleBatchCollapsible(self):
         """Test input parameter visibility for batch and single modes."""
         widget = self._createWidgetStub()
         widget._param.isBatch = True
-        self.ToothAnalyserWidget.handleBatchCollapsible(widget)
+        self.ToothAnalyserMicroCTWidget.handleBatchCollapsible(widget)
         self.assertFalse(widget.ui.label_3.isVisible())
         self.assertFalse(widget.ui.currentImage.isVisible())
         self.assertTrue(widget.ui.label_4.isVisible())
@@ -177,7 +177,7 @@ class ToothAnalyserTestMixin:
         self.assertTrue(widget.ui.fileType.isVisible())
 
         widget._param.isBatch = False
-        self.ToothAnalyserWidget.handleBatchCollapsible(widget)
+        self.ToothAnalyserMicroCTWidget.handleBatchCollapsible(widget)
         self.assertTrue(widget.ui.label_3.isVisible())
         self.assertTrue(widget.ui.currentImage.isVisible())
         self.assertFalse(widget.ui.label_4.isVisible())
@@ -191,22 +191,22 @@ class ToothAnalyserTestMixin:
         """Test segmentation panel switching."""
         widget = self._createWidgetStub()
         widget._param.segmentation = "Anatomical Segmentation"
-        self.ToothAnalyserWidget.handleSegmentation(widget)
+        self.ToothAnalyserMicroCTWidget.handleSegmentation(widget)
         self.assertFalse(widget.ui.cariesCollapsible.isVisible())
 
         widget._param.segmentation = "Pathological Segmentation"
-        self.ToothAnalyserWidget.handleSegmentation(widget)
+        self.ToothAnalyserMicroCTWidget.handleSegmentation(widget)
         self.assertTrue(widget.ui.cariesCollapsible.isVisible())
 
     def testHandleProgressBarRange(self):
         """Test progress bar range setup for with/without medial surfaces."""
         widget = self._createWidgetStub()
         widget._param.anatomical.calcMidSurface = True
-        self.ToothAnalyserWidget.handleProgressBarRange(widget)
+        self.ToothAnalyserMicroCTWidget.handleProgressBarRange(widget)
         self.assertEqual(widget.ui.progressBar.maximum, 13)
 
         widget._param.anatomical.calcMidSurface = False
-        self.ToothAnalyserWidget.handleProgressBarRange(widget)
+        self.ToothAnalyserMicroCTWidget.handleProgressBarRange(widget)
         self.assertEqual(widget.ui.progressBar.maximum, 11)
 
     def testSafeRemoveNode(self):
@@ -263,6 +263,7 @@ class ToothAnalyserTestMixin:
         with tempfile.NamedTemporaryFile() as tmpfile:
             files = anatomicalSeg.collectFiles(tmpfile.name, anatomicalSeg._fileTypes)
             self.assertEqual(files, [])
+
 
     def testLoadResultsToSceneRequiresBothMidSurfaces(self):
         """Test that medial surface creation requires both enamel and dentin maps."""

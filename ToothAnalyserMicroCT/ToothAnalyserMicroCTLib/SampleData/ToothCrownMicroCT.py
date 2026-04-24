@@ -1,5 +1,5 @@
 """
-ToothAnalyserLib.SampleData.ToothCrownMicroCT
+ToothAnalyserMicroCTLib.SampleData.ToothCrownMicroCT
 =================================
 
 This module provides a function to register sample Data in

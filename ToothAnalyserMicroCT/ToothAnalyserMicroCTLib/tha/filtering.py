@@ -1,5 +1,5 @@
 """
-ToothAnalyserLib.tha.filtering
+ToothAnalyserMicroCTLib.tha.filtering
 ==============================
 This module provides a set of image processing utilities for 3D medical and dental image analysis,
 implemented using SimpleITK, NumPy, and Numba for high-performance computation.
@@ -13,12 +13,12 @@ but WITHOUT ANY WARRANTY
 Example Usage
 -------------
 In Python:
-    import ToothAnalyserLib.tha.filtering as filtering
+    import ToothAnalyserMicroCTLib.tha.filtering as filtering
     filtering.replace_labels(image, old_labels=(1, 2), new_labels=(10, 20))
     filtering.downsample_2("input.nii.gz", "output.nii.gz", use_median=True)
 
 From the command line:
-    $ python -m ToothAnalyserLib.tha.filtering downsample_2_main input.nii.gz output.nii.gz --use_median
+    $ python -m ToothAnalyserMicroCTLib.tha.filtering downsample_2_main input.nii.gz output.nii.gz --use_median
 
 Authors
 -------
@@ -39,7 +39,7 @@ try:
     import numba
 except ModuleNotFoundError:
     if slicer.util.confirmOkCancelDisplay(
-            "This module requires the 'numba' Python package. Click OK to install it now."):
+            "This module requires the 'numba' Python package. Click OK to install it now and click apply again."):
         slicer.util.pip_install("numba")
 
 
