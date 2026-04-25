@@ -1,5 +1,5 @@
 # Tutorial
-This chapter describes the parameter settings and functions of the Tooth Analyser in a concise,
+This chapter describes the parameter settings and functions of ToothAnalyserMicroCT in a concise,
 step-by-step way. The tutorial is structured to mirror the **Parameters** section in the Slicer UI,
 so you can follow the documentation in the same order you see the controls. Each section explains
 what the corresponding option does, when to use it, and what to expect from the results.
