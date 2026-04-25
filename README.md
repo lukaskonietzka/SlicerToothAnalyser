@@ -1,6 +1,6 @@
 ![Screenshot of the application](./Screenshots/logo.png)
 
-Tooth Analyser is an ongoing development effort for a 3D Slicer extension (SEM)
+ToothAnalyserMicroCT is an ongoing development effort for a 3D Slicer extension (SEM)
 designed for micro-computed tomography (microCT) scans of teeth. It provides
 specialized preprocessing, segmentation, and analysis features tailored for
 the analysis of tooth anatomy and pathology.
@@ -8,7 +8,7 @@ the analysis of tooth anatomy and pathology.
 Developed in collaboration between the *Department of Computer Science* at
 the Technical University of Augsburg and the *Department of Conservative
 Dentistry, Periodontology and Digital Dentistry* at the LMU Hospital, Munich. 
-The Tooth Analyser facilitates advanced dental research through automated and 
+ToothAnalyserMicroCT facilitates advanced dental research through automated and 
 semi-automatitc workflows.
 
 ## Table of Contents
@@ -44,22 +44,22 @@ processing methods, streamlining the analysis and enhancing reproducibility in
 dental research.
 
 ![Screenshot of the application](/Screenshots/fullView.png)  
-*Figure 1: Full view of the Tooth Analyser extension.*
+*Figure 1: Full view of the ToothAnalyserMicroCT extension.*
 
 ## 2. Installation
 To install the extension, follow the steps below in the correct order:
 1. Download and install the latest stable version of 3D Slicer for your operating system:  
    [https://download.slicer.org](https://download.slicer.org).
 2. Start the 3D Slicer application and open the Extension Manager (Menu: **View → Extension Manager**).
-3. Search for the extension _ToothAnalyser_ and install it via the **INSTALL** button.
+3. Search for the extension _ToothAnalyserMicroCT_ and install it via the **INSTALL** button.
 
 ## 3. Quick Start Guide
-To use the Tooth Analyser efficiently, follow these steps:
+To use ToothAnalyserMicroCT efficiently, follow these steps:
 
 - Start 3D Slicer.  
 - Load a microCT image using the import function of the 3D Slicer core application (**Menu: Data**)
     or use the provided sample Data in (**File: Download Sample Data → ToothCrownMicroCT**)
-- Switch to the Tooth Analyser module (**Modules: Segmentation → Tooth Analyser**).  
+- Switch to the ToothAnalyserMicroCT module (**Modules: Segmentation → ToothAnalyserMicroCT**).  
 - In the **Parameter** section, select the single mode.
 - Then select a µCT in the **Input Parameter** section.
 - Start the algorithm by clicking the **Apply** button.  
@@ -71,7 +71,7 @@ because medial filtering is used. If you want a qick result, select the checkbox
 Section.
 
 ## 4. Tutorials
-This chapter provides a detailed description of the parameter settings and capabilities of the Tooth Analyser.  
+This chapter provides a detailed description of the parameter settings and capabilities of ToothAnalyserMicroCT.  
 The extension is divided into several functions, each of which can be executed independently.  
 This chapter covers all components and explains them in detail.
 
@@ -132,7 +132,7 @@ The sample images are microCT scans provided open-source by the *Department of C
 You can download sample data here:  
 [Download Sample Data](https://github.com/lukaskonietzka/SlicerToothAnalyser/releases/download/v1.0.0/Z_149_C0005709_bm4_20.nii)
 
-⚠️ **Notice**: The Tooth Analyzer was specifically developed for microCT scans  
+⚠️ **Notice**: ToothAnalyserMicroCT was specifically developed for microCT scans  
 with tooth structures, which is why other types of CT scans may result in errors. 
 
 ## 9. Contributors and Organisation

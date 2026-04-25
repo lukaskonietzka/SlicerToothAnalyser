@@ -19,7 +19,7 @@ This chapter briefly covers each of these steps and highlights the most importan
 *Figure 1:* Pipeline steps of the anatomical segmentation, followed by optional post-processing
 
 ## 1. Image Input
-With the Tooth Analyser, it is generally possible to load all images in common formats.
+With ToothAnalyserMicroCT, it is generally possible to load all images in common formats.
 However, this method is primarily optimized for the -ISQ- format for images from the
 company [SCANCO MEDICAL](https://www.scanco.ch). For this reason, the following formats
 are distinguished:
@@ -36,7 +36,7 @@ smoothed. The check to determine whether an image has already been smoothed is b
 the standard deviation of the image. If it is below or above a certain threshold, the
 image is considered to be already smoothed.
 
-For the smoothing itself, the Tooth Analyser uses a Median Filter. This belongs to the
+For the smoothing itself, ToothAnalyserMicroCT uses a Median Filter. This belongs to the
 group of local operators and considers the direct neighboring pixels to calculate the
 smoothed gray value for the currently considered pixel.
 
