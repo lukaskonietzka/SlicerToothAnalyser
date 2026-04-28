@@ -2,7 +2,7 @@
 ToothAnalyserMicroCTLib.tha.filtering
 ==============================
 This module provides a set of image processing utilities for 3D medical and dental image analysis,
-implemented using SimpleITK, NumPy, and Numba for high-performance computation.
+implemented using SimpleITK and NumPy.
 
 The functions in this module support label manipulation, spatial downsampling, and several filtering
 methods commonly used for volumetric image preprocessing and noise reduction.
@@ -30,21 +30,12 @@ import argparse
 
 import numpy as np
 import SimpleITK as sitk
-import slicer
 from typing import Union
 
 from SimpleITK import Image
 
-try:
-    import numba
-except ModuleNotFoundError:
-    if slicer.util.confirmOkCancelDisplay(
-            "This module requires the 'numba' Python package. Click OK to install it now and click apply again."):
-        slicer.util.pip_install("numba")
 
-
-@numba.njit(parallel=True)
-def _replace_label_numba_uint8(
+def _replace_label_uint8(
     im_array: np.ndarray, old_gval: np.uint8, new_gval: np.uint8
 ) -> None:
     """
@@ -58,7 +49,7 @@ def _replace_label_numba_uint8(
     """
     im_array_1d = im_array.reshape((-1,))
     i_max = im_array_1d.shape[0]
-    for i in numba.prange(i_max):  # pylint: disable=not-an-iterable
+    for i in range(i_max):
         if im_array_1d[i] == old_gval:
             im_array_1d[i] = new_gval
 
@@ -79,7 +70,7 @@ def replace_labels(
     """
     in_np_data = sitk.GetArrayFromImage(in_im)
     for old, new in zip(old_labels, new_labels):
-        _replace_label_numba_uint8(in_np_data, old, new)
+        _replace_label_uint8(in_np_data, old, new)
     out_im = sitk.GetImageFromArray(in_np_data)
     out_im.SetSpacing(in_im.GetSpacing())
     out_im.SetOrigin(in_im.GetOrigin())
@@ -87,13 +78,11 @@ def replace_labels(
     return out_im
 
 
-@numba.njit(parallel=True)
-def downsample_2_numba(
+def downsample_2_array(
     in_array: np.ndarray, use_median: bool = False
 ) -> np.ndarray:
     """
-    Downsamples a 3D array using the mean filter. Numba is used to speed
-    up and to parallelise the calculations.
+    Downsamples a 3D array using the mean or median filter.
 
     Args:
     in_array (ndarray): The input 3D array to be downsampled.
@@ -111,7 +100,7 @@ def downsample_2_numba(
     out_array = np.zeros(shape=out_shape, dtype=in_array.dtype)
     out_maxvalue = np.iinfo(out_array.dtype).max
     z_max = out_array.shape[0]
-    for out_z in numba.prange(z_max):  # pylint: disable=not-an-iterable
+    for out_z in range(z_max):
         z = out_z * 2
         for out_y in range(out_array.shape[1]):
             y = out_y * 2
@@ -179,7 +168,7 @@ def downsample_2(
     """
     in_im = input_image
     in_im_array = sitk.GetArrayFromImage(in_im)
-    out_im_array = downsample_2_numba(in_im_array, use_median)
+    out_im_array = downsample_2_array(in_im_array, use_median)
     out_im = sitk.GetImageFromArray(out_im_array)
     out_im.SetDirection(in_im.GetDirection())
     in_spacing = in_im.GetSpacing()
@@ -223,7 +212,7 @@ def downsample_2_file_system(
     """
     in_im = sitk.ReadImage(in_file_name)
     in_im_array = sitk.GetArrayFromImage(in_im)
-    out_im_array = downsample_2_numba(in_im_array, use_median)
+    out_im_array = downsample_2_array(in_im_array, use_median)
     out_im = sitk.GetImageFromArray(out_im_array)
     out_im.SetDirection(in_im.GetDirection())
     in_spacing = in_im.GetSpacing()

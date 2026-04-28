@@ -26,19 +26,10 @@ import argparse
 import os
 from typing import TextIO
 
-import slicer.util
-
 import numpy as np
 import SimpleITK as sitk
 
-try:
-    import numba
-except ModuleNotFoundError:
-    if slicer.util.confirmOkCancelDisplay(
-            "This module requires the 'numba' Python package. Click OK to install it now."):
-        slicer.util.pip_install("numba")
-
-from .filtering import downsample_2_numba
+from .filtering import downsample_2_array
 
 
 def _get_label_set(arr: np.ndarray, background_label: int = 0) -> set[int]:
@@ -57,8 +48,7 @@ def _get_label_set(arr: np.ndarray, background_label: int = 0) -> set[int]:
     return set(label_array) - set((background_label,))
 
 
-@numba.njit(parallel=True)
-def _label_stats_numba(
+def _label_stats(
     arr1: np.ndarray,
     arr2: np.ndarray,
     label_array: np.ndarray,
@@ -73,7 +63,7 @@ def _label_stats_numba(
     arr2 = arr2.reshape(-1)
 
     max_index = label_array.shape[0]
-    for l in numba.prange(max_index):  # pylint: disable=not-an-iterable
+    for l in range(max_index):
         label = label_array[l]
         for i in range(arr1.shape[0]):
             if arr1[i] == label:
@@ -121,7 +111,6 @@ def store_segmentation_metrics(
     Returns:
         None: This function does not return anything.
     """
-
     labels_1 = _get_label_set(arr1, background_label=background_label)
     labels_2 = _get_label_set(arr2, background_label=background_label)
     common_labels = []
@@ -139,7 +128,7 @@ def store_segmentation_metrics(
                 if l not in common_labels:
                     common_labels.append(l)
     common_label_array = np.array(common_labels, dtype=np.uint8)
-    dice_array = _label_stats_numba(arr1, arr2, common_label_array)
+    dice_array = _label_stats(arr1, arr2, common_label_array)
     out_file.write(f"{pattern} {dice_array[0]} {dice_array[1]} ")
     # Coefficients for individual labels
     for i, label in enumerate(common_labels):
@@ -180,12 +169,12 @@ def _process_image_pair(
                 im1_spacing, im2_double_spacing
             ):
                 print(f"Downsampling image {im2_basename} by factor 2")
-                arr2 = downsample_2_numba(arr2, use_median=True)
+                arr2 = downsample_2_array(arr2, use_median=True)
             elif arr2.shape == arr1_half_shape and np.allclose(
                 im2_spacing, im1_double_spacing
             ):
                 print(f"Downsampling image {im1_basename} by factor 2")
-                arr1 = downsample_2_numba(arr1, use_median=True)
+                arr1 = downsample_2_array(arr1, use_median=True)
             else:
                 raise ValueError("Incompatible image sizes or spacings")
         store_segmentation_metrics(arr1, arr2, pattern, out_file)
