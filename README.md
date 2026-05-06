@@ -67,7 +67,7 @@ To use ToothAnalyserMicroCT efficiently, follow these steps:
 - The algorithm is finished when the progress bar reaches 100% an the result ist visible.
 
 ⚠️ **Notice**: With very high-resolution images, the algorithm can take a very long time depending on the machine, 
-because medial filtering is used. If you want a qick result, select the checkbox **compress** in the **Parameter**
+because medial filtering is used. If you want a qick result, select the checkbox **reduce resolution** in the **Parameter**
 Section.
 
 ## 4. Tutorials

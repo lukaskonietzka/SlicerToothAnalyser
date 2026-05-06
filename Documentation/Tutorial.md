@@ -12,7 +12,7 @@ what the corresponding option does, when to use it, and what to expect from the 
 - [3. Additional](#3-additional)
   - [3.1 Mesh Creation](#31-mesh-creation)
   - [3.2 Medial Surfaces](#32-medial-surfaces)
-  - [3.3 Compress](#33-compress)
+  - [3.3 Reduce Resolution](#33-reduce-resolution)
 - [4. Possibilities](#4-possibilities)
   - [4.1 Caries Classification](#41-caries-classification)
   - [4.2 Complex Root Analysis](#42-complex-root-analysis)
@@ -96,10 +96,10 @@ disabled depending on the analysis target and required output.
   segmentation. These surfaces can be overlaid with the original image and are required for
   downstream analyses such as caries classification.
 
-### 3.3 Compress
-- **compress**: Downsamples the input image before processing. This can significantly reduce
-  runtime on large datasets, but it also reduces accuracy. If you compress multiple times, runtime
-  drops further while accuracy decreases with each additional compression. For high-quality results,
+### 3.3 Reduce Resolution
+- **reduce resolution**: Downsamples the input image before processing. This can significantly reduce
+  runtime on large datasets, but it also reduces accuracy. If you reduce resolution multiple times, runtime
+  drops further while accuracy decreases with each additional reduction. For high-quality results,
   prefer running on a high-resolution image and accept longer processing times.
 
 ## 4. Possibilities
@@ -123,6 +123,6 @@ Runtime depends strongly on your system and the dataset. The largest share of ru
 comes from the **median smoothing** step: it operates on the full 3D volume and evaluates local
 neighborhoods for every voxel, so processing time grows quickly with image size. Large images,
 medial surface computation, mesh creation, and batch processing all further increase runtime.
-Use the progress bar to monitor the current step, and consider **compress** for faster processing
-when appropriate. **Compress** reduces the volume resolution before smoothing, which speeds up
+Use the progress bar to monitor the current step, and consider **reduce resolution** for faster processing
+when appropriate. **Reduce Resolution** reduces the volume resolution before smoothing, which speeds up
 runtime noticeably but also lowers spatial detail and can reduce segmentation quality.
