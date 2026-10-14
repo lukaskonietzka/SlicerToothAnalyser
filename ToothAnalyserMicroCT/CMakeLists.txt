@@ -4,6 +4,17 @@ set(MODULE_NAME ToothAnalyserMicroCT)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
+  ${MODULE_NAME}Lib/Algorithms/__init__.py
+  ${MODULE_NAME}Lib/Algorithms/Anatomical.py
+  ${MODULE_NAME}Lib/Algorithms/Scanco.py
+  ${MODULE_NAME}Lib/Algorithms/utils.py
+  ${MODULE_NAME}Lib/SampleData/__init__.py
+  ${MODULE_NAME}Lib/SampleData/ToothCrownMicroCT.py
+  ${MODULE_NAME}Lib/tha/__init__.py
+  ${MODULE_NAME}Lib/tha/filtering.py
+  ${MODULE_NAME}Lib/tha/ml.py
+  ${MODULE_NAME}Lib/tha/segmentation.py
+  ${MODULE_NAME}Lib/tha/util.py
   Testing/Python/${MODULE_NAME}Tests.py
   )
 

@@ -48,11 +48,6 @@ module_dir = os.path.dirname(__file__)
 lib_path = os.path.join(module_dir, 'ToothAnalyserMicroCTLib')
 test_path = os.path.join(module_dir, 'Testing', 'Python')
 
-if lib_path not in sys.path:
-    sys.path.insert(0, lib_path)
-if test_path not in sys.path:
-    sys.path.insert(0, test_path)
-
 
 # ----- ToothAnalyserMicroCT meta information ----- #
 class ToothAnalyserMicroCT(ScriptedLoadableModule):
