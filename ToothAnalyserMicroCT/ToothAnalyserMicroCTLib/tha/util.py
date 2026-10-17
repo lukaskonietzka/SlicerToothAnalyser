@@ -14,11 +14,6 @@ but WITHOUT ANY WARRANTY.
 
 Example Usage
 -------------
-In Python:
-    import ToothAnalyserMicroCTLib.tha.util as util
-    util.convert_isq("sample.isq", "sample.nii.gz")
-    util.corresponding_files_to_file("dirA", "dirB", r"(\d+)", ".bak", "pairs.txt")
-
 From the command line:
     $ python -m ToothAnalyserMicroCTLib.tha.util convert_isq_main sample.isq sample.nii.gz
 
