@@ -12,11 +12,6 @@ and comparing intensity profiles across multiple 3D images.
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY.
 
-Example Usage
--------------
-From the command line:
-    $ python -m ToothAnalyserMicroCTLib.tha.util convert_isq_main sample.isq sample.nii.gz
-
 Author
 -------
 Peter Rösch, peter.roesch@tha.de
