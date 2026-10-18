@@ -35,11 +35,12 @@ from slicer import vtkMRMLScalarVolumeNode
 from ToothAnalyserMicroCTLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
 # load images for Help and Acknowledgement section
-scriptDir = os.path.dirname(__file__)
-projectRoot = os.path.abspath(os.path.join(scriptDir, ".."))
-relativePathLogo = os.path.join(projectRoot, "Screenshots", "logo.png")
-relativePathTHA = os.path.join(projectRoot, "Screenshots", "logoTHA.png")
-relativePathLMU = os.path.join(projectRoot, "Screenshots", "logoLMU.svg")
+scriptDir = os.path.dirname(os.path.abspath(__file__))
+iconsDir = os.path.join(scriptDir, "Resources", "Icons")
+
+relativePathLogo = os.path.join(iconsDir, "logo.png")
+relativePathTHA = os.path.join(iconsDir, "logoTHA.png")
+relativePathLMU = os.path.join(iconsDir, "logoLMU.svg")
 
 # path to main module (ToothAnalyserMicroCT.py)
 module_dir = os.path.dirname(__file__)

@@ -7,9 +7,6 @@ This module provides a function to register sample Data in
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY.
 
-Example Usage
--------------
-
 Author
 -------
 Lukas Konietzka, lukas.konietzka@tha.de
@@ -27,7 +24,11 @@ def registerToothCrownMicroCT8Bit():
     repository lightweight and fast to clone.
     """
 
-    iconsPath = os.path.join(os.path.dirname(__file__), "Resources/Icons")
+    # Path to module root: ToothAnalyserMicroCT/
+    moduleRoot = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..")
+    )
+    iconsPath = os.path.join(moduleRoot, "Resources", "Icons")
 
     # fist sample CT -> ToothCrownMicroCT
     SampleData.SampleDataLogic.registerCustomSampleDataSource(
