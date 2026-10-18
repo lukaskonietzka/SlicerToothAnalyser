@@ -7,7 +7,6 @@ This module provides general standard functions and decorators that may be usefu
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY.
 
-
 Author
 -------
 Lukas Konietzka, lukas.konietzka@tha.de

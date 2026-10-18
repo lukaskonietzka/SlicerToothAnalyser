@@ -21,6 +21,10 @@ set(MODULE_PYTHON_SCRIPTS
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/${MODULE_NAME}.png
   Resources/UI/${MODULE_NAME}.ui
+  Resources/Icons/logo.png
+  Resources/Icons/logoTHA.png
+  Resources/Icons/logoLMU.svg
+  Resources/Icons/SampleData.png
   )
 
 #-----------------------------------------------------------------------------

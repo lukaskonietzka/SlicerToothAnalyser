@@ -1,4 +1,4 @@
-![Screenshot of the application](./Screenshots/logo.png)
+![Screenshot of the application](ToothAnalyserMicroCT/Resources/Icons/logo.png)
 
 ToothAnalyserMicroCT is an ongoing development effort for a 3D Slicer extension (SEM)
 designed for micro-computed tomography (microCT) scans of teeth. It provides
