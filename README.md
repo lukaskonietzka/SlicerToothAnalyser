@@ -17,10 +17,14 @@ semi-automatitc workflows.
 - [3. Quick Start Guide](#3-quick-start-guide)
 - [4. Tutorials](#4-tutorials)
 - [5. Anatomical Segmentation](#5-anatomical-segmentation)
-- [6. Developers](#6-developers)
-- [7. Visualize and Save Results](#7-visualize-and-save-results)
-- [8. Sample Data](#8-sample-data)
-- [9. Contributors and Organisation](#9-contributors-and-organisation)
+- [6. ToothAnalyserMicroCTLib](#6-toothanalysermicroctlib)
+  - [6.1. Algorithms](#61-algorithms)
+  - [6.2. SampleData](#62-sampledata)
+  - [6.3. tha](#63-tha)
+- [7. Developers](#7-developers)
+- [8. Visualize and Save Results](#8-visualize-and-save-results)
+- [9. Sample Data](#9-sample-data)
+- [10. Contributors and Organisation](#10-contributors-and-organisation)
 
 ## 1. Introduction and Purpose
 MicroCT has become a cornerstone in dental research, offering high-resolution,
@@ -96,14 +100,46 @@ clearly separated in the documentation.
 
 [Check out the explanation for the anatomical segmentation](Documentation/AnatomicalSegmentation.md)
 
-## 6. Developers
+## 6. ToothAnalyserMicroCTLib
+`ToothAnalyserMicroCTLib` contains the reusable Python packages used by the
+ToothAnalyserMicroCT extension. The packages can also be used from the 3D Slicer
+Python console by importing them directly.
+
+### 6.1. Algorithms
+This package contains the core image-processing and anatomical segmentation
+algorithms, including Scanco image conversion and shared algorithm utilities.
+
+```python
+from ToothAnalyserMicroCTLib.Algorithms import Anatomical
+```
+
+### 6.2. SampleData
+This package contains the registration code for sample datasets that can be
+loaded through 3D Slicer’s Sample Data module.
+
+```python
+from ToothAnalyserMicroCTLib.SampleData import ToothCrownMicroCT
+```
+
+### 6.3. tha
+This package provides reusable image-processing, segmentation, machine-learning,
+and utility functions. It can be imported directly from the Python console.
+
+```python
+import ToothAnalyserMicroCTLib.tha.filtering as filtering
+```
+
+The filtering and segmentation modules also provide command-line entry points,
+which can be called with `python -m` when using the Slicer Python environment.
+
+## 7. Developers
 This section goes into great detail and provides a technical introduction to the implementation.
 For all developers who want to extend or understand this module, this chapter is particularly relevant.  
 For more details, we also refer to the documentation.
 
 [Check out the developer guide](Documentation/Developers.md)
 
-## 7. Visualize and Save Results
+## 8. Visualize and Save Results
 When the algorithm is finished, the results are automatically loaded into the Slicer scene,  
 making them immediately accessible. However, you can also perform more detailed analyses with this segmentation.
 
@@ -122,7 +158,7 @@ making them immediately accessible. However, you can also perform more detailed 
 ![Screenshot of the application](./Screenshots/result.gif)  
 *Figure 2: Result view in the module Data.*
 
-## 8. Sample Data
+## 9. Sample Data
 The module includes sample data primarily for testing purposes.  
 However, they can also be used to gain initial experience with the module.  
 The sample data ensures that the module is accessible to everyone.
@@ -135,7 +171,7 @@ You can download sample data here:
 ⚠️ **Notice**: ToothAnalyserMicroCT was specifically developed for microCT scans  
 with tooth structures, which is why other types of CT scans may result in errors. 
 
-## 9. Contributors and Organisation
+## 10. Contributors and Organisation
 The development of this extension is a collaboration between the Department of Conservative Dentistry and Periodontology, University Hospital, LMU Munich and the Faculty of Computer Science at the
 Technical University of Augsburg.
 

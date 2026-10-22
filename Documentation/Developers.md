@@ -11,7 +11,6 @@ required to add additional functionality.
   - [3.2. Imported classes and methods](#32-imported-classes)
   - [3.3. Extending the Architecture](#33-extending-the-architecture)
   - [3.4. Extending Example (Pathological Segmentation)](#34-extending-example)
-- [4. Build a Python module](#4-build-a-python-module)
 
 ## 1. Get started with 3D Slicer development
 Before development can begin, settings must be configured in both Slicer and the module
@@ -97,24 +96,3 @@ how a new segmentation algorithm can be integrated. Use it as a template for you
 
 When you add your own segmentation class, also add it to the `segmentation` field in the
 **ToothAnalyserMicroCTParameterNode** so it appears in the UI selector.
-
-## 4. Build a Python module
-Complex algorithms should live in a **standalone Python module** under
-`ToothAnalyserMicroCT/ToothAnalyserMicroCTLib/` so that UI and Slicer glue stay minimal.
-Use this structure as a reference:
-```markdown
-└── ToothAnalyserMicroCTLib
-    ├── Algorithms
-    │   ├── Anatomical.py
-    │   ├── Scanco.py
-    │   └── utils.py
-    ├── SampleData
-    └── tha
-```
-
-Recommended workflow:
-- Create a new module file in `ToothAnalyserMicroCT/ToothAnalyserMicroCTLib/Algorithms/` (or in `tha/` if it fits that package).
-- Keep the module **Slicer-agnostic**. Accept plain Python types where possible and isolate Slicer-specific IO to
-  `ToothAnalyserMicroCT.py` or thin adapters.
-- Expose a small public API (one or two functions or a class) that your `ToothAnalyserMicroCTLogic` subclass can call.
-- Import and call the module from your logic class, not from the widget.
