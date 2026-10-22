@@ -1,0 +1,23 @@
+name: Validate Slicer extension structure
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  structure:
+    name: Check extension structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate structure and Python syntax
+        run: python3 .github/scripts/check_slicer_extension.py

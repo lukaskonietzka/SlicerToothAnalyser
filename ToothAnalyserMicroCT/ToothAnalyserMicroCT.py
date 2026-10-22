@@ -34,16 +34,8 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 from ToothAnalyserMicroCTLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
-# load images for Help and Acknowledgement section
-scriptDir = os.path.dirname(os.path.abspath(__file__))
-iconsDir = os.path.join(scriptDir, "Resources", "Icons")
-
-relativePathLogo = os.path.join(iconsDir, "logo.png")
-relativePathTHA = os.path.join(iconsDir, "logoTHA.png")
-relativePathLMU = os.path.join(iconsDir, "logoLMU.svg")
-
 # path to main module (ToothAnalyserMicroCT.py)
-module_dir = os.path.dirname(__file__)
+module_dir = os.path.dirname(os.path.abspath(__file__))
 
 # path to library folder (ToothAnalyserMicroCTLib)
 lib_path = os.path.join(module_dir, 'ToothAnalyserMicroCTLib')
@@ -58,6 +50,9 @@ class ToothAnalyserMicroCT(ScriptedLoadableModule):
     this class can be used."""
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
+        relativePathLogo = self.resourcePath("Icons/logo.png")
+        relativePathTHA = self.resourcePath("Icons/logoTHA.png")
+        relativePathLMU = self.resourcePath("Icons/logoLMU.svg")
         self.parent.title = _("ToothAnalyserMicroCT")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []
@@ -215,6 +210,7 @@ class ToothAnalyserMicroCTWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         Called when the application closes and
         the module widget is destroyed.
         """
+        self.setParameterNode(None)
         self.removeObservers()
 
     def enter(self) -> None:
@@ -231,10 +227,7 @@ class ToothAnalyserMicroCTWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         Called each time the user opens a different module.
         """
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
-        if self._param:
-            self._param.disconnectGui(self._parameterNodeGuiTag)
-            self._parameterNodeGuiTag = None
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self.observerParameters)
+        self.setParameterNode(None)
 
     def onSceneStartClose(self, caller, event) -> None:
         """
@@ -285,9 +278,29 @@ class ToothAnalyserMicroCTWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         Note: Note: in the .ui file, a Qt dynamic property called "SlicerParameterName" is set on each.
         @param inputParameterNode:  The ParameterNode from the module
         """
+        if self._param is inputParameterNode and (
+            self._param is None
+            or self.hasObserver(
+                self._param,
+                vtk.vtkCommand.ModifiedEvent,
+                self.observerParameters,
+            )
+        ):
+            return
+
         if self._param:
             self._param.disconnectGui(self._parameterNodeGuiTag)
-            self.removeObserver(self._param, vtk.vtkCommand.ModifiedEvent, self.observerParameters)
+            self._parameterNodeGuiTag = None
+            if self.hasObserver(
+                self._param,
+                vtk.vtkCommand.ModifiedEvent,
+                self.observerParameters,
+            ):
+                self.removeObserver(
+                    self._param,
+                    vtk.vtkCommand.ModifiedEvent,
+                    self.observerParameters,
+                )
         self._param = inputParameterNode
         if self._param:
             # ui element that needs connection.

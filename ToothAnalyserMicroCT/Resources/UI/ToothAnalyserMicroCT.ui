@@ -105,7 +105,7 @@
          <string>Compress the selected image</string>
         </property>
         <property name="text">
-         <string>reduce Resulition</string>
+         <string>reduce resolution</string>
         </property>
         <property name="SlicerParameterName" stdset="0">
          <string>pre.compress</string>
