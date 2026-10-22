@@ -12,10 +12,11 @@ calculate an anatomical segmentation starting from µCTs
 
 import os
 import logging
+import numpy as np
 import SimpleITK as sitk
 from SimpleITK import Image
 
-from .Scanco import isq_to_mhd_as_string
+from .Scanco import _read_isq_param
 from .utils import measure_time
 from ..tha.filtering import downsample_2
 
@@ -432,17 +433,36 @@ def getDirectoryForFile(filePath: str) -> str:
 def loadISQ(path: str) -> Image:
     """
     This methode loads an ISQ-File from a given directory
-    and convert it into an MHD-File by using the
-    isq_to_mhd module from Peter Rösch
+    and convert it into a SimpleITK image using the
+    Scanco header information from the ISQ file.
     @param path: the path to the ISQ-File to be loaded
-    @return: The loaded and converted MHD-File
+    @return: The loaded SimpleITK image
     @example:
         path = "/data/MicroCT/Original_ISQ/P01A-C0005278.ISQ"
-        image = isq_to_mhd(path)
-        image -> "P01A-C0005278.mhd"
+        image = loadISQ(path)
     """
-    img = isq_to_mhd_as_string(path)
-    return sitk.ReadImage(img)
+    mhd_parameters, data_offset, _grey_range = _read_isq_param(path)
+    dimensions = tuple(
+        int(dimension) for dimension in mhd_parameters["DimSize"].split()
+    )
+    spacing = tuple(
+        float(value) for value in mhd_parameters["ElementSpacing"].split()
+    )
+    voxel_count = int(np.prod(dimensions))
+    array = np.fromfile(
+        path,
+        dtype=np.int16,
+        offset=data_offset,
+        count=voxel_count,
+    )
+    if array.size != voxel_count:
+        raise ValueError(
+            f"ISQ file contains {array.size} voxels, expected {voxel_count}."
+        )
+
+    image = sitk.GetImageFromArray(array.reshape(dimensions[::-1]))
+    image.SetSpacing(spacing)
+    return image
 
 
 # ----- Load MHD-File ----- #
