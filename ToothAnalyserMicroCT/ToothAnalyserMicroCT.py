@@ -34,16 +34,8 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 from ToothAnalyserMicroCTLib.SampleData.ToothCrownMicroCT import registerToothCrownMicroCT8Bit
 
-# load images for Help and Acknowledgement section
-scriptDir = os.path.dirname(os.path.abspath(__file__))
-iconsDir = os.path.join(scriptDir, "Resources", "Icons")
-
-relativePathLogo = os.path.join(iconsDir, "logo.png")
-relativePathTHA = os.path.join(iconsDir, "logoTHA.png")
-relativePathLMU = os.path.join(iconsDir, "logoLMU.svg")
-
 # path to main module (ToothAnalyserMicroCT.py)
-module_dir = os.path.dirname(__file__)
+module_dir = os.path.dirname(os.path.abspath(__file__))
 
 # path to library folder (ToothAnalyserMicroCTLib)
 lib_path = os.path.join(module_dir, 'ToothAnalyserMicroCTLib')
@@ -58,6 +50,9 @@ class ToothAnalyserMicroCT(ScriptedLoadableModule):
     this class can be used."""
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
+        relativePathLogo = self.resourcePath("Icons/logo.png")
+        relativePathTHA = self.resourcePath("Icons/logoTHA.png")
+        relativePathLMU = self.resourcePath("Icons/logoLMU.svg")
         self.parent.title = _("ToothAnalyserMicroCT")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Segmentation")]
         self.parent.dependencies = []
